@@ -1,0 +1,112 @@
+use crate::tools::progress::ProgressTracker;
+use crate::tools::traits::Scanner;
+use crate::tools::path_utils;
+use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
+
+pub struct TerraformScanner {
+    targets: Vec<String>,
+}
+
+impl TerraformScanner {
+    pub fn new() -> Self {
+        Self {
+            targets: vec![
+                ".terragrunt-cache".to_string(),
+                ".terraform.lock.hcl".to_string(),
+                ".terraform".to_string(),
+            ],
+        }
+    }
+
+    pub fn with_targets(targets: Vec<String>) -> Self {
+        Self { targets }
+    }
+
+    fn should_include(&self, file_name: &str) -> bool {
+        self.targets.iter().any(|target| file_name == target)
+    }
+}
+
+impl Default for TerraformScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Scanner for TerraformScanner {
+    fn scan(&self, root: &Path) -> Vec<PathBuf> {
+        let mut found_items = Vec::new();
+
+        let total_entries: u64 = WalkDir::new(root)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .count() as u64;
+
+        let progress = ProgressTracker::new(total_entries, "掃描中");
+
+        for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+            let file_name = entry.file_name().to_string_lossy();
+
+            if self.should_include(&file_name) {
+                found_items.push(entry.path().to_path_buf());
+            }
+
+            progress.inc();
+        }
+
+        progress.finish_with_message("掃描完成");
+
+        // 過濾掉子路徑，只保留最上層的路徑
+        let original_items = found_items.clone();
+        let filtered_items = path_utils::filter_subpaths(found_items);
+        let filtered_count =
+            path_utils::count_filtered_subpaths(&original_items, &filtered_items);
+
+        if filtered_count > 0 {
+            println!("已過濾 {} 個重複的子項目", filtered_count);
+        }
+
+        filtered_items
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile;
+
+    #[test]
+    fn test_terraform_scanner_should_include() {
+        let scanner = TerraformScanner::new();
+        assert!(scanner.should_include(".terraform"));
+        assert!(scanner.should_include(".terragrunt-cache"));
+        assert!(scanner.should_include(".terraform.lock.hcl"));
+        assert!(!scanner.should_include("other_file.txt"));
+    }
+
+    #[test]
+    fn test_custom_targets() {
+        let scanner = TerraformScanner::with_targets(vec!["custom_target".to_string()]);
+        assert!(scanner.should_include("custom_target"));
+        assert!(!scanner.should_include(".terraform"));
+    }
+
+    #[test]
+    fn test_scan_finds_terragrunt_cache_and_filters_children() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let terragrunt_cache = temp_dir.path().join(".terragrunt-cache");
+
+        // 模擬 terragrunt 下載的模組內部還有 .terraform 目錄
+        let nested_terraform = terragrunt_cache.join("module/.terraform");
+        fs::create_dir_all(&nested_terraform).unwrap();
+        fs::write(nested_terraform.join("dummy.txt"), "test").unwrap();
+
+        let scanner = TerraformScanner::new();
+        let mut results = scanner.scan(temp_dir.path());
+        results.sort();
+
+        assert_eq!(results, vec![terragrunt_cache]);
+    }
+}
