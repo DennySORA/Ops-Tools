@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-/// 路徑工具模組 - 提供路徑相關的工具函數
+// 路徑工具模組 - 提供路徑相關的工具函數
 
 /// 檢查 child 是否是 parent 的子路徑
 pub fn is_subpath(child: &Path, parent: &Path) -> bool {
@@ -25,9 +25,9 @@ pub fn filter_subpaths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
 
     for path in sorted_paths {
         // 檢查這個路徑是否是已經在 filtered 中的任何路徑的子路徑
-        let is_child = filtered.iter().any(|parent: &PathBuf| {
-            is_subpath(&path, parent)
-        });
+        let is_child = filtered
+            .iter()
+            .any(|parent: &PathBuf| is_subpath(&path, parent));
 
         // 只添加不是任何已存在路徑的子路徑的項目
         if !is_child {

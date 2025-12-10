@@ -86,6 +86,7 @@ impl ReportGenerator {
         }
     }
 
+    #[allow(dead_code)]
     pub fn show_grouped_report(&self, results: &[OperationResult]) {
         use std::collections::HashMap;
 
@@ -93,7 +94,7 @@ impl ReportGenerator {
         for result in results {
             grouped
                 .entry(result.operation_type)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(result);
         }
 

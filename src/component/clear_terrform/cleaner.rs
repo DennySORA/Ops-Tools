@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use crate::tools::remove;
 use crate::tools::progress::ProgressTracker;
+use crate::tools::remove;
 use crate::tools::traits::{Cleaner, OperationResult, OperationType};
+use std::path::PathBuf;
 
 pub struct FileCleaner;
 
@@ -42,7 +42,6 @@ impl Cleaner for FileCleaner {
 mod tests {
     use super::*;
     use std::fs;
-    use tempfile;
 
     #[test]
     fn test_file_cleaner_creation() {

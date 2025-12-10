@@ -1,6 +1,6 @@
+use crate::tools::path_utils;
 use crate::tools::progress::ProgressTracker;
 use crate::tools::traits::Scanner;
-use crate::tools::path_utils;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -19,6 +19,7 @@ impl TerraformScanner {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_targets(targets: Vec<String>) -> Self {
         Self { targets }
     }
@@ -60,8 +61,7 @@ impl Scanner for TerraformScanner {
         // 過濾掉子路徑，只保留最上層的路徑
         let original_items = found_items.clone();
         let filtered_items = path_utils::filter_subpaths(found_items);
-        let filtered_count =
-            path_utils::count_filtered_subpaths(&original_items, &filtered_items);
+        let filtered_count = path_utils::count_filtered_subpaths(&original_items, &filtered_items);
 
         if filtered_count > 0 {
             println!("已過濾 {} 個重複的子項目", filtered_count);
@@ -75,7 +75,6 @@ impl Scanner for TerraformScanner {
 mod tests {
     use super::*;
     use std::fs;
-    use tempfile;
 
     #[test]
     fn test_terraform_scanner_should_include() {

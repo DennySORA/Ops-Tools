@@ -81,6 +81,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::const_is_empty)]
     fn ai_tools_list_should_not_be_empty() {
         assert!(!AI_TOOLS.is_empty());
     }

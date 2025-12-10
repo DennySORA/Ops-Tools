@@ -78,6 +78,7 @@ impl UserInterface {
         selection == 0
     }
 
+    #[allow(dead_code)]
     pub fn select<'a>(&self, prompt: &str, items: &'a [&'a str]) -> Option<usize> {
         Select::with_theme(&self.theme)
             .with_prompt(prompt)
@@ -86,6 +87,7 @@ impl UserInterface {
             .ok()
     }
 
+    #[allow(dead_code)]
     pub fn select_with_default<'a>(
         &self,
         prompt: &str,
