@@ -38,10 +38,8 @@ impl TerragruntExecutor {
         // 即時顯示輸出
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                if let Ok(line) = line {
-                    println!("  {}", line);
-                }
+            for line in reader.lines().map_while(Result::ok) {
+                println!("  {}", line);
             }
         }
 
@@ -62,6 +60,7 @@ impl TerragruntExecutor {
     }
 
     /// 檢查 terragrunt 是否已安裝
+    #[allow(dead_code)]
     pub fn check_installed() -> bool {
         Command::new("terragrunt").arg("--version").output().is_ok()
     }
@@ -81,10 +80,8 @@ impl TerragruntExecutor {
 
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                if let Ok(line) = line {
-                    println!("  {}", line);
-                }
+            for line in reader.lines().map_while(Result::ok) {
+                println!("  {}", line);
             }
         }
 

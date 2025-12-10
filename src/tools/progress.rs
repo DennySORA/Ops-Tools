@@ -34,6 +34,7 @@ impl ProgressTracker {
         self.bar.inc(1);
     }
 
+    #[allow(dead_code)]
     pub fn inc_by(&self, delta: u64) {
         self.bar.inc(delta);
     }
@@ -42,10 +43,12 @@ impl ProgressTracker {
         self.bar.set_position(pos);
     }
 
+    #[allow(dead_code)]
     pub fn set_message(&self, message: &str) {
         self.bar.set_message(message.to_string());
     }
 
+    #[allow(dead_code)]
     pub fn finish(&self) {
         self.bar.finish();
     }

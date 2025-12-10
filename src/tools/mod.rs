@@ -5,9 +5,9 @@ pub(crate) mod remove;
 pub mod traits;
 
 // 共用 UI 組件
-pub mod ui;
 pub mod progress;
 pub mod report;
+pub mod ui;
 
 // 工具函數
 pub mod path_utils;

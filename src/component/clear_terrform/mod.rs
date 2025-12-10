@@ -1,12 +1,12 @@
 mod cleaner;
 mod scanner;
 
-use std::path::Path;
-use cleaner::FileCleaner;
-use scanner::TerraformScanner;
+use crate::tools::report::ReportGenerator;
 use crate::tools::traits::{Cleaner, Scanner};
 use crate::tools::ui::UserInterface;
-use crate::tools::report::ReportGenerator;
+use cleaner::FileCleaner;
+use scanner::TerraformScanner;
+use std::path::Path;
 
 /// Terraform 清理服務 - 協調所有組件完成清理任務
 /// 應用了 Facade 模式來簡化複雜的子系統互動
@@ -39,7 +39,8 @@ impl<S: Scanner, C: Cleaner> TerraformCleanService<S, C> {
 
         // 3. 檢查是否找到項目
         if found_items.is_empty() {
-            self.ui.warning("沒有找到任何 Terraform/Terragrunt 快取檔案");
+            self.ui
+                .warning("沒有找到任何 Terraform/Terragrunt 快取檔案");
             return;
         }
 
@@ -51,7 +52,10 @@ impl<S: Scanner, C: Cleaner> TerraformCleanService<S, C> {
         );
 
         // 5. 確認是否刪除
-        if !self.ui.confirm_with_options("確定要刪除這些項目嗎？", false) {
+        if !self
+            .ui
+            .confirm_with_options("確定要刪除這些項目嗎？", false)
+        {
             self.ui.warning("已取消刪除操作");
             return;
         }
@@ -91,8 +95,8 @@ pub fn clean_terraform_cache() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use crate::tools::traits::OperationResult;
+    use std::path::PathBuf;
 
     // Mock Scanner for testing
     struct MockScanner {
