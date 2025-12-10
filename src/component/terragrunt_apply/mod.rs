@@ -1,11 +1,11 @@
 mod directory_scanner;
 mod executor;
 
-use std::path::Path;
+use crate::tools::report::ReportGenerator;
+use crate::tools::ui::UserInterface;
 use directory_scanner::DirectoryScanner;
 use executor::TerragruntExecutor;
-use crate::tools::ui::UserInterface;
-use crate::tools::report::ReportGenerator;
+use std::path::Path;
 
 /// Terragrunt Apply 服務配置
 pub struct TerragruntApplyConfig {
@@ -25,6 +25,7 @@ impl Default for TerragruntApplyConfig {
 }
 
 /// Terragrunt Apply 服務 - 批次執行 terragrunt apply
+#[allow(dead_code)]
 pub struct TerragruntApplyService {
     config: TerragruntApplyConfig,
     ui: UserInterface,
@@ -70,14 +71,15 @@ impl TerragruntApplyService {
         }
 
         // 2. 顯示找到的目錄並讓使用者選擇要跳過的
-        self.ui.info(&format!("\n找到 {} 個目錄:", directories.len()));
+        self.ui
+            .info(&format!("\n找到 {} 個目錄:", directories.len()));
         for (idx, dir) in directories.iter().enumerate() {
             self.ui.list_item(
                 &format!("{}.", idx + 1),
-                &dir.file_name()
+                dir.file_name()
                     .unwrap_or_default()
                     .to_string_lossy()
-                    .to_string(),
+                    .as_ref(),
             );
         }
 
@@ -91,19 +93,23 @@ impl TerragruntApplyService {
 
         // 4. 顯示將要處理的目錄
         self.ui.separator();
-        self.ui.info(&format!("將要處理 {} 個目錄:", selected_directories.len()));
+        self.ui
+            .info(&format!("將要處理 {} 個目錄:", selected_directories.len()));
         for (idx, dir) in selected_directories.iter().enumerate() {
             self.ui.list_item(
                 &format!("{}.", idx + 1),
-                &dir.file_name()
+                dir.file_name()
                     .unwrap_or_default()
                     .to_string_lossy()
-                    .to_string(),
+                    .as_ref(),
             );
         }
 
         // 5. 確認執行
-        if !self.ui.confirm_with_options("\n確定要執行 terragrunt apply 嗎？", false) {
+        if !self
+            .ui
+            .confirm_with_options("\n確定要執行 terragrunt apply 嗎？", false)
+        {
             self.ui.warning("操作已取消");
             return;
         }
@@ -123,7 +129,8 @@ impl TerragruntApplyService {
                 .to_string_lossy()
                 .to_string();
 
-            self.ui.show_progress(idx + 1, total, &format!("處理: {}", dir_name));
+            self.ui
+                .show_progress(idx + 1, total, &format!("處理: {}", dir_name));
 
             let result = executor.apply(dir);
             results.push((dir_name.clone(), result.clone()));
@@ -148,11 +155,15 @@ impl TerragruntApplyService {
     }
 
     /// 讓使用者選擇要處理的目錄（可以跳過某些目錄）
-    fn select_directories_to_process(&self, directories: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
+    fn select_directories_to_process(
+        &self,
+        directories: &[std::path::PathBuf],
+    ) -> Vec<std::path::PathBuf> {
         use dialoguer::MultiSelect;
 
         self.ui.separator();
-        self.ui.info("請選擇要處理的目錄 (空白鍵選擇/取消選擇，Enter 確認):");
+        self.ui
+            .info("請選擇要處理的目錄 (空白鍵選擇/取消選擇，Enter 確認):");
 
         // 準備選項：目錄名稱列表
         let dir_names: Vec<String> = directories
@@ -202,7 +213,8 @@ impl TerragruntApplyService {
                 }
             }
         } else {
-            self.ui.success(&format!("\n✓ 所有 {} 個目錄都執行成功！", total));
+            self.ui
+                .success(&format!("\n✓ 所有 {} 個目錄都執行成功！", total));
         }
     }
 }

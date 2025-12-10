@@ -17,6 +17,7 @@ pub struct ScanMatch {
 
 /// 掃描統計資訊
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct ScanStats {
     pub files_scanned: u64,
     pub matches_found: u64,
@@ -140,7 +141,7 @@ impl ContentScanner {
 
                 Box::new(move |entry| {
                     if let Ok(entry) = entry {
-                        if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                        if entry.file_type().is_some_and(|ft| ft.is_file()) {
                             let path = entry.path();
 
                             // 跳過二進位檔案（根據副檔名判斷）

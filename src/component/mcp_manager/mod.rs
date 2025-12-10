@@ -27,6 +27,7 @@ struct McpTool {
 
 /// 支援的 CLI 類型
 #[derive(Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 enum SupportedCli {
     Both,
     ClaudeOnly,
@@ -102,7 +103,10 @@ fn get_available_mcps() -> Vec<McpTool> {
             install_args: vec![
                 "github".to_string(),
                 "--env".to_string(),
-                format!("GITHUB_PERSONAL_ACCESS_TOKEN={}", GITHUB_PERSONAL_ACCESS_TOKEN),
+                format!(
+                    "GITHUB_PERSONAL_ACCESS_TOKEN={}",
+                    GITHUB_PERSONAL_ACCESS_TOKEN
+                ),
                 "--env".to_string(),
                 format!("GITHUB_HOST={}", GITHUB_HOST),
                 "--".to_string(),
@@ -183,9 +187,7 @@ impl CliType {
 
 /// 取得已安裝的 MCP 清單
 fn get_installed_mcps(cli: CliType) -> Vec<String> {
-    let output = Command::new(cli.command())
-        .args(["mcp", "list"])
-        .output();
+    let output = Command::new(cli.command()).args(["mcp", "list"]).output();
 
     match output {
         Ok(output) if output.status.success() => {
@@ -209,7 +211,8 @@ fn parse_mcp_list(output: &str) -> Vec<String> {
         // 提取 MCP 名稱（通常是第一個欄位）
         if let Some(name) = trimmed.split_whitespace().next() {
             // 過濾掉可能的裝飾字符
-            let clean_name = name.trim_matches(|c: char| !c.is_alphanumeric() && c != '-' && c != '_');
+            let clean_name =
+                name.trim_matches(|c: char| !c.is_alphanumeric() && c != '-' && c != '_');
             if !clean_name.is_empty() {
                 names.push(clean_name.to_string());
             }
@@ -391,7 +394,11 @@ pub fn manage_mcp() {
 
     // 安裝新的 MCP
     for (i, mcp) in to_install.iter().enumerate() {
-        ui.show_progress(i + 1, total_operations, &format!("正在安裝 {}...", mcp.display_name));
+        ui.show_progress(
+            i + 1,
+            total_operations,
+            &format!("正在安裝 {}...", mcp.display_name),
+        );
 
         match install_mcp(cli, mcp) {
             Ok(_) => {
@@ -474,7 +481,10 @@ mod tests {
         assert!(atlassian.supported_cli.supports(CliType::Codex));
 
         // Sequential thinking should support both
-        let seq = mcps.iter().find(|m| m.name == "sequential-thinking").unwrap();
+        let seq = mcps
+            .iter()
+            .find(|m| m.name == "sequential-thinking")
+            .unwrap();
         assert!(seq.supported_cli.supports(CliType::Claude));
         assert!(seq.supported_cli.supports(CliType::Codex));
     }

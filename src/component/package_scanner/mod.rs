@@ -37,7 +37,11 @@ pub fn scan_risky_packages() {
 
     // 取得掃描目錄（預設為當前目錄）
     let scan_dir = read_line("請輸入要掃描的目錄（按 Enter 使用當前目錄）: ");
-    let scan_dir = if scan_dir.is_empty() { ".".to_string() } else { scan_dir };
+    let scan_dir = if scan_dir.is_empty() {
+        ".".to_string()
+    } else {
+        scan_dir
+    };
 
     let scan_path = if scan_dir.trim() == "." {
         env::current_dir().unwrap()
@@ -59,10 +63,7 @@ pub fn scan_risky_packages() {
         "   掃描目錄: {}",
         scan_path.display().to_string().bright_blue()
     );
-    println!(
-        "   搜尋目標: {}",
-        package_name.yellow().bold()
-    );
+    println!("   搜尋目標: {}", package_name.yellow().bold());
     println!();
 
     // 開始計時
@@ -102,10 +103,7 @@ pub fn scan_risky_packages() {
     println!();
 
     if matches.is_empty() {
-        println!(
-            "{}",
-            "   ✅ 太好了！未發現該套件！".green().bold()
-        );
+        println!("{}", "   ✅ 太好了！未發現該套件！".green().bold());
     } else {
         println!(
             "   {} 發現 {} 處匹配！",
@@ -114,7 +112,10 @@ pub fn scan_risky_packages() {
         );
         println!();
         println!("{}", "   詳細資訊:".yellow());
-        println!("{}", "   ─────────────────────────────────────────".dimmed());
+        println!(
+            "{}",
+            "   ─────────────────────────────────────────".dimmed()
+        );
 
         for m in &matches {
             println!(
@@ -134,10 +135,7 @@ pub fn scan_risky_packages() {
         }
 
         println!();
-        println!(
-            "{}",
-            "   💡 建議: 請檢查這些檔案並移除可疑的套件".yellow()
-        );
+        println!("{}", "   💡 建議: 請檢查這些檔案並移除可疑的套件".yellow());
     }
 
     println!();
