@@ -3,16 +3,55 @@ use std::process::Command;
 use crate::tools::ui::UserInterface;
 use dialoguer::{theme::ColorfulTheme, MultiSelect, Select};
 
-// Compile-time environment variables from .env
-const GITHUB_PERSONAL_ACCESS_TOKEN: &str = env!("GITHUB_PERSONAL_ACCESS_TOKEN");
-const GITHUB_HOST: &str = env!("GITHUB_HOST");
-const CONFLUENCE_URL: &str = env!("CONFLUENCE_URL");
-const CONFLUENCE_USERNAME: &str = env!("CONFLUENCE_USERNAME");
-const CONFLUENCE_API_TOKEN: &str = env!("CONFLUENCE_API_TOKEN");
-const JIRA_URL: &str = env!("JIRA_URL");
-const JIRA_USERNAME: &str = env!("JIRA_USERNAME");
-const JIRA_API_TOKEN: &str = env!("JIRA_API_TOKEN");
-const CONTEXT7_API_KEY: &str = env!("CONTEXT7_API_KEY");
+// Optional compile-time environment variables
+const GITHUB_PERSONAL_ACCESS_TOKEN: Option<&str> = option_env!("GITHUB_PERSONAL_ACCESS_TOKEN");
+const GITHUB_HOST: Option<&str> = option_env!("GITHUB_HOST");
+const CONFLUENCE_URL: Option<&str> = option_env!("CONFLUENCE_URL");
+const CONFLUENCE_USERNAME: Option<&str> = option_env!("CONFLUENCE_USERNAME");
+const CONFLUENCE_API_TOKEN: Option<&str> = option_env!("CONFLUENCE_API_TOKEN");
+const JIRA_URL: Option<&str> = option_env!("JIRA_URL");
+const JIRA_USERNAME: Option<&str> = option_env!("JIRA_USERNAME");
+const JIRA_API_TOKEN: Option<&str> = option_env!("JIRA_API_TOKEN");
+const CONTEXT7_API_KEY: Option<&str> = option_env!("CONTEXT7_API_KEY");
+
+/// 檢查所有必要的環境變數是否已設定
+fn check_required_env_vars() -> Result<(), Vec<&'static str>> {
+    let mut missing = Vec::new();
+
+    if GITHUB_PERSONAL_ACCESS_TOKEN.is_none() {
+        missing.push("GITHUB_PERSONAL_ACCESS_TOKEN");
+    }
+    if GITHUB_HOST.is_none() {
+        missing.push("GITHUB_HOST");
+    }
+    if CONFLUENCE_URL.is_none() {
+        missing.push("CONFLUENCE_URL");
+    }
+    if CONFLUENCE_USERNAME.is_none() {
+        missing.push("CONFLUENCE_USERNAME");
+    }
+    if CONFLUENCE_API_TOKEN.is_none() {
+        missing.push("CONFLUENCE_API_TOKEN");
+    }
+    if JIRA_URL.is_none() {
+        missing.push("JIRA_URL");
+    }
+    if JIRA_USERNAME.is_none() {
+        missing.push("JIRA_USERNAME");
+    }
+    if JIRA_API_TOKEN.is_none() {
+        missing.push("JIRA_API_TOKEN");
+    }
+    if CONTEXT7_API_KEY.is_none() {
+        missing.push("CONTEXT7_API_KEY");
+    }
+
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(missing)
+    }
+}
 
 /// MCP 工具的定義
 #[derive(Clone)]
@@ -45,7 +84,19 @@ impl SupportedCli {
 }
 
 /// 預設可用的 MCP 工具清單
+/// 注意：此函數假設所有環境變數都已設定，應在調用前使用 check_required_env_vars() 檢查
 fn get_available_mcps() -> Vec<McpTool> {
+    // 安全解包環境變數（已在入口處驗證過）
+    let github_token = GITHUB_PERSONAL_ACCESS_TOKEN.unwrap_or("");
+    let github_host = GITHUB_HOST.unwrap_or("");
+    let confluence_url = CONFLUENCE_URL.unwrap_or("");
+    let confluence_username = CONFLUENCE_USERNAME.unwrap_or("");
+    let confluence_api_token = CONFLUENCE_API_TOKEN.unwrap_or("");
+    let jira_url = JIRA_URL.unwrap_or("");
+    let jira_username = JIRA_USERNAME.unwrap_or("");
+    let jira_api_token = JIRA_API_TOKEN.unwrap_or("");
+    let context7_api_key = CONTEXT7_API_KEY.unwrap_or("");
+
     vec![
         McpTool {
             name: "sequential-thinking",
@@ -69,7 +120,7 @@ fn get_available_mcps() -> Vec<McpTool> {
                 "context7".to_string(),
                 "https://mcp.context7.com/mcp".to_string(),
                 "--header".to_string(),
-                format!("CONTEXT7_API_KEY: {}", CONTEXT7_API_KEY),
+                format!("CONTEXT7_API_KEY: {context7_api_key}"),
             ],
         },
         McpTool {
@@ -103,12 +154,9 @@ fn get_available_mcps() -> Vec<McpTool> {
             install_args: vec![
                 "github".to_string(),
                 "--env".to_string(),
-                format!(
-                    "GITHUB_PERSONAL_ACCESS_TOKEN={}",
-                    GITHUB_PERSONAL_ACCESS_TOKEN
-                ),
+                format!("GITHUB_PERSONAL_ACCESS_TOKEN={github_token}"),
                 "--env".to_string(),
-                format!("GITHUB_HOST={}", GITHUB_HOST),
+                format!("GITHUB_HOST={github_host}"),
                 "--".to_string(),
                 "docker".to_string(),
                 "run".to_string(),
@@ -128,17 +176,17 @@ fn get_available_mcps() -> Vec<McpTool> {
             install_args: vec![
                 "mcp-atlassian".to_string(),
                 "--env".to_string(),
-                format!("CONFLUENCE_URL={}", CONFLUENCE_URL),
+                format!("CONFLUENCE_URL={confluence_url}"),
                 "--env".to_string(),
-                format!("CONFLUENCE_USERNAME={}", CONFLUENCE_USERNAME),
+                format!("CONFLUENCE_USERNAME={confluence_username}"),
                 "--env".to_string(),
-                format!("CONFLUENCE_API_TOKEN={}", CONFLUENCE_API_TOKEN),
+                format!("CONFLUENCE_API_TOKEN={confluence_api_token}"),
                 "--env".to_string(),
-                format!("JIRA_URL={}", JIRA_URL),
+                format!("JIRA_URL={jira_url}"),
                 "--env".to_string(),
-                format!("JIRA_USERNAME={}", JIRA_USERNAME),
+                format!("JIRA_USERNAME={jira_username}"),
                 "--env".to_string(),
-                format!("JIRA_API_TOKEN={}", JIRA_API_TOKEN),
+                format!("JIRA_API_TOKEN={jira_api_token}"),
                 "--".to_string(),
                 "docker".to_string(),
                 "run".to_string(),
@@ -262,6 +310,20 @@ fn remove_mcp(cli: CliType, mcp_name: &str) -> Result<String, String> {
 pub fn manage_mcp() {
     let ui = UserInterface::new();
     ui.header("MCP 工具管理器");
+
+    // 檢查必要的環境變數
+    if let Err(missing) = check_required_env_vars() {
+        ui.error("此功能需要以下環境變數，請在編譯時設定：");
+        for var in &missing {
+            ui.list_item("✗", var);
+        }
+        ui.info("\n提示：請在 .env 檔案中設定這些變數，然後重新編譯。");
+        ui.info("範例 .env 內容：");
+        for var in &missing {
+            ui.list_item("", &format!("{var}=your_value_here"));
+        }
+        return;
+    }
 
     // 步驟 1: 選擇 CLI 類型
     let cli_options = vec!["Anthropic Claude", "OpenAI Codex"];
