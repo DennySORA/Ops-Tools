@@ -1,9 +1,10 @@
-use crate::tools::path_utils;
-use crate::tools::progress::ProgressTracker;
-use crate::tools::traits::Scanner;
+use crate::core::path_utils;
+use crate::core::FileScanner;
+use crate::ui::Progress;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+/// Terraform/Terragrunt 快取掃描器
 pub struct TerraformScanner {
     targets: Vec<String>,
 }
@@ -35,7 +36,7 @@ impl Default for TerraformScanner {
     }
 }
 
-impl Scanner for TerraformScanner {
+impl FileScanner for TerraformScanner {
     fn scan(&self, root: &Path) -> Vec<PathBuf> {
         let mut found_items = Vec::new();
 
@@ -44,7 +45,7 @@ impl Scanner for TerraformScanner {
             .filter_map(|e| e.ok())
             .count() as u64;
 
-        let progress = ProgressTracker::new(total_entries, "掃描中");
+        let progress = Progress::new(total_entries, "掃描中");
 
         for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
             let file_name = entry.file_name().to_string_lossy();
@@ -58,16 +59,7 @@ impl Scanner for TerraformScanner {
 
         progress.finish_with_message("掃描完成");
 
-        // 過濾掉子路徑，只保留最上層的路徑
-        let original_items = found_items.clone();
-        let filtered_items = path_utils::filter_subpaths(found_items);
-        let filtered_count = path_utils::count_filtered_subpaths(&original_items, &filtered_items);
-
-        if filtered_count > 0 {
-            println!("已過濾 {} 個重複的子項目", filtered_count);
-        }
-
-        filtered_items
+        path_utils::filter_subpaths(found_items)
     }
 }
 
@@ -77,7 +69,7 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn test_terraform_scanner_should_include() {
+    fn test_should_include() {
         let scanner = TerraformScanner::new();
         assert!(scanner.should_include(".terraform"));
         assert!(scanner.should_include(".terragrunt-cache"));
@@ -93,11 +85,10 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_finds_terragrunt_cache_and_filters_children() {
+    fn test_scan_filters_children() {
         let temp_dir = tempfile::tempdir().unwrap();
         let terragrunt_cache = temp_dir.path().join(".terragrunt-cache");
 
-        // 模擬 terragrunt 下載的模組內部還有 .terraform 目錄
         let nested_terraform = terragrunt_cache.join("module/.terraform");
         fs::create_dir_all(&nested_terraform).unwrap();
         fs::write(nested_terraform.join("dummy.txt"), "test").unwrap();
