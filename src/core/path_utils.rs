@@ -1,7 +1,5 @@
 use std::path::{Path, PathBuf};
 
-// 路徑工具模組 - 提供路徑相關的工具函數
-
 /// 檢查 child 是否是 parent 的子路徑
 pub fn is_subpath(child: &Path, parent: &Path) -> bool {
     child.starts_with(parent) && child != parent
@@ -17,19 +15,16 @@ pub fn filter_subpaths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
         return paths;
     }
 
-    // 先排序，這樣父路徑會在子路徑前面
     let mut sorted_paths = paths;
     sorted_paths.sort();
 
     let mut filtered = Vec::new();
 
     for path in sorted_paths {
-        // 檢查這個路徑是否是已經在 filtered 中的任何路徑的子路徑
         let is_child = filtered
             .iter()
             .any(|parent: &PathBuf| is_subpath(&path, parent));
 
-        // 只添加不是任何已存在路徑的子路徑的項目
         if !is_child {
             filtered.push(path);
         }
@@ -39,6 +34,7 @@ pub fn filter_subpaths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
 }
 
 /// 統計有多少子路徑被過濾掉
+#[allow(dead_code)]
 pub fn count_filtered_subpaths(original: &[PathBuf], filtered: &[PathBuf]) -> usize {
     original.len().saturating_sub(filtered.len())
 }
@@ -56,8 +52,8 @@ mod tests {
 
         assert!(is_subpath(&child, &parent));
         assert!(!is_subpath(&sibling, &parent));
-        assert!(!is_subpath(&same, &parent)); // 相同路徑不算子路徑
-        assert!(!is_subpath(&parent, &child)); // 父不是子的子路徑
+        assert!(!is_subpath(&same, &parent));
+        assert!(!is_subpath(&parent, &child));
     }
 
     #[test]
@@ -105,7 +101,7 @@ mod tests {
     fn test_filter_subpaths_empty() {
         let paths: Vec<PathBuf> = vec![];
         let filtered = filter_subpaths(paths);
-        assert_eq!(filtered.len(), 0);
+        assert!(filtered.is_empty());
     }
 
     #[test]
@@ -119,8 +115,6 @@ mod tests {
         ];
 
         let filtered = filter_subpaths(paths);
-        // 應該只保留 /project/.terragrunt-cache 和 /project/module/.terraform, /project/module/.terraform.lock.hcl
-        // 因為前兩個是 .terragrunt-cache 的子項目
         assert_eq!(filtered.len(), 3);
         assert!(filtered.contains(&PathBuf::from("/project/.terragrunt-cache")));
         assert!(filtered.contains(&PathBuf::from("/project/module/.terraform")));
@@ -137,6 +131,6 @@ mod tests {
 
         let filtered = filter_subpaths(original.clone());
         let count = count_filtered_subpaths(&original, &filtered);
-        assert_eq!(count, 2); // c 和 d 被過濾掉
+        assert_eq!(count, 2);
     }
 }
