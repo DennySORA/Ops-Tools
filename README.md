@@ -1,76 +1,63 @@
-# Tools - 智能清理工具集
+# Tools - DevOps 工具集
 
-基於 SOLID 原則和 Clean Code 實踐的 Rust 工具集。
+基於 SOLID 原則和 Clean Code 實踐的 Rust CLI 工具集。
 
 ## 功能特色
 
-### 🧹 Terraform/Terragrunt 快取清理
+### 1. Terraform/Terragrunt 快取清理
 
 智能清理 Terraform 和 Terragrunt 產生的快取檔案：
 
-- ✅ `.terragrunt-cache` 目錄
-- ✅ `.terraform` 目錄
-- ✅ `.terraform.lock.hcl` 檔案
+- `.terragrunt-cache` 目錄
+- `.terraform` 目錄
+- `.terraform.lock.hcl` 檔案
+- 自動過濾重複的子路徑，避免重複刪除
 
-### 🚀 Terragrunt 批次 Apply
+### 2. AI 程式碼助手工具升級
 
-批次執行多個目錄的 `terragrunt apply`，取代不安全的 shell script：
+批次升級 AI 程式碼助手工具：
 
-- ✅ 自動掃描子目錄
-- ✅ 可配置跳過特定目錄（預設：monitoring, kafka-provision）
-- ✅ 進度追蹤與即時輸出
-- ✅ 詳細的成功/失敗統計
-- ✅ 失敗時自動停止（可配置）
-- ✅ 使用者確認機制
-- ✅ 完整的錯誤處理
+| 套件 | 名稱 |
+|------|------|
+| `@anthropic-ai/claude-code` | Claude Code |
+| `@openai/codex` | OpenAI Codex |
+| `@google/gemini-cli` | Google Gemini CLI |
 
-### 🔐 Base64 轉換
+### 3. 高風險套件安全掃描
 
-- ✅ 貼上任意文字後立即轉成 Base64
-- ✅ 支援多行輸入（Ctrl+D 結束輸入，Windows 按 Ctrl+Z 後 Enter）
-- ✅ 直接在終端輸出結果
+高效能並行掃描專案中的套件依賴：
 
-### 🎯 智能去重
+- 支援任意套件名稱搜尋
+- 忽略 `node_modules`、`.git`、`target` 等目錄
+- 自動跳過二進位檔案
+- 顯示匹配的檔案路徑和行號
 
-**新功能**：自動過濾重複的子路徑，避免重複刪除。
+### 4. MCP 工具管理
 
-#### 範例
+管理 Claude 和 Codex CLI 的 MCP 伺服器：
 
-當掃描到以下結構：
-```
-/project/.terragrunt-cache
-/project/.terragrunt-cache/sub1/.terraform
-/project/.terragrunt-cache/sub1/.terraform.lock.hcl
-/project/module/.terraform
-/project/module/.terraform.lock.hcl
-```
+| MCP 工具 | 說明 |
+|----------|------|
+| `sequential-thinking` | 循序思考 |
+| `context7` | 文檔查詢 |
+| `chrome-devtools` | 瀏覽器開發工具 |
+| `kubernetes` | K8s 管理 |
+| `github` | GitHub 整合 |
 
-系統會智能過濾，只保留：
-```
-/project/.terragrunt-cache         # 父目錄
-/project/module/.terraform          # 獨立檔案
-/project/module/.terraform.lock.hcl # 獨立檔案
-```
-
-**原理**：當刪除父目錄 `.terragrunt-cache` 時，其所有子項目會自動被刪除，因此不需要單獨列出。
-
-### 📊 進度追蹤
-
-- 實時顯示掃描進度
-- 實時顯示刪除進度
-- 進度條視覺化
-
-### 📋 詳細報告
-
-- 成功/失敗統計
-- 成功率計算
-- 詳細錯誤資訊
-- 顏色標示（成功綠色、失敗紅色、警告黃色）
+**需要的環境變數**（編譯時設定於 `.env`）：
+- `GITHUB_PERSONAL_ACCESS_TOKEN`
+- `GITHUB_HOST`
+- `CONTEXT7_API_KEY`
 
 ## 安裝
 
 ```bash
+# 編譯
 cargo build --release
+
+# 設定環境變數（可選，用於 MCP 管理功能）
+cp .env.example .env
+# 編輯 .env 填入你的憑證
 ```
 
 ## 使用
@@ -81,12 +68,46 @@ cargo run
 ./target/release/tools
 ```
 
-選擇需要的功能：
-- "清理 Terraform/Terragrunt 快取檔案"
-- "批次執行 Terragrunt Apply"
-- "貼上內容轉 Base64"
+選擇功能選單：
+1. 清理 Terraform/Terragrunt 快取檔案
+2. 升級 AI 程式碼助手工具
+3. 掃描高風險套件（安全檢測）
+4. 管理 MCP 工具（Claude/Codex）
 
 ## 架構設計
+
+### 分層架構
+
+```
+src/
+├── main.rs                              # 入口點
+│
+├── core/                                # 核心抽象層
+│   ├── error.rs                         # 統一錯誤類型 (OperationError)
+│   ├── result.rs                        # 操作結果 (OperationResult, OperationStats)
+│   ├── traits.rs                        # 核心 trait (FileScanner, FileCleaner)
+│   └── path_utils.rs                    # 路徑工具函數
+│
+├── features/                            # 功能模組
+│   ├── terraform_cleaner/               # Terraform 清理
+│   │   ├── scanner.rs                   # 掃描器
+│   │   ├── cleaner.rs                   # 清理器
+│   │   └── service.rs                   # 服務層
+│   ├── tool_upgrader/                   # AI 工具升級
+│   │   ├── tools.rs                     # 工具定義
+│   │   └── upgrader.rs                  # 升級執行器
+│   ├── package_scanner/                 # 套件掃描
+│   │   └── scanner.rs                   # 內容掃描器
+│   └── mcp_manager/                     # MCP 管理
+│       ├── config.rs                    # 環境變數配置
+│       ├── tools.rs                     # MCP 工具定義
+│       └── executor.rs                  # CLI 執行器
+│
+└── ui/                                  # UI 層
+    ├── console.rs                       # 控制台輸出
+    ├── progress.rs                      # 進度條
+    └── prompts.rs                       # 使用者輸入
+```
 
 ### SOLID 原則應用
 
@@ -94,135 +115,42 @@ cargo run
 每個模組只負責一件事：
 - `scanner.rs` - 掃描檔案
 - `cleaner.rs` - 刪除檔案
-- `ui.rs` - 使用者互動
-- `progress.rs` - 進度追蹤
-- `report.rs` - 報告生成
-- `path_utils.rs` - 路徑處理
+- `service.rs` - 協調業務邏輯
+- `console.rs` - 輸出顯示
+- `prompts.rs` - 使用者輸入
 
 #### 2. 開放封閉原則 (OCP)
 透過 trait 擴展功能：
 ```rust
-pub trait Scanner {
+pub trait FileScanner {
     fn scan(&self, root: &Path) -> Vec<PathBuf>;
 }
 
-pub trait Cleaner {
+pub trait FileCleaner {
     fn clean(&self, items: Vec<PathBuf>) -> Vec<OperationResult>;
 }
 ```
 
-#### 3. 里氏替換原則 (LSP)
-所有實作 trait 的類型都可替換使用。
-
-#### 4. 介面隔離原則 (ISP)
-介面最小化，只包含必要方法。
-
-#### 5. 依賴反轉原則 (DIP)
-依賴抽象而非具體實作：
+#### 3. 依賴反轉原則 (DIP)
+Service 依賴抽象而非具體實作：
 ```rust
-pub struct TerraformCleanService<S: Scanner, C: Cleaner> {
+pub struct TerraformCleanerService<S: FileScanner, C: FileCleaner> {
     scanner: S,
     cleaner: C,
-    // ...
 }
 ```
 
-## 模組結構
+### 錯誤處理
 
-```
-src/
-├── main.rs                      # 主程式
-├── component/                   # 功能模組
-│   └── clear_terrform/
-│       ├── mod.rs              # 服務協調器
-│       ├── scanner.rs          # 掃描器（含智能去重）
-│       └── cleaner.rs          # 清理器
-└── tools/                       # 共用工具（可重用）
-    ├── traits.rs               # 通用介面定義
-    ├── ui.rs                   # UI 工具
-    ├── progress.rs             # 進度追蹤
-    ├── report.rs               # 報告生成
-    ├── path_utils.rs           # 路徑工具（智能去重）
-    └── remove.rs               # 檔案刪除
-```
-
-## 核心功能
-
-### 路徑智能去重 (`path_utils.rs`)
-
-提供以下函數：
-
-#### `is_subpath(child: &Path, parent: &Path) -> bool`
-檢查一個路徑是否是另一個路徑的子路徑。
-
+統一的錯誤類型：
 ```rust
-let parent = PathBuf::from("/a/b");
-let child = PathBuf::from("/a/b/c");
-assert!(is_subpath(&child, &parent)); // true
-```
-
-#### `filter_subpaths(paths: Vec<PathBuf>) -> Vec<PathBuf>`
-過濾掉被其他路徑包含的子路徑。
-
-```rust
-let paths = vec![
-    PathBuf::from("/a/b"),
-    PathBuf::from("/a/b/c"),
-    PathBuf::from("/a/b/c/d"),
-];
-let filtered = filter_subpaths(paths);
-// 結果: ["/a/b"]
-```
-
-#### `count_filtered_subpaths(original: &[PathBuf], filtered: &[PathBuf]) -> usize`
-統計被過濾掉的路徑數量。
-
-### 使用者介面 (`ui.rs`)
-
-提供豐富的 UI 方法：
-
-```rust
-let ui = UserInterface::new();
-
-ui.info("資訊訊息");
-ui.success("成功訊息");
-ui.warning("警告訊息");
-ui.error("錯誤訊息");
-
-// 確認對話框
-if ui.confirm_with_options("確定要刪除嗎？", false) {
-    // 執行刪除
+pub enum OperationError {
+    Io { path: String, source: io::Error },
+    Command { command: String, message: String },
+    Config { key: String, message: String },
+    Validation(String),
+    Cancelled,
 }
-
-// 顯示項目列表
-ui.show_items_with_title("找到的項目:", &items, |item| {
-    if item.is_dir() { "目錄" } else { "檔案" }
-});
-```
-
-### 進度追蹤 (`progress.rs`)
-
-```rust
-let progress = ProgressTracker::new(100, "處理中");
-for i in 0..100 {
-    // 處理工作
-    progress.inc();
-}
-progress.finish_with_message("完成！");
-```
-
-### 報告生成 (`report.rs`)
-
-```rust
-let reporter = ReportGenerator::new();
-
-// 顯示即時反饋
-for result in &results {
-    reporter.show_result_inline(result);
-}
-
-// 顯示詳細報告
-reporter.show_operation_report(&results);
 ```
 
 ## 測試
@@ -231,35 +159,38 @@ reporter.show_operation_report(&results);
 # 執行所有測試
 cargo test
 
-# 執行特定測試
-cargo test path_utils
-cargo test terragrunt_apply
+# 執行特定模組測試
+cargo test terraform_cleaner
+cargo test package_scanner
+
+# 執行 clippy 檢查
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 ```
 
-目前有 24 個測試，全部通過 ✅
+目前有 **44 個測試**，全部通過。
 
 ## 擴展新功能
 
 要新增一個清理功能，只需要：
 
-1. 實作 `Scanner` trait
-2. （可選）實作 `Cleaner` trait 或使用現有的 `FileCleaner`
-3. 使用共用的 `UserInterface`、`ProgressTracker`、`ReportGenerator`
-4. 在 `main.rs` 註冊功能
-
-範例請參考 `USAGE_EXAMPLES.md`。
+1. 在 `features/` 建立新模組目錄
+2. 實作 `FileScanner` trait（如需掃描）
+3. 實作 `FileCleaner` trait（如需清理）或使用現有的
+4. 建立 `service.rs` 協調邏輯
+5. 建立 `mod.rs` 的 `run()` 公開函數
+6. 在 `main.rs` 註冊功能
 
 ## 依賴項
 
-- `dialoguer` - 互動式 CLI
-- `walkdir` - 目錄遍歷
-- `colored` - 終端顏色
-- `indicatif` - 進度條
+| 依賴 | 用途 |
+|------|------|
+| `dialoguer` | 互動式 CLI |
+| `walkdir` | 目錄遍歷 |
+| `colored` | 終端顏色 |
+| `indicatif` | 進度條 |
+| `rayon` | 並行處理 |
+| `ignore` | 快速檔案遍歷（支援 .gitignore） |
 
 ## 授權
 
 MIT License
-
-## 貢獻
-
-歡迎提交 Issue 和 Pull Request！
