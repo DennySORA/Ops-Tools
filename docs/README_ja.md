@@ -30,7 +30,7 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 | `kubernetes` | K8s 管理 |
 | `github` | GitHub 統合 |
 
-**必要な環境変数**（ビルド時に `.env` で設定）：
+**環境変数**（オプション - MCP管理機能を使用する場合のみ必要、ビルド時に `.env` で設定）：
 - `GITHUB_PERSONAL_ACCESS_TOKEN`
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`

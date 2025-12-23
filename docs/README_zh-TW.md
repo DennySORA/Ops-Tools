@@ -30,7 +30,7 @@
 | `kubernetes` | K8s 管理 |
 | `github` | GitHub 整合 |
 
-**需要的環境變數**（編譯時設定於 `.env`）：
+**環境變數**（可選 - 僅 MCP 管理功能需要，編譯時設定於 `.env`）：
 - `GITHUB_PERSONAL_ACCESS_TOKEN`
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
