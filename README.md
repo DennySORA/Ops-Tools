@@ -30,7 +30,7 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 | `kubernetes` | K8s Management |
 | `github` | GitHub Integration |
 
-**Required Environment Variables** (set in `.env` at build time):
+**Environment Variables** (Optional - only required for MCP Manager features, set in `.env` at build time):
 - `GITHUB_PERSONAL_ACCESS_TOKEN`
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
