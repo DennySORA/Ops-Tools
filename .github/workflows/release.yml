@@ -58,7 +58,7 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           Move-Item ${{ env.BIN_NAME }}.exe ${{ env.RELEASE_NAME }}.exe
-          Compress-Archive -Path ${{ env.RELEASE_NAME }}.exe -DestinationPath ..\..\..\[{ matrix.archive_name }]
+          Compress-Archive -Path ${{ env.RELEASE_NAME }}.exe -DestinationPath ..\..\..\${{ matrix.archive_name }}
           cd ..\..\..
 
       - name: Upload Artifact
