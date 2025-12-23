@@ -48,7 +48,7 @@ pub fn run() {
     console.separator();
 
     // 顯示可用工具
-    let available_tools = get_available_tools();
+    let available_tools = get_available_tools(cli);
     let items: Vec<String> = available_tools
         .iter()
         .map(|mcp| {
@@ -166,11 +166,11 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::tools::get_available_tools;
+    use super::tools::{get_available_tools, CliType};
 
     #[test]
     fn test_tools_available() {
-        let tools = get_available_tools();
+        let tools = get_available_tools(CliType::Claude);
         assert!(!tools.is_empty());
     }
 }
