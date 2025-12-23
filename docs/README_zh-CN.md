@@ -19,14 +19,7 @@
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. 高风险包扫描
-高性能并行扫描项目中的包依赖：
-- 支持任意包名搜索。
-- 忽略 `node_modules`、`.git`、`target` 等目录。
-- 自动跳过二进制文件。
-- 显示匹配的文件路径和行号。
-
-### 4. MCP 工具管理
+### 3. MCP 工具管理
 管理 Claude、Codex 和 Gemini CLI 的 MCP 服务器：
 
 | MCP 工具 | 说明 |
@@ -84,8 +77,7 @@ cargo run
 选择功能菜单：
 1. 清理 Terraform/Terragrunt 缓存文件
 2. 升级 AI 代码助手工具
-3. 扫描高风险包（安全检测）
-4. 管理 MCP 工具（Claude/Codex/Gemini）
+3. 管理 MCP 工具（Claude/Codex/Gemini）
 
 ## 贡献
 

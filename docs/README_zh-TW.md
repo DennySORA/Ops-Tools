@@ -19,14 +19,7 @@
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. 高風險套件掃描
-高效能並行掃描專案中的套件依賴：
-- 支援任意套件名稱搜尋。
-- 忽略 `node_modules`、`.git`、`target` 等目錄。
-- 自動跳過二進位檔案。
-- 顯示匹配的檔案路徑和行號。
-
-### 4. MCP 工具管理
+### 3. MCP 工具管理
 管理 Claude、Codex 和 Gemini CLI 的 MCP 伺服器：
 
 | MCP 工具 | 說明 |
@@ -84,8 +77,7 @@ cargo run
 選擇功能選單：
 1. 清理 Terraform/Terragrunt 快取檔案
 2. 升級 AI 程式碼助手工具
-3. 掃描高風險套件（安全檢測）
-4. 管理 MCP 工具（Claude/Codex/Gemini）
+3. 管理 MCP 工具（Claude/Codex/Gemini）
 
 ## 貢獻
 

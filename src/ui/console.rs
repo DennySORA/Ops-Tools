@@ -92,22 +92,6 @@ impl Console {
     pub fn show_progress(&self, current: usize, total: usize, message: &str) {
         println!("[{}/{}] {}", current, total, message);
     }
-
-    // === 階段性輸出 ===
-
-    pub fn phase(&self, current: usize, total: usize, message: &str) {
-        println!(
-            "{} 階段 {}/{}: {}",
-            "=>".cyan().bold(),
-            current,
-            total,
-            message
-        );
-    }
-
-    pub fn stat(&self, label: &str, value: &str) {
-        println!("   {}: {}", label, value.yellow());
-    }
 }
 
 impl Default for Console {

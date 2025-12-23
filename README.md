@@ -19,14 +19,7 @@ Batch upgrades for popular AI code assistants:
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. High-Risk Package Scanner
-High-performance parallel scanning for package dependencies in your project:
-- Supports arbitrary package name searches.
-- Ignores `node_modules`, `.git`, `target`, etc.
-- Automatically skips binary files.
-- Displays matching file paths and line numbers.
-
-### 4. MCP Tool Management
+### 3. MCP Tool Management
 Manages MCP servers for Claude, Codex, and Gemini CLI:
 
 | MCP Tool | Description |
@@ -84,8 +77,7 @@ cargo run
 Select a function from the menu:
 1. Clean Terraform/Terragrunt cache files
 2. Upgrade AI code assistant tools
-3. Scan for high-risk packages (Security Check)
-4. Manage MCP tools (Claude/Codex/Gemini)
+3. Manage MCP tools (Claude/Codex/Gemini)
 
 ## Contributing
 
