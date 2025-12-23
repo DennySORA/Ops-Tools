@@ -1,11 +1,9 @@
 #!/bin/bash
 set -e
 
-# Configuration
-REPO_OWNER="DennySORA"
-REPO_NAME="Tool-Package"
-BIN_NAME="ops-tools"
-INSTALL_DIR="$HOME/.local/bin"
+REPO="DennySORA/Tool-Package"
+BINARY_NAME="ops-tools"
+INSTALL_DIR="/usr/local/bin"
 
 # Detect OS and Arch
 OS="$(uname -s)"
@@ -18,11 +16,6 @@ case "$OS" in
     Darwin)
         OS_TYPE="macos"
         ;;
-    MINGW*|MSYS*|CYGWIN*) 
-        OS_TYPE="windows"
-        echo "Windows installer is not supported via shell script directly yet. Please download the zip from releases."
-        exit 1
-        ;;
     *)
         echo "Unsupported OS: $OS"
         exit 1
@@ -34,10 +27,10 @@ case "$ARCH" in
         ARCH_TYPE="x86_64"
         ;;
     arm64|aarch64)
-        if [ "$OS_TYPE" = "macos" ]; then
+        if [ "$OS" = "Darwin" ]; then
             ARCH_TYPE="arm64"
         else
-            echo "Unsupported Architecture for Linux: $ARCH (Currently only x86_64 is built)"
+            echo "Unsupported Architecture: $ARCH on Linux (only x86_64 supported for now)"
             exit 1
         fi
         ;;
@@ -47,48 +40,38 @@ case "$ARCH" in
         ;;
 esac
 
-# Determine Asset Name
-ASSET_NAME="${BIN_NAME}-${OS_TYPE}-${ARCH_TYPE}.tar.gz"
+ASSET_NAME="${BINARY_NAME}-${OS_TYPE}-${ARCH_TYPE}.tar.gz"
 
-echo "Detected: $OS_TYPE $ARCH_TYPE"
-echo "Target Asset: $ASSET_NAME"
+echo "Detected platform: $OS_TYPE $ARCH_TYPE"
+echo "Looking for asset: $ASSET_NAME"
 
-# Get Latest Release URL
-echo "Fetching latest release..."
-LATEST_URL=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | grep "browser_download_url" | grep "$ASSET_NAME" | cut -d '"' -f 4)
+# Get latest release URL
+LATEST_RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
+echo "Fetching latest release info..."
+RELEASE_DATA=$(curl -s $LATEST_RELEASE_URL)
+DOWNLOAD_URL=$(echo "$RELEASE_DATA" | grep "browser_download_url" | grep "$ASSET_NAME" | cut -d '"' -f 4)
 
-if [ -z "$LATEST_URL" ]; then
-    echo "Error: Could not find a release asset for $ASSET_NAME"
-    echo "Please check https://github.com/$REPO_OWNER/$REPO_NAME/releases"
+if [ -z "$DOWNLOAD_URL" ]; then
+    echo "Error: Could not find download URL for $ASSET_NAME in latest release."
+    echo "Please check if a release exists at https://github.com/$REPO/releases"
     exit 1
 fi
 
-echo "Downloading from $LATEST_URL..."
-TEMP_DIR=$(mktemp -d)
-curl -L -o "$TEMP_DIR/$ASSET_NAME" "$LATEST_URL"
+echo "Downloading from: $DOWNLOAD_URL"
+curl -L -o "/tmp/$ASSET_NAME" "$DOWNLOAD_URL"
 
-# Extract
 echo "Extracting..."
-tar -xzf "$TEMP_DIR/$ASSET_NAME" -C "$TEMP_DIR"
+tar -xzf "/tmp/$ASSET_NAME" -C /tmp/
 
-# Install
-mkdir -p "$INSTALL_DIR"
-mv "$TEMP_DIR/$BIN_NAME" "$INSTALL_DIR/$BIN_NAME"
-chmod +x "$INSTALL_DIR/$BIN_NAME"
-
-# Cleanup
-rm -rf "$TEMP_DIR"
-
-echo "Successfully installed to $INSTALL_DIR/$BIN_NAME"
-
-# Check PATH
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo ""
-    echo "WARNING: $INSTALL_DIR is not in your PATH."
-    echo "Add the following to your shell config (.bashrc, .zshrc, etc.):"
-    echo "  export PATH=\"
-$PATH:$INSTALL_DIR\""
+echo "Installing to $INSTALL_DIR (requires sudo)..."
+if command -v sudo >/dev/null 2>&1; then
+    sudo mv "/tmp/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+    sudo chmod +x "$INSTALL_DIR/$BINARY_NAME"
+else
+    mv "/tmp/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+    chmod +x "$INSTALL_DIR/$BINARY_NAME"
 fi
 
-echo ""
-echo "Run '$BIN_NAME' to start!"
+rm "/tmp/$ASSET_NAME"
+
+echo "Installation complete! Try running '$BINARY_NAME --help'"
