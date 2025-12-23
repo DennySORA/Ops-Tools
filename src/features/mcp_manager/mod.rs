@@ -3,7 +3,6 @@ mod executor;
 mod tools;
 
 use crate::ui::{Console, Prompts};
-use config::ENV_CONFIG;
 use executor::McpExecutor;
 use tools::{get_available_tools, CliType, McpTool};
 
@@ -14,24 +13,14 @@ pub fn run() {
 
     console.header("MCP 工具管理器");
 
-    // 檢查環境變數
-    if let Err(missing) = ENV_CONFIG.check_required() {
-        console.error("此功能需要以下環境變數，請在編譯時設定：");
-        for var in &missing {
-            console.list_item("✗", var);
-        }
-        console.blank_line();
-        console.info("提示：請在 .env 檔案中設定這些變數，然後重新編譯。");
-        return;
-    }
-
     // 選擇 CLI 類型
-    let cli_options = ["Anthropic Claude", "OpenAI Codex"];
+    let cli_options = ["Anthropic Claude", "OpenAI Codex", "Google Gemini"];
     let cli_selection = prompts.select("請選擇要管理的 CLI", &cli_options);
 
     let cli = match cli_selection {
         Some(0) => CliType::Claude,
         Some(1) => CliType::Codex,
+        Some(2) => CliType::Gemini,
         _ => {
             console.warning("已取消操作");
             return;

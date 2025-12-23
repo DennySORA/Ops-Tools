@@ -13,27 +13,6 @@ impl EnvConfig {
             context7_api_key: option_env!("CONTEXT7_API_KEY"),
         }
     }
-
-    /// 檢查必要的環境變數是否已設定
-    pub fn check_required(&self) -> Result<(), Vec<&'static str>> {
-        let mut missing = Vec::new();
-
-        if self.github_token.is_none() {
-            missing.push("GITHUB_PERSONAL_ACCESS_TOKEN");
-        }
-        if self.github_host.is_none() {
-            missing.push("GITHUB_HOST");
-        }
-        if self.context7_api_key.is_none() {
-            missing.push("CONTEXT7_API_KEY");
-        }
-
-        if missing.is_empty() {
-            Ok(())
-        } else {
-            Err(missing)
-        }
-    }
 }
 
 impl Default for EnvConfig {

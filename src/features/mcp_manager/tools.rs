@@ -13,6 +13,7 @@ pub struct McpTool {
 pub enum CliType {
     Claude,
     Codex,
+    Gemini,
 }
 
 impl CliType {
@@ -20,6 +21,7 @@ impl CliType {
         match self {
             CliType::Claude => "claude",
             CliType::Codex => "codex",
+            CliType::Gemini => "gemini",
         }
     }
 
@@ -27,17 +29,14 @@ impl CliType {
         match self {
             CliType::Claude => "Anthropic Claude",
             CliType::Codex => "OpenAI Codex",
+            CliType::Gemini => "Google Gemini",
         }
     }
 }
 
 /// 取得可用的 MCP 工具清單
 pub fn get_available_tools() -> Vec<McpTool> {
-    let github_token = ENV_CONFIG.github_token.unwrap_or("");
-    let github_host = ENV_CONFIG.github_host.unwrap_or("");
-    let context7_api_key = ENV_CONFIG.context7_api_key.unwrap_or("");
-
-    vec![
+    let mut tools = vec![
         McpTool {
             name: "sequential-thinking",
             display_name: "Sequential Thinking (循序思考)",
@@ -47,18 +46,6 @@ pub fn get_available_tools() -> Vec<McpTool> {
                 "npx".to_string(),
                 "-y".to_string(),
                 "@modelcontextprotocol/server-sequential-thinking".to_string(),
-            ],
-        },
-        McpTool {
-            name: "context7",
-            display_name: "Context7 (文檔查詢)",
-            install_args: vec![
-                "--transport".to_string(),
-                "http".to_string(),
-                "context7".to_string(),
-                "https://mcp.context7.com/mcp".to_string(),
-                "--header".to_string(),
-                format!("CONTEXT7_API_KEY: {}", context7_api_key),
             ],
         },
         McpTool {
@@ -83,15 +70,34 @@ pub fn get_available_tools() -> Vec<McpTool> {
                 "kubernetes-mcp-server@latest".to_string(),
             ],
         },
-        McpTool {
+    ];
+
+    // 只有在環境變數存在時才加入特定工具
+    if let Some(key) = ENV_CONFIG.context7_api_key {
+        tools.push(McpTool {
+            name: "context7",
+            display_name: "Context7 (文檔查詢)",
+            install_args: vec![
+                "--transport".to_string(),
+                "http".to_string(),
+                "context7".to_string(),
+                "https://mcp.context7.com/mcp".to_string(),
+                "--header".to_string(),
+                format!("CONTEXT7_API_KEY: {}", key),
+            ],
+        });
+    }
+
+    if let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) {
+        tools.push(McpTool {
             name: "github",
             display_name: "GitHub (GitHub 整合)",
             install_args: vec![
                 "github".to_string(),
                 "--env".to_string(),
-                format!("GITHUB_PERSONAL_ACCESS_TOKEN={}", github_token),
+                format!("GITHUB_PERSONAL_ACCESS_TOKEN={}", token),
                 "--env".to_string(),
-                format!("GITHUB_HOST={}", github_host),
+                format!("GITHUB_HOST={}", host),
                 "--".to_string(),
                 "docker".to_string(),
                 "run".to_string(),
@@ -103,8 +109,10 @@ pub fn get_available_tools() -> Vec<McpTool> {
                 "GITHUB_HOST".to_string(),
                 "ghcr.io/github/github-mcp-server".to_string(),
             ],
-        },
-    ]
+        });
+    }
+
+    tools
 }
 
 #[cfg(test)]
