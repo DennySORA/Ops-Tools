@@ -10,7 +10,6 @@ fn main() {
         let options = vec![
             "清理 Terraform/Terragrunt 快取檔案",
             "升級 AI 程式碼助手工具",
-            "掃描高風險套件（安全檢測）",
             "管理 MCP 工具（Claude/Codex）",
             "退出",
         ];
@@ -25,9 +24,8 @@ fn main() {
         match selection {
             0 => features::terraform_cleaner::run(),
             1 => features::tool_upgrader::run(),
-            2 => features::package_scanner::run(),
-            3 => features::mcp_manager::run(),
-            4 => {
+            2 => features::mcp_manager::run(),
+            3 => {
                 println!("{}", "再見！".green());
                 break;
             }

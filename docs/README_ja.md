@@ -19,14 +19,7 @@ Terraform および Terragrunt によって生成されたキャッシュファ�
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. 高リスクパッケージスキャナー
-プロジェクト内のパッケージ依存関係を高性能で並列スキャンします：
-- 任意のパッケージ名検索をサポート。
-- `node_modules`、`.git`、`target` などのディレクトリを無視。
-- バイナリファイルを自動的にスキップ。
-- 一致するファイルパスと行番号を表示。
-
-### 4. MCP ツール管理
+### 3. MCP ツール管理
 Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 
 | MCP ツール | 説明 |
@@ -84,8 +77,7 @@ cargo run
 機能メニューを選択してください：
 1. Terraform/Terragrunt キャッシュファイルのクリーニング
 2. AI コードアシスタントツールのアップグレード
-3. 高リスクパッケージのスキャン (セキュリティチェック)
-4. MCP ツールの管理 (Claude/Codex/Gemini)
+3. MCP ツールの管理 (Claude/Codex/Gemini)
 
 ## 貢献
 
