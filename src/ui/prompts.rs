@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
 
 /// 使用者輸入提示工具
 pub struct Prompts {
@@ -68,36 +68,6 @@ impl Prompts {
             .items(items)
             .defaults(defaults)
             .interact()
-            .unwrap_or_default()
-    }
-
-    /// 文字輸入
-    pub fn input(&self, prompt: &str) -> String {
-        Input::with_theme(&self.theme)
-            .with_prompt(prompt)
-            .interact_text()
-            .unwrap_or_default()
-    }
-
-    /// 文字輸入（帶預設值）
-    pub fn input_with_default(&self, prompt: &str, default: &str) -> String {
-        Input::with_theme(&self.theme)
-            .with_prompt(prompt)
-            .default(default.to_string())
-            .interact_text()
-            .unwrap_or_else(|_| default.to_string())
-    }
-
-    /// 文字輸入（帶驗證）
-    #[allow(dead_code)]
-    pub fn input_validated<F>(&self, prompt: &str, validator: F) -> String
-    where
-        F: Fn(&String) -> Result<(), String> + Clone,
-    {
-        Input::with_theme(&self.theme)
-            .with_prompt(prompt)
-            .validate_with(validator)
-            .interact_text()
             .unwrap_or_default()
     }
 }

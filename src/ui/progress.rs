@@ -20,19 +20,6 @@ impl Progress {
         Self { bar }
     }
 
-    /// 建立 spinner（無確定進度）
-    pub fn spinner(message: &str) -> Self {
-        let bar = ProgressBar::new_spinner();
-        bar.set_style(
-            ProgressStyle::default_spinner()
-                .template("{spinner:.green} {msg}")
-                .expect("Failed to create spinner style"),
-        );
-        bar.set_message(message.to_string());
-
-        Self { bar }
-    }
-
     /// 增加 1
     pub fn inc(&self) {
         self.bar.inc(1);
@@ -42,11 +29,6 @@ impl Progress {
     #[allow(dead_code)]
     pub fn inc_by(&self, delta: u64) {
         self.bar.inc(delta);
-    }
-
-    /// 設定當前位置
-    pub fn set_position(&self, pos: u64) {
-        self.bar.set_position(pos);
     }
 
     /// 更新訊息
@@ -65,11 +47,6 @@ impl Progress {
     pub fn finish_with_message(&self, message: &str) {
         self.bar.finish_with_message(message.to_string());
     }
-
-    /// 完成並清除進度條
-    pub fn finish_and_clear(&self) {
-        self.bar.finish_and_clear();
-    }
 }
 
 #[cfg(test)]
@@ -80,19 +57,6 @@ mod tests {
     fn test_progress_creation() {
         let progress = Progress::new(100, "測試");
         progress.inc();
-        progress.finish();
-    }
-
-    #[test]
-    fn test_spinner() {
-        let spinner = Progress::spinner("載入中");
-        spinner.finish();
-    }
-
-    #[test]
-    fn test_set_position() {
-        let progress = Progress::new(100, "測試");
-        progress.set_position(50);
         progress.finish();
     }
 }
