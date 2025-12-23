@@ -51,6 +51,18 @@
 
 ## 安裝
 
+### 透過安裝腳本 (推薦 - Linux/macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DennySORA/Tool-Package/main/install.sh | bash
+```
+
+### 手動安裝
+
+從 [Releases](https://github.com/DennySORA/Tool-Package/releases) 頁面下載對應你系統的版本。
+
+### 從原始碼編譯
+
 ```bash
 # 編譯
 cargo build --release
@@ -61,6 +73,14 @@ cp .env.example .env
 ```
 
 ## 使用
+
+如果透過腳本安裝，可以直接執行：
+
+```bash
+ops-tools
+```
+
+如果是從原始碼編譯：
 
 ```bash
 cargo run

@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+  # The binary name as defined in Cargo.toml
+  BIN_NAME: tools
+  # The name to distribute
+  RELEASE_NAME: ops-tools
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_name: ops-tools-linux-x86_64.tar.gz
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive_name: ops-tools-macos-x86_64.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive_name: ops-tools-macos-arm64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_name: ops-tools-windows-x86_64.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }} --locked
+
+      - name: Create Archive (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          mv ${{ env.BIN_NAME }} ${{ env.RELEASE_NAME }}
+          tar -czf ../../../${{ matrix.archive_name }} ${{ env.RELEASE_NAME }}
+          cd -
+
+      - name: Create Archive (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          cd target/${{ matrix.target }}/release
+          Move-Item ${{ env.BIN_NAME }}.exe ${{ env.RELEASE_NAME }}.exe
+          Compress-Archive -Path ${{ env.RELEASE_NAME }}.exe -DestinationPath ..\..\..\[{ matrix.archive_name }]
+          cd ..\..\..
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive_name }}
+          path: ${{ matrix.archive_name }}
+
+  create_release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ops-tools-linux-x86_64.tar.gz/ops-tools-linux-x86_64.tar.gz
+            ops-tools-macos-x86_64.tar.gz/ops-tools-macos-x86_64.tar.gz
+            ops-tools-macos-arm64.tar.gz/ops-tools-macos-arm64.tar.gz
+            ops-tools-windows-x86_64.zip/ops-tools-windows-x86_64.zip
+          generate_release_notes: true
