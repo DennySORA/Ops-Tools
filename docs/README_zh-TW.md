@@ -35,6 +35,8 @@
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 
+對 Codex MCP 安裝，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的編譯期值會寫入 `~/.codex/config.toml`，執行時不需環境變數。
+
 ## 安裝
 
 ### 透過安裝腳本 (推薦 - Linux/macOS)
