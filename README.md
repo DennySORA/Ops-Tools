@@ -31,14 +31,19 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 | `github` | GitHub Integration |
 | `cloudflare-*` | Cloudflare MCP Servers (Docs/Workers/Observability/etc.) |
 
-**Environment Variables** (Optional - only required for MCP Manager features, set in `.env` at build time):
-- `GITHUB_PERSONAL_ACCESS_TOKEN`
-- `GITHUB_HOST`
-- `CONTEXT7_API_KEY`
-- `enable_cloudflare_mcp` (`true` to enable Cloudflare MCP tools)
-- `CLOUDFLARE_API_TOKEN`
+**Optional Feature Flags & MCP Credentials** (build-time only via `.env`):
 
-For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
+How to enable:
+1. `cp .env.example .env`
+2. Fill in the values you need.
+3. Build the binary (`cargo build --release`).
+
+Available MCP options:
+- **Context7 MCP**: set `CONTEXT7_API_KEY` to enable the `context7` tool.
+- **GitHub MCP**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required) and `GITHUB_HOST` (optional, default `github.com`) to enable the `github` tool.
+- **Cloudflare MCP**: set `enable_cloudflare_mcp=true` and `CLOUDFLARE_API_TOKEN` to enable `cloudflare-*` tools.
+
+For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, `GITHUB_HOST`, and `CLOUDFLARE_API_TOKEN` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
 For Cloudflare MCP installs, the API token is sent as `Authorization: Bearer <token>`; Codex writes it into `~/.codex/config.toml`.
 
 ### 4. Git Secret Scanner
