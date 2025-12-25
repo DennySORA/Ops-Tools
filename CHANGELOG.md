@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.
 - Added Gemini MCP settings migration to remove invalid `type` fields and map HTTP URLs.
+- Removed invalid `--env` option when adding Context7 MCP via Codex CLI.
 
 ## [0.1.0] - 2025-12-23
 

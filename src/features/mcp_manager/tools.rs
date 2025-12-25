@@ -108,8 +108,6 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 "context7".to_string(),
                 "--url".to_string(),
                 "https://mcp.context7.com/mcp".to_string(),
-                "--env".to_string(),
-                format!("CONTEXT7_API_KEY={}", key),
                 "--bearer-token-env-var".to_string(),
                 "CONTEXT7_API_KEY".to_string(),
             ],
