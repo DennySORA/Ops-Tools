@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a Git secret scanner that installs and runs Gitleaks, TruffleHog, and Git-Secrets in strict mode.
 - Git worktree scans now only include tracked, non-ignored files and print raw logs per scan.
+- Added Cloudflare MCP tools gated by `enable_cloudflare_mcp` and API token configuration.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.

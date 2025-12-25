@@ -29,13 +29,17 @@
 | `chrome-devtools` | 瀏覽器開發工具 |
 | `kubernetes` | K8s 管理 |
 | `github` | GitHub 整合 |
+| `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability 等） |
 
 **環境變數**（可選 - 僅 MCP 管理功能需要，編譯時設定於 `.env`）：
 - `GITHUB_PERSONAL_ACCESS_TOKEN`
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
+- `enable_cloudflare_mcp`（設為 `true` 啟用 Cloudflare MCP）
+- `CLOUDFLARE_API_TOKEN`
 
 對 Codex MCP 安裝，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的編譯期值會寫入 `~/.codex/config.toml`，執行時不需環境變數。
+Cloudflare MCP 會以 `Authorization: Bearer <token>` 傳遞 API token；Codex 會寫入 `~/.codex/config.toml`。
 
 ### 4. Git 機密掃描
 快速安裝並以嚴格模式掃描目前的 Git 專案：
