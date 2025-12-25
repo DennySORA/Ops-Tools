@@ -35,6 +35,8 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 
+For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
+
 ## Installation
 
 ### via Install Script (Recommended - Linux/macOS)

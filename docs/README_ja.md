@@ -35,6 +35,8 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 
+Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
+
 ## インストール
 
 ### インストールスクリプト経由 (推奨 - Linux/macOS)
