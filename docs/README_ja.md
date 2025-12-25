@@ -40,12 +40,12 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 ### インストールスクリプト経由 (推奨 - Linux/macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DennySORA/Tool-Package/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DennySORA/Ops-Tools/main/install.sh | bash
 ```
 
 ### 手動インストール
 
-[Releases](https://github.com/DennySORA/Tool-Package/releases) ページから、お使いのシステムに対応するバージョンをダウンロードしてください。
+[Releases](https://github.com/DennySORA/Ops-Tools/releases) ページから、お使いのシステムに対応するバージョンをダウンロードしてください。
 
 ### ソースコードからのビルド
 
