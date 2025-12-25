@@ -40,12 +40,12 @@
 ### 通过安装脚本 (推荐 - Linux/macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DennySORA/Tool-Package/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DennySORA/Ops-Tools/main/install.sh | bash
 ```
 
 ### 手动安装
 
-从 [Releases](https://github.com/DennySORA/Tool-Package/releases) 页面下载对应你系统的版本。
+从 [Releases](https://github.com/DennySORA/Ops-Tools/releases) 页面下载对应你系统的版本。
 
 ### 从源码编译
 

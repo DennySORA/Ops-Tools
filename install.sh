@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-REPO="DennySORA/Tool-Package"
+REPO="DennySORA/Ops-Tools"
 BINARY_NAME="ops-tools"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 
 # Detect OS and Arch
 OS="$(uname -s)"
@@ -63,15 +63,23 @@ curl -L -o "/tmp/$ASSET_NAME" "$DOWNLOAD_URL"
 echo "Extracting..."
 tar -xzf "/tmp/$ASSET_NAME" -C /tmp/
 
-echo "Installing to $INSTALL_DIR (requires sudo)..."
-if command -v sudo >/dev/null 2>&1; then
-    sudo mv "/tmp/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
-    sudo chmod +x "$INSTALL_DIR/$BINARY_NAME"
-else
-    mv "/tmp/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
-    chmod +x "$INSTALL_DIR/$BINARY_NAME"
-fi
+echo "Installing to $INSTALL_DIR..."
+mkdir -p "$INSTALL_DIR"
+mv "/tmp/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"
+chmod +x "$INSTALL_DIR/$BINARY_NAME"
 
 rm "/tmp/$ASSET_NAME"
 
-echo "Installation complete! Try running '$BINARY_NAME --help'"
+echo "Installation complete!"
+
+if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    echo ""
+    echo "WARNING: $INSTALL_DIR is not in your PATH."
+    echo "Add the following line to your shell config (~/.bashrc, ~/.zshrc, etc.):"
+    echo ""
+    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo ""
+    echo "Then restart your shell or run: source ~/.bashrc"
+else
+    echo "Try running '$BINARY_NAME --help'"
+fi

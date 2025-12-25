@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["DennySORA"]
 description = "A robust Rust-based CLI toolset designed for efficient DevOps workflows, including Terraform cache cleaning, AI tool upgrading, and MCP management."
-homepage = "https://github.com/DennySORA/Tool-Package"
-repository = "https://github.com/DennySORA/Tool-Package"
+homepage = "https://github.com/DennySORA/Ops-Tools"
+repository = "https://github.com/DennySORA/Ops-Tools"
 license = "MIT"
 keywords = ["devops", "cli", "terraform", "mcp", "ai-tools"]
 
