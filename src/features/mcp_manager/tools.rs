@@ -95,10 +95,8 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
 
     // 只有在環境變數存在時才加入特定工具
     if let Some(key) = ENV_CONFIG.context7_api_key {
-        tools.push(McpTool {
-            name: "context7",
-            display_name: "Context7 (文檔查詢)",
-            install_args: vec![
+        let context7_args = match cli_type {
+            CliType::Claude => vec![
                 "--transport".to_string(),
                 "http".to_string(),
                 "context7".to_string(),
@@ -106,6 +104,28 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 "--header".to_string(),
                 format!("CONTEXT7_API_KEY: {}", key),
             ],
+            CliType::Codex => vec![
+                "context7".to_string(),
+                "--url".to_string(),
+                "https://mcp.context7.com/mcp".to_string(),
+                "--env".to_string(),
+                format!("CONTEXT7_API_KEY={}", key),
+                "--bearer-token-env-var".to_string(),
+                "CONTEXT7_API_KEY".to_string(),
+            ],
+            CliType::Gemini => vec![
+                "context7".to_string(),
+                "https://mcp.context7.com/mcp".to_string(),
+                "--transport".to_string(),
+                "http".to_string(),
+                "--header".to_string(),
+                format!("CONTEXT7_API_KEY: {}", key),
+            ],
+        };
+        tools.push(McpTool {
+            name: "context7",
+            display_name: "Context7 (文檔查詢)",
+            install_args: context7_args,
         });
     }
 
