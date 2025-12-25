@@ -1,5 +1,5 @@
 use super::config::ENV_CONFIG;
-use super::tools::{CliType, McpTool};
+use super::tools::{cloudflare_tool_names, CliType, McpTool};
 use crate::core::{OperationError, Result};
 use serde_json::Value;
 use std::env;
@@ -90,6 +90,7 @@ impl McpExecutor {
         self.maybe_migrate_gemini_settings()?;
         self.maybe_configure_codex_context7_headers()?;
         self.maybe_configure_codex_github_env()?;
+        self.maybe_configure_codex_cloudflare_headers()?;
         Ok(())
     }
 
@@ -147,6 +148,30 @@ impl McpExecutor {
 
         // Codex CLI 將 stdio MCP 的 env 寫入設定檔以避免執行期環境變數。
         update_codex_github_config(&path, token, host)?;
+        Ok(())
+    }
+
+    fn maybe_configure_codex_cloudflare_headers(&self) -> Result<()> {
+        if self.cli != CliType::Codex {
+            return Ok(());
+        }
+
+        if !ENV_CONFIG.enable_cloudflare_mcp() {
+            return Ok(());
+        }
+
+        let Some(token) = ENV_CONFIG.cloudflare_api_token else {
+            return Ok(());
+        };
+
+        let Some(path) = codex_config_path() else {
+            return Ok(());
+        };
+        if !path.exists() {
+            return Ok(());
+        }
+
+        update_codex_cloudflare_config(&path, token, &cloudflare_tool_names())?;
         Ok(())
     }
 }
@@ -399,6 +424,86 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
 
     if changed {
         github.insert("env".to_string(), TomlValue::Table(env_map));
+        let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
+            key: path.display().to_string(),
+            message: format!("設定檔序列化失敗: {}", err),
+        })?;
+        fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
+            path: path.display().to_string(),
+            source: err,
+        })?;
+    }
+
+    Ok(changed)
+}
+
+fn update_codex_cloudflare_config(
+    path: &Path,
+    api_token: &str,
+    tool_names: &[&'static str],
+) -> Result<bool> {
+    let raw = fs::read_to_string(path).map_err(|err| OperationError::Io {
+        path: path.display().to_string(),
+        source: err,
+    })?;
+
+    let mut root: toml::Table = toml::from_str(&raw).map_err(|err| OperationError::Config {
+        key: path.display().to_string(),
+        message: format!("設定檔解析失敗: {}", err),
+    })?;
+
+    let Some(servers) = root
+        .get_mut("mcp_servers")
+        .and_then(|value| value.as_table_mut())
+    else {
+        return Ok(false);
+    };
+
+    let mut changed = false;
+    let auth_value = format!("Bearer {}", api_token);
+
+    for name in tool_names {
+        let Some(server) = servers.get_mut(*name).and_then(|value| value.as_table_mut()) else {
+            continue;
+        };
+
+        let mut headers = match server.get("http_headers") {
+            Some(value) => match value.as_table() {
+                Some(table) => table.clone(),
+                None => {
+                    changed = true;
+                    toml::map::Map::new()
+                }
+            },
+            None => {
+                changed = true;
+                toml::map::Map::new()
+            }
+        };
+
+        if headers
+            .get("Authorization")
+            .and_then(|value| value.as_str())
+            != Some(auth_value.as_str())
+        {
+            headers.insert(
+                "Authorization".to_string(),
+                TomlValue::String(auth_value.clone()),
+            );
+            changed = true;
+        }
+
+        if server.remove("bearer_token_env_var").is_some() {
+            changed = true;
+        }
+        if server.remove("env_http_headers").is_some() {
+            changed = true;
+        }
+
+        server.insert("http_headers".to_string(), TomlValue::Table(headers));
+    }
+
+    if changed {
         let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
             message: format!("設定檔序列化失敗: {}", err),
@@ -710,6 +815,50 @@ command = "npx"
         fs::write(&path, content).unwrap();
 
         let changed = update_codex_github_config(&path, "token-1", "github.com").unwrap();
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_update_codex_cloudflare_config_sets_authorization() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.cloudflare-docs]
+url = "https://docs.mcp.cloudflare.com/mcp"
+bearer_token_env_var = "CLOUDFLARE_API_TOKEN"
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let names = vec!["cloudflare-docs"];
+        let changed = update_codex_cloudflare_config(&path, "token-123", &names).unwrap();
+        assert!(changed);
+
+        let root: toml::Table =
+            toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
+        let server = servers.get("cloudflare-docs").unwrap().as_table().unwrap();
+        assert!(server.get("bearer_token_env_var").is_none());
+        let headers = server.get("http_headers").unwrap().as_table().unwrap();
+        assert_eq!(
+            headers
+                .get("Authorization")
+                .and_then(|value| value.as_str()),
+            Some("Bearer token-123")
+        );
+    }
+
+    #[test]
+    fn test_update_codex_cloudflare_config_missing_server_no_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.sequential-thinking]
+command = "npx"
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let names = vec!["cloudflare-docs"];
+        let changed = update_codex_cloudflare_config(&path, "token-123", &names).unwrap();
         assert!(!changed);
     }
 }

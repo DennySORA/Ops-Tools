@@ -8,6 +8,91 @@ pub struct McpTool {
     pub install_args: Vec<String>,
 }
 
+#[derive(Clone, Copy)]
+pub struct CloudflareTool {
+    pub name: &'static str,
+    pub display_name: &'static str,
+    pub url: &'static str,
+}
+
+const CLOUDFLARE_TOOLS: &[CloudflareTool] = &[
+    CloudflareTool {
+        name: "cloudflare-docs",
+        display_name: "Cloudflare Docs (文件查詢)",
+        url: "https://docs.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-workers-bindings",
+        display_name: "Cloudflare Workers Bindings",
+        url: "https://bindings.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-workers-builds",
+        display_name: "Cloudflare Workers Builds",
+        url: "https://builds.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-observability",
+        display_name: "Cloudflare Observability",
+        url: "https://observability.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-radar",
+        display_name: "Cloudflare Radar (網路趨勢)",
+        url: "https://radar.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-containers",
+        display_name: "Cloudflare Containers (Sandbox)",
+        url: "https://containers.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-browser",
+        display_name: "Cloudflare Browser Rendering",
+        url: "https://browser.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-logpush",
+        display_name: "Cloudflare Logpush",
+        url: "https://logs.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-ai-gateway",
+        display_name: "Cloudflare AI Gateway",
+        url: "https://ai-gateway.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-autorag",
+        display_name: "Cloudflare AutoRAG",
+        url: "https://autorag.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-auditlogs",
+        display_name: "Cloudflare Audit Logs",
+        url: "https://auditlogs.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-dns-analytics",
+        display_name: "Cloudflare DNS Analytics",
+        url: "https://dns-analytics.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-dex",
+        display_name: "Cloudflare DEX",
+        url: "https://dex.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-casb",
+        display_name: "Cloudflare One CASB",
+        url: "https://casb.mcp.cloudflare.com/mcp",
+    },
+    CloudflareTool {
+        name: "cloudflare-graphql",
+        display_name: "Cloudflare GraphQL",
+        url: "https://graphql.mcp.cloudflare.com/mcp",
+    },
+];
+
 /// CLI 類型
 #[derive(Clone, Copy, PartialEq)]
 pub enum CliType {
@@ -125,6 +210,41 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
         });
     }
 
+    if ENV_CONFIG.enable_cloudflare_mcp() {
+        if let Some(token) = ENV_CONFIG.cloudflare_api_token {
+            for tool in CLOUDFLARE_TOOLS {
+                let args = match cli_type {
+                    CliType::Claude => vec![
+                        "--transport".to_string(),
+                        "http".to_string(),
+                        tool.name.to_string(),
+                        tool.url.to_string(),
+                        "--header".to_string(),
+                        format!("Authorization: Bearer {}", token),
+                    ],
+                    CliType::Codex => vec![
+                        tool.name.to_string(),
+                        "--url".to_string(),
+                        tool.url.to_string(),
+                    ],
+                    CliType::Gemini => vec![
+                        tool.name.to_string(),
+                        tool.url.to_string(),
+                        "--transport".to_string(),
+                        "http".to_string(),
+                        "--header".to_string(),
+                        format!("Authorization: Bearer {}", token),
+                    ],
+                };
+                tools.push(McpTool {
+                    name: tool.name,
+                    display_name: tool.display_name,
+                    install_args: args,
+                });
+            }
+        }
+    }
+
     if let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) {
         tools.push(McpTool {
             name: "github",
@@ -157,6 +277,10 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
     }
 
     tools
+}
+
+pub fn cloudflare_tool_names() -> Vec<&'static str> {
+    CLOUDFLARE_TOOLS.iter().map(|tool| tool.name).collect()
 }
 
 #[cfg(test)]
