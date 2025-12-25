@@ -29,13 +29,17 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 | `chrome-devtools` | Chrome DevTools |
 | `kubernetes` | K8s Management |
 | `github` | GitHub Integration |
+| `cloudflare-*` | Cloudflare MCP Servers (Docs/Workers/Observability/etc.) |
 
 **Environment Variables** (Optional - only required for MCP Manager features, set in `.env` at build time):
 - `GITHUB_PERSONAL_ACCESS_TOKEN`
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
+- `enable_cloudflare_mcp` (`true` to enable Cloudflare MCP tools)
+- `CLOUDFLARE_API_TOKEN`
 
 For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
+For Cloudflare MCP installs, the API token is sent as `Authorization: Bearer <token>`; Codex writes it into `~/.codex/config.toml`.
 
 ### 4. Git Secret Scanner
 Quickly installs and runs strict scans against the current Git repo:
