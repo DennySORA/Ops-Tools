@@ -37,6 +37,15 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 
 For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
 
+### 4. Git Secret Scanner
+Quickly installs and runs strict scans against the current Git repo:
+- `gitleaks` (history + working tree)
+- `trufflehog` (history + working tree)
+- `git-secrets` (history + working tree)
+
+Auto-install tries common package managers and `go install`, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
+Working tree scans only include Git-tracked files and skip anything ignored by `.gitignore`, with raw logs printed per scan.
+
 ## Installation
 
 ### via Install Script (Recommended - Linux/macOS)
@@ -79,7 +88,9 @@ cargo run
 Select a function from the menu:
 1. Clean Terraform/Terragrunt cache files
 2. Upgrade AI code assistant tools
-3. Manage MCP tools (Claude/Codex/Gemini)
+3. Upgrade Rust projects and toolchain
+4. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
+5. Manage MCP tools (Claude/Codex/Gemini)
 
 ## Contributing
 

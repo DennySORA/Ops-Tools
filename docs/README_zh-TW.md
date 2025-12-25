@@ -37,6 +37,15 @@
 
 對 Codex MCP 安裝，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的編譯期值會寫入 `~/.codex/config.toml`，執行時不需環境變數。
 
+### 4. Git 機密掃描
+快速安裝並以嚴格模式掃描目前的 Git 專案：
+- `gitleaks`（Git 歷史 + 工作樹）
+- `trufflehog`（Git 歷史 + 工作樹）
+- `git-secrets`（Git 歷史 + 工作樹）
+
+自動安裝會先嘗試常見套件管理與 `go install`，若找不到套件則改用 GitHub Release（需 `curl`/`wget` 與 `tar`/`unzip`）。
+工作樹掃描僅包含 Git 已追蹤且未被 `.gitignore` 排除的檔案，並會輸出每次掃描的原始 log。
+
 ## 安裝
 
 ### 透過安裝腳本 (推薦 - Linux/macOS)
@@ -79,7 +88,9 @@ cargo run
 選擇功能選單：
 1. 清理 Terraform/Terragrunt 快取檔案
 2. 升級 AI 程式碼助手工具
-3. 管理 MCP 工具（Claude/Codex/Gemini）
+3. 升級 Rust 專案與工具鏈
+4. Git 機密掃描（Gitleaks/TruffleHog/Git-Secrets）
+5. 管理 MCP 工具（Claude/Codex/Gemini）
 
 ## 貢獻
 

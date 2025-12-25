@@ -37,6 +37,15 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 
 Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
 
+### 4. Git シークレットスキャナー
+現在の Git リポジトリを厳格モードで素早くスキャンします：
+- `gitleaks`（Git 履歴 + ワーキングツリー）
+- `trufflehog`（Git 履歴 + ワーキングツリー）
+- `git-secrets`（Git 履歴 + ワーキングツリー）
+
+自動インストールは一般的なパッケージマネージャーと `go install` を優先し、見つからない場合は GitHub Release から取得します（`curl`/`wget` と `tar`/`unzip` が必要です）。
+ワーキングツリーのスキャンは Git で追跡済みかつ `.gitignore` で除外されていないファイルのみ対象で、各スキャンの生ログを出力します。
+
 ## インストール
 
 ### インストールスクリプト経由 (推奨 - Linux/macOS)
@@ -79,7 +88,9 @@ cargo run
 機能メニューを選択してください：
 1. Terraform/Terragrunt キャッシュファイルのクリーニング
 2. AI コードアシスタントツールのアップグレード
-3. MCP ツールの管理 (Claude/Codex/Gemini)
+3. Rust プロジェクトとツールチェーンのアップグレード
+4. Git シークレットスキャン (Gitleaks/TruffleHog/Git-Secrets)
+5. MCP ツールの管理 (Claude/Codex/Gemini)
 
 ## 貢献
 

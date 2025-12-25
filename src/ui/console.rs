@@ -27,6 +27,10 @@ impl Console {
         eprintln!("{} {}", "錯誤:".red().bold(), message);
     }
 
+    pub fn raw(&self, message: &str) {
+        print!("{}", message);
+    }
+
     // === 結構化輸出 ===
 
     pub fn header(&self, title: &str) {
