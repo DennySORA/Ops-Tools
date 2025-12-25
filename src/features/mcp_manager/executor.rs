@@ -1,3 +1,4 @@
+use super::config::ENV_CONFIG;
 use super::tools::{CliType, McpTool};
 use crate::core::{OperationError, Result};
 use serde_json::Value;
@@ -5,6 +6,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use toml::Value as TomlValue;
 
 /// MCP CLI 執行器
 pub struct McpExecutor {
@@ -18,7 +20,7 @@ impl McpExecutor {
 
     /// 取得已安裝的 MCP 清單
     pub fn list_installed(&self) -> Result<Vec<String>> {
-        self.maybe_migrate_gemini_settings()?;
+        self.maybe_migrate_cli_settings()?;
         let output = Command::new(self.cli.command())
             .args(["mcp", "list"])
             .output()
@@ -37,7 +39,7 @@ impl McpExecutor {
 
     /// 安裝 MCP
     pub fn install(&self, tool: &McpTool) -> Result<()> {
-        self.maybe_migrate_gemini_settings()?;
+        self.maybe_migrate_cli_settings()?;
         let mut args: Vec<&str> = vec!["mcp", "add"];
         let string_refs: Vec<&str> = tool.install_args.iter().map(|s| s.as_str()).collect();
         args.extend(string_refs);
@@ -51,7 +53,7 @@ impl McpExecutor {
             })?;
 
         if output.status.success() {
-            self.maybe_migrate_gemini_settings()?;
+            self.maybe_migrate_cli_settings()?;
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -64,7 +66,7 @@ impl McpExecutor {
 
     /// 移除 MCP
     pub fn remove(&self, name: &str) -> Result<()> {
-        self.maybe_migrate_gemini_settings()?;
+        self.maybe_migrate_cli_settings()?;
         let output = Command::new(self.cli.command())
             .args(["mcp", "remove", name])
             .output()
@@ -84,6 +86,13 @@ impl McpExecutor {
         }
     }
 
+    fn maybe_migrate_cli_settings(&self) -> Result<()> {
+        self.maybe_migrate_gemini_settings()?;
+        self.maybe_configure_codex_context7_headers()?;
+        self.maybe_configure_codex_github_env()?;
+        Ok(())
+    }
+
     fn maybe_migrate_gemini_settings(&self) -> Result<()> {
         if self.cli != CliType::Gemini {
             return Ok(());
@@ -96,6 +105,48 @@ impl McpExecutor {
             migrate_gemini_settings_file(&path)?;
         }
 
+        Ok(())
+    }
+
+    fn maybe_configure_codex_context7_headers(&self) -> Result<()> {
+        if self.cli != CliType::Codex {
+            return Ok(());
+        }
+
+        let Some(key) = ENV_CONFIG.context7_api_key else {
+            return Ok(());
+        };
+
+        let Some(path) = codex_config_path() else {
+            return Ok(());
+        };
+        if !path.exists() {
+            return Ok(());
+        }
+
+        // Codex CLI 不支援 --header，改寫設定檔的 http_headers。
+        update_codex_context7_config(&path, key)?;
+        Ok(())
+    }
+
+    fn maybe_configure_codex_github_env(&self) -> Result<()> {
+        if self.cli != CliType::Codex {
+            return Ok(());
+        }
+
+        let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) else {
+            return Ok(());
+        };
+
+        let Some(path) = codex_config_path() else {
+            return Ok(());
+        };
+        if !path.exists() {
+            return Ok(());
+        }
+
+        // Codex CLI 將 stdio MCP 的 env 寫入設定檔以避免執行期環境變數。
+        update_codex_github_config(&path, token, host)?;
         Ok(())
     }
 }
@@ -175,6 +226,11 @@ fn gemini_settings_paths() -> Vec<PathBuf> {
     unique
 }
 
+fn codex_config_path() -> Option<PathBuf> {
+    let home = env::var("HOME").ok()?;
+    Some(PathBuf::from(home).join(".codex").join("config.toml"))
+}
+
 fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
     let raw = fs::read_to_string(path).map_err(|err| OperationError::Io {
         path: path.display().to_string(),
@@ -200,6 +256,152 @@ fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
                 key: path.display().to_string(),
                 message: format!("設定檔序列化失敗: {}", err),
             }
+        })?;
+        fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
+            path: path.display().to_string(),
+            source: err,
+        })?;
+    }
+
+    Ok(changed)
+}
+
+fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
+    let raw = fs::read_to_string(path).map_err(|err| OperationError::Io {
+        path: path.display().to_string(),
+        source: err,
+    })?;
+
+    let mut root: toml::Table = toml::from_str(&raw).map_err(|err| OperationError::Config {
+        key: path.display().to_string(),
+        message: format!("設定檔解析失敗: {}", err),
+    })?;
+
+    let Some(servers) = root
+        .get_mut("mcp_servers")
+        .and_then(|value| value.as_table_mut())
+    else {
+        return Ok(false);
+    };
+
+    let Some(context7) = servers.get_mut("context7").and_then(|value| value.as_table_mut()) else {
+        return Ok(false);
+    };
+
+    let mut changed = false;
+    let mut headers = match context7.get("http_headers") {
+        Some(value) => match value.as_table() {
+            Some(table) => table.clone(),
+            None => {
+                changed = true;
+                toml::map::Map::new()
+            }
+        },
+        None => {
+            changed = true;
+            toml::map::Map::new()
+        }
+    };
+
+    if headers
+        .get("CONTEXT7_API_KEY")
+        .and_then(|value| value.as_str())
+        != Some(api_key)
+    {
+        headers.insert(
+            "CONTEXT7_API_KEY".to_string(),
+            TomlValue::String(api_key.to_string()),
+        );
+        changed = true;
+    }
+
+    if context7.remove("bearer_token_env_var").is_some() {
+        changed = true;
+    }
+    if context7.remove("env_http_headers").is_some() {
+        changed = true;
+    }
+
+    if changed {
+        context7.insert("http_headers".to_string(), TomlValue::Table(headers));
+        let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
+            key: path.display().to_string(),
+            message: format!("設定檔序列化失敗: {}", err),
+        })?;
+        fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
+            path: path.display().to_string(),
+            source: err,
+        })?;
+    }
+
+    Ok(changed)
+}
+
+fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bool> {
+    let raw = fs::read_to_string(path).map_err(|err| OperationError::Io {
+        path: path.display().to_string(),
+        source: err,
+    })?;
+
+    let mut root: toml::Table = toml::from_str(&raw).map_err(|err| OperationError::Config {
+        key: path.display().to_string(),
+        message: format!("設定檔解析失敗: {}", err),
+    })?;
+
+    let Some(servers) = root
+        .get_mut("mcp_servers")
+        .and_then(|value| value.as_table_mut())
+    else {
+        return Ok(false);
+    };
+
+    let Some(github) = servers.get_mut("github").and_then(|value| value.as_table_mut()) else {
+        return Ok(false);
+    };
+
+    let mut changed = false;
+    let mut env_map = match github.get("env") {
+        Some(value) => match value.as_table() {
+            Some(table) => table.clone(),
+            None => {
+                changed = true;
+                toml::map::Map::new()
+            }
+        },
+        None => {
+            changed = true;
+            toml::map::Map::new()
+        }
+    };
+
+    let updates = [
+        ("GITHUB_PERSONAL_ACCESS_TOKEN", token),
+        ("GITHUB_HOST", host),
+    ];
+    for (key, value) in updates {
+        if env_map.get(key).and_then(|val| val.as_str()) != Some(value) {
+            env_map.insert(key.to_string(), TomlValue::String(value.to_string()));
+            changed = true;
+        }
+    }
+
+    if let Some(env_vars) = github.get_mut("env_vars").and_then(|val| val.as_array_mut()) {
+        let before = env_vars.len();
+        env_vars.retain(|item| {
+            item.as_str()
+                .map(|name| name != "GITHUB_PERSONAL_ACCESS_TOKEN" && name != "GITHUB_HOST")
+                .unwrap_or(true)
+        });
+        if env_vars.len() != before {
+            changed = true;
+        }
+    }
+
+    if changed {
+        github.insert("env".to_string(), TomlValue::Table(env_map));
+        let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
+            key: path.display().to_string(),
+            message: format!("設定檔序列化失敗: {}", err),
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),
@@ -419,5 +621,95 @@ mod tests {
         assert_eq!(server["url"], "https://example.com");
         assert!(server.get("httpUrl").is_none());
         assert!(server.get("type").is_none());
+    }
+
+    #[test]
+    fn test_update_codex_context7_config_sets_http_headers() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+bearer_token_env_var = "CONTEXT7_API_KEY"
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let changed = update_codex_context7_config(&path, "test-key").unwrap();
+        assert!(changed);
+
+        let root: toml::Table =
+            toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
+        let context7 = servers.get("context7").unwrap().as_table().unwrap();
+        assert!(context7.get("bearer_token_env_var").is_none());
+        let headers = context7.get("http_headers").unwrap().as_table().unwrap();
+        assert_eq!(
+            headers
+                .get("CONTEXT7_API_KEY")
+                .and_then(|value| value.as_str()),
+            Some("test-key")
+        );
+    }
+
+    #[test]
+    fn test_update_codex_context7_config_missing_context7_no_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.sequential-thinking]
+command = "npx"
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let changed = update_codex_context7_config(&path, "test-key").unwrap();
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_update_codex_github_config_sets_env() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.github]
+command = "docker"
+args = ["run"]
+env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN", "OTHER"]
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let changed = update_codex_github_config(&path, "token-1", "github.com").unwrap();
+        assert!(changed);
+
+        let root: toml::Table =
+            toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
+        let github = servers.get("github").unwrap().as_table().unwrap();
+        let env = github.get("env").unwrap().as_table().unwrap();
+        assert_eq!(
+            env.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+                .and_then(|value| value.as_str()),
+            Some("token-1")
+        );
+        assert_eq!(
+            env.get("GITHUB_HOST").and_then(|value| value.as_str()),
+            Some("github.com")
+        );
+        let env_vars = github.get("env_vars").unwrap().as_array().unwrap();
+        assert_eq!(env_vars.len(), 1);
+        assert_eq!(env_vars[0].as_str(), Some("OTHER"));
+    }
+
+    #[test]
+    fn test_update_codex_github_config_missing_github_no_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.sequential-thinking]
+command = "npx"
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let changed = update_codex_github_config(&path, "token-1", "github.com").unwrap();
+        assert!(!changed);
     }
 }
