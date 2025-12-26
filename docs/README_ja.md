@@ -94,6 +94,10 @@ cargo run
 3. Rust プロジェクトとツールチェーンのアップグレード
 4. Git シークレットスキャン (Gitleaks/TruffleHog/Git-Secrets)
 5. MCP ツールの管理 (Claude/Codex/Gemini)
+6. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
+
+起動時に言語選択が表示され、後からメニューで切り替えできます。
+言語設定は `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）、`%APPDATA%\\ops-tools\\config.toml`（Windows）に保存されます。
 
 ## 貢献
 

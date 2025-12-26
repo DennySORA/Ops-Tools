@@ -1,4 +1,5 @@
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use std::process::Command;
 
 /// 套件升級器
@@ -29,7 +30,7 @@ impl PackageUpgrader {
             .output()
             .map_err(|e| OperationError::Command {
                 command: self.package_manager.clone(),
-                message: format!("無法執行: {}", e),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
             })?;
 
         if output.status.success() {
@@ -39,7 +40,11 @@ impl PackageUpgrader {
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             Err(OperationError::Command {
                 command: format!("{} add -g {}", self.package_manager, full_package),
-                message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                message: stderr
+                    .lines()
+                    .next()
+                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                    .to_string(),
             })
         }
     }

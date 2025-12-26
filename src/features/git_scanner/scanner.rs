@@ -1,4 +1,5 @@
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use std::path::Path;
 use std::process::Command;
 
@@ -23,7 +24,7 @@ pub fn run_scans(tool: ScanTool, repo_root: &Path, worktree_root: &Path) -> Resu
     let Some(tool_path) = resolve_tool_path(tool) else {
         return Err(OperationError::Command {
             command: tool.binary_name().to_string(),
-            message: "找不到指令".to_string(),
+            message: i18n::t(keys::ERROR_COMMAND_NOT_FOUND).to_string(),
         });
     };
 
@@ -46,7 +47,7 @@ fn run_step(tool_path: &Path, step: &ScanCommand) -> Result<ScanOutcome> {
 
     let output = command.output().map_err(|err| OperationError::Command {
         command: tool_path.display().to_string(),
-        message: format!("無法執行: {}", err),
+        message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
     })?;
 
     let exit_code = output.status.code();
@@ -59,7 +60,7 @@ fn run_step(tool_path: &Path, step: &ScanCommand) -> Result<ScanOutcome> {
     };
 
     Ok(ScanOutcome {
-        label: step.label.to_string(),
+        label: step.label.clone(),
         status,
         exit_code,
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),

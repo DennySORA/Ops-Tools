@@ -1,4 +1,5 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
+use dialoguer::{theme::ColorfulTheme, MultiSelect, Select};
+use crate::i18n::{self, keys};
 
 /// 使用者輸入提示工具
 pub struct Prompts {
@@ -14,16 +15,12 @@ impl Prompts {
 
     /// 簡單確認（預設否）
     pub fn confirm(&self, prompt: &str) -> bool {
-        Confirm::with_theme(&self.theme)
-            .with_prompt(prompt)
-            .default(false)
-            .interact()
-            .unwrap_or(false)
+        self.confirm_with_options(prompt, false)
     }
 
     /// 確認對話框（使用選項式）
     pub fn confirm_with_options(&self, prompt: &str, default_yes: bool) -> bool {
-        let options = vec!["是", "否"];
+        let options = vec![i18n::t(keys::PROMPT_YES), i18n::t(keys::PROMPT_NO)];
         let default = if default_yes { 0 } else { 1 };
 
         let selection = Select::with_theme(&self.theme)
@@ -46,7 +43,6 @@ impl Prompts {
     }
 
     /// 單選選單（帶預設值）
-    #[allow(dead_code)]
     pub fn select_with_default(
         &self,
         prompt: &str,

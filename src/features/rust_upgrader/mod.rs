@@ -1,6 +1,8 @@
 mod tools;
 mod upgrader;
 
+use crate::core::OperationError;
+use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use tools::{REQUIRED_CARGO_TOOLS, UPGRADE_STEPS};
 use upgrader::RustUpgrader;
@@ -10,22 +12,24 @@ pub fn run() {
     let console = Console::new();
     let prompts = Prompts::new();
 
-    console.header("升級 Rust 專案與工具鏈");
+    console.header(i18n::t(keys::RUST_UPGRADER_HEADER));
 
     let upgrader = RustUpgrader::new();
 
     // 步驟 1: 檢查 Rust 環境
-    console.info("正在檢查 Rust 環境...");
+    console.info(i18n::t(keys::RUST_UPGRADER_CHECKING_ENV));
     match upgrader.check_rust_installed() {
         Ok(env) => {
-            console.success("Rust 環境已安裝:");
+            console.success(i18n::t(keys::RUST_UPGRADER_ENV_INSTALLED));
             console.list_item("🦀", &env.rustc_version);
             console.list_item("📦", &env.cargo_version);
             console.list_item("🔧", &env.rustup_version);
         }
         Err(err) => {
-            console.error(&format!("Rust 未安裝: {}", err));
-            console.info("請先安裝 Rust: https://rustup.rs");
+            console.error(&crate::tr!(keys::RUST_UPGRADER_ENV_MISSING,
+                error = err
+            ));
+            console.info(i18n::t(keys::RUST_UPGRADER_INSTALL_RUST_HINT));
             return;
         }
     }
@@ -33,7 +37,7 @@ pub fn run() {
     console.separator();
 
     // 步驟 2: 檢查必要的 cargo 工具
-    console.info("正在檢查必要的 Cargo 工具...");
+    console.info(i18n::t(keys::RUST_UPGRADER_CHECKING_TOOLS));
     let tool_statuses = upgrader.check_tools_status(REQUIRED_CARGO_TOOLS);
 
     let missing_tools: Vec<_> = tool_statuses.iter().filter(|s| !s.installed).collect();
@@ -41,9 +45,9 @@ pub fn run() {
     for status in &tool_statuses {
         let icon = if status.installed { "✓" } else { "✗" };
         let state = if status.installed {
-            "已安裝"
+            i18n::t(keys::RUST_UPGRADER_TOOL_INSTALLED)
         } else {
-            "未安裝"
+            i18n::t(keys::RUST_UPGRADER_TOOL_MISSING)
         };
         console.list_item(icon, &format!("{} ({})", status.tool.display_name, state));
     }
@@ -52,24 +56,32 @@ pub fn run() {
 
     // 步驟 3: 安裝缺少的工具
     if !missing_tools.is_empty() {
-        console.warning(&format!("發現 {} 個缺少的工具", missing_tools.len()));
+        console.warning(&crate::tr!(keys::RUST_UPGRADER_MISSING_TOOLS,
+            count = missing_tools.len()
+        ));
 
-        if prompts.confirm("是否要安裝缺少的工具？") {
+        if prompts.confirm(i18n::t(keys::RUST_UPGRADER_CONFIRM_INSTALL_TOOLS)) {
             console.blank_line();
             for (i, status) in missing_tools.iter().enumerate() {
                 console.show_progress(
                     i + 1,
                     missing_tools.len(),
-                    &format!("正在安裝 {}...", status.tool.display_name),
+                    &crate::tr!(keys::RUST_UPGRADER_INSTALLING_TOOL,
+                        tool = status.tool.display_name
+                    ),
                 );
 
                 match upgrader.install_tool(&status.tool) {
                     Ok(_) => {
-                        console.success_item(&format!("{} 安裝成功", status.tool.display_name));
+                        console.success_item(&crate::tr!(keys::RUST_UPGRADER_INSTALL_SUCCESS,
+                            tool = status.tool.display_name
+                        ));
                     }
                     Err(err) => {
                         console.error_item(
-                            &format!("{} 安裝失敗", status.tool.display_name),
+                            &crate::tr!(keys::RUST_UPGRADER_INSTALL_FAILED,
+                                tool = status.tool.display_name
+                            ),
                             &err.to_string(),
                         );
                     }
@@ -77,32 +89,37 @@ pub fn run() {
             }
             console.separator();
         } else {
-            console.warning("跳過工具安裝，部分升級功能可能無法使用");
+            console.warning(i18n::t(keys::RUST_UPGRADER_SKIP_INSTALL));
             console.separator();
         }
     } else {
-        console.success("所有必要工具都已安裝");
+        console.success(i18n::t(keys::RUST_UPGRADER_ALL_TOOLS_INSTALLED));
         console.separator();
     }
 
     // 步驟 4: 顯示升級步驟
-    console.info("將執行以下升級步驟：");
+    console.info(i18n::t(keys::RUST_UPGRADER_UPGRADE_STEPS));
     for step in UPGRADE_STEPS {
         let project_tag = if step.requires_project {
-            " [需要專案]"
+            i18n::t(keys::RUST_UPGRADER_REQUIRES_PROJECT_TAG)
         } else {
             ""
         };
         console.list_item(
             "📋",
-            &format!("{}: {}{}", step.name, step.description, project_tag),
+            &format!(
+                "{}: {}{}",
+                step.name,
+                i18n::t(step.description_key),
+                project_tag
+            ),
         );
     }
 
     console.separator();
 
-    if !prompts.confirm("確定要執行升級嗎？") {
-        console.warning("已取消升級");
+    if !prompts.confirm(i18n::t(keys::RUST_UPGRADER_CONFIRM_UPGRADE)) {
+        console.warning(i18n::t(keys::RUST_UPGRADER_CANCELLED));
         return;
     }
 
@@ -117,33 +134,46 @@ pub fn run() {
         console.show_progress(
             i + 1,
             UPGRADE_STEPS.len(),
-            &format!("正在執行 {}...", step.name),
+            &crate::tr!(keys::RUST_UPGRADER_RUNNING_STEP,
+                step = step.name
+            ),
         );
 
         match upgrader.run_upgrade_step(step) {
             Ok(output) => {
-                console.success_item(&format!("{} 完成", step.name));
+                console.success_item(&crate::tr!(keys::RUST_UPGRADER_STEP_DONE,
+                    step = step.name
+                ));
                 display_output(&console, &output);
                 success_count += 1;
             }
+            Err(OperationError::MissingCargoToml) => {
+                console.warning(&crate::tr!(keys::RUST_UPGRADER_STEP_SKIPPED,
+                    step = step.name
+                ));
+                skipped_count += 1;
+            }
             Err(err) => {
-                let err_str = err.to_string();
-                if err_str.contains("目前目錄沒有 Cargo.toml") {
-                    console.warning(&format!("{} 跳過（無專案）", step.name));
-                    skipped_count += 1;
-                } else {
-                    console.error_item(&format!("{} 失敗", step.name), &err_str);
-                    failed_count += 1;
-                }
+                console.error_item(
+                    &crate::tr!(keys::RUST_UPGRADER_STEP_FAILED, step = step.name),
+                    &err.to_string(),
+                );
+                failed_count += 1;
             }
         }
         console.blank_line();
     }
 
     // 步驟 6: 顯示摘要
-    console.show_summary("升級完成", success_count, failed_count);
+    console.show_summary(
+        i18n::t(keys::RUST_UPGRADER_SUMMARY),
+        success_count,
+        failed_count,
+    );
     if skipped_count > 0 {
-        console.info(&format!("跳過: {} 個步驟（無專案）", skipped_count));
+        console.info(&crate::tr!(keys::RUST_UPGRADER_SKIPPED_COUNT,
+            count = skipped_count
+        ));
     }
 }
 
@@ -165,13 +195,19 @@ fn display_output(console: &Console, output: &str) {
     }
 
     if lines.len() > 5 {
-        console.list_item("  ", &format!("... 還有 {} 行輸出", lines.len() - 5));
+        console.list_item(
+            "  ",
+            &crate::tr!(keys::RUST_UPGRADER_OUTPUT_MORE_LINES,
+                count = lines.len() - 5
+            ),
+        );
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::tools::{REQUIRED_CARGO_TOOLS, UPGRADE_STEPS};
+    use crate::i18n;
 
     #[test]
     #[allow(clippy::const_is_empty)]
@@ -189,7 +225,7 @@ mod tests {
     fn test_upgrade_steps_have_descriptions() {
         for step in UPGRADE_STEPS {
             assert!(
-                !step.description.is_empty(),
+                !i18n::t(step.description_key).is_empty(),
                 "步驟 {} 應該有描述",
                 step.name
             );
