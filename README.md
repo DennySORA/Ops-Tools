@@ -45,6 +45,7 @@ Available MCP options:
 
 For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
 Cloudflare MCP installs use OAuth in interactive mode (stdio inherited) so URL prompts and auth codes work. On WSL, open the auth URL with `wslview` or run the CLI on Windows if the localhost callback cannot reach WSL.
+Cloudflare's MCP server catalog: https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/
 
 ### 4. Git Secret Scanner
 Quickly installs and runs strict scans against the current Git repo:
