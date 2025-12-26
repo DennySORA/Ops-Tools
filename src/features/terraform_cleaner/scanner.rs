@@ -1,5 +1,6 @@
 use crate::core::path_utils;
 use crate::core::FileScanner;
+use crate::i18n::{self, keys};
 use crate::ui::Progress;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
@@ -45,7 +46,7 @@ impl FileScanner for TerraformScanner {
             .filter_map(|e| e.ok())
             .count() as u64;
 
-        let progress = Progress::new(total_entries, "掃描中");
+        let progress = Progress::new(total_entries, i18n::t(keys::TERRAFORM_PROGRESS_SCANNING));
 
         for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
             let file_name = entry.file_name().to_string_lossy();
@@ -57,7 +58,7 @@ impl FileScanner for TerraformScanner {
             progress.inc();
         }
 
-        progress.finish_with_message("掃描完成");
+        progress.finish_with_message(i18n::t(keys::TERRAFORM_PROGRESS_SCANNED));
 
         path_utils::filter_subpaths(found_items)
     }

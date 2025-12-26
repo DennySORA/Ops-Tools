@@ -3,6 +3,7 @@ mod scanner;
 mod tools;
 
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use installer::{ensure_installed, is_command_available, resolve_tool_path, InstallStatus};
 use scanner::{run_scans, ScanStatus};
@@ -16,28 +17,32 @@ pub fn run() {
     let console = Console::new();
     let prompts = Prompts::new();
 
-    console.header("Git 安全掃描器");
+    console.header(i18n::t(keys::GIT_SCANNER_HEADER));
 
     let current_dir = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(err) => {
-            console.error(&format!("無法取得當前目錄: {}", err));
+            console.error(&crate::tr!(keys::GIT_SCANNER_CURRENT_DIR_FAILED,
+                error = err
+            ));
             return;
         }
     };
 
     let Some(repo_root) = find_git_root(&current_dir) else {
-        console.error("目前目錄不是 Git 專案（找不到 .git）");
+        console.error(i18n::t(keys::GIT_SCANNER_NOT_GIT_REPO));
         return;
     };
 
     if is_command_available("git").is_none() {
-        console.error("找不到 git，無法執行掃描");
+        console.error(i18n::t(keys::GIT_SCANNER_GIT_NOT_FOUND));
         return;
     }
 
-    console.info(&format!("掃描目錄: {}", repo_root.display()));
-    console.info("嚴格模式：掃描 Git 歷史與工作樹，偵測到疑似憑證視為失敗");
+    console.info(&crate::tr!(keys::GIT_SCANNER_SCAN_DIR,
+        path = repo_root.display()
+    ));
+    console.info(i18n::t(keys::GIT_SCANNER_STRICT_MODE));
     console.blank_line();
 
     let worktree_snapshot = match build_worktree_snapshot(&repo_root, &console) {
@@ -49,18 +54,18 @@ pub fn run() {
     };
 
     let tools = all_tools();
-    console.info("將使用以下掃描工具：");
+    console.info(i18n::t(keys::GIT_SCANNER_TOOLS_INTRO));
     for tool in &tools {
         let status = if resolve_tool_path(*tool).is_some() {
-            "已安裝"
+            i18n::t(keys::GIT_SCANNER_STATUS_INSTALLED)
         } else {
-            "未安裝"
+            i18n::t(keys::GIT_SCANNER_STATUS_MISSING)
         };
         console.list_item("🔎", &format!("{} ({})", tool.display_name(), status));
     }
 
-    if !prompts.confirm_with_options("確定要安裝缺少工具並開始掃描嗎？", true) {
-        console.warning("已取消掃描");
+    if !prompts.confirm_with_options(i18n::t(keys::GIT_SCANNER_CONFIRM_INSTALL), true) {
+        console.warning(i18n::t(keys::GIT_SCANNER_CANCELLED));
         return;
     }
 
@@ -72,43 +77,57 @@ pub fn run() {
 
     for tool in &tools {
         if resolve_tool_path(*tool).is_some() {
-            console.success_item(&format!("{} 已安裝", tool.display_name()));
+            console.success_item(&format!(
+                "{} {}",
+                tool.display_name(),
+                i18n::t(keys::GIT_SCANNER_STATUS_INSTALLED)
+            ));
             continue;
         }
 
-        console.info(&format!("正在安裝 {}...", tool.display_name()));
+        console.info(&crate::tr!(keys::GIT_SCANNER_INSTALLING,
+            tool = tool.display_name()
+        ));
         install_attempted += 1;
         match ensure_installed(*tool) {
             Ok(InstallStatus::Installed(path)) => {
-                console.success_item(&format!(
-                    "{} 安裝完成 ({})",
-                    tool.display_name(),
-                    path.display()
+                console.success_item(&crate::tr!(keys::GIT_SCANNER_INSTALL_DONE,
+                    tool = tool.display_name(),
+                    path = path.display()
                 ));
                 install_success += 1;
             }
             Ok(InstallStatus::AlreadyInstalled(path)) => {
-                console.success_item(&format!(
-                    "{} 已安裝 ({})",
-                    tool.display_name(),
-                    path.display()
+                console.success_item(&crate::tr!(keys::GIT_SCANNER_INSTALL_ALREADY,
+                    tool = tool.display_name(),
+                    path = path.display()
                 ));
                 install_success += 1;
             }
             Ok(InstallStatus::Failed(errors)) => {
                 let message = errors.join("; ");
-                console.error_item(&format!("{} 安裝失敗", tool.display_name()), &message);
+                console.error_item(
+                    &crate::tr!(keys::GIT_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &message,
+                );
                 install_failed += 1;
             }
             Err(err) => {
-                console.error_item(&format!("{} 安裝失敗", tool.display_name()), &err.to_string());
+                console.error_item(
+                    &crate::tr!(keys::GIT_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &err.to_string(),
+                );
                 install_failed += 1;
             }
         }
     }
 
     if install_attempted > 0 {
-        console.show_summary("安裝完成", install_success, install_failed);
+        console.show_summary(
+            i18n::t(keys::GIT_SCANNER_INSTALL_SUMMARY),
+            install_success,
+            install_failed,
+        );
         console.blank_line();
     }
 
@@ -118,44 +137,58 @@ pub fn run() {
 
     for tool in &tools {
         let Some(_) = resolve_tool_path(*tool) else {
-            console.warning(&format!("略過 {}，未安裝或無法找到指令", tool.display_name()));
+            console.warning(&crate::tr!(keys::GIT_SCANNER_SKIP_TOOL,
+                tool = tool.display_name()
+            ));
             continue;
         };
 
-        console.info(&format!("開始執行 {} 掃描...", tool.display_name()));
+        console.info(&crate::tr!(keys::GIT_SCANNER_START_SCAN,
+            tool = tool.display_name()
+        ));
         match run_scans(*tool, &repo_root, worktree_snapshot.root()) {
             Ok(outcomes) => {
                 for outcome in outcomes {
                     console.separator();
-                    console.info(&format!("{} 原始輸出 (stdout):", outcome.label));
+                    console.info(&crate::tr!(keys::GIT_SCANNER_STDOUT_TITLE,
+                        label = outcome.label
+                    ));
                     if outcome.stdout.trim().is_empty() {
-                        console.raw("(無輸出)\n");
+                        console.raw(&format!("{}\n", i18n::t(keys::GIT_SCANNER_NO_OUTPUT)));
                     } else {
                         console.raw(&ensure_trailing_newline(&outcome.stdout));
                     }
-                    console.info(&format!("{} 原始輸出 (stderr):", outcome.label));
+                    console.info(&crate::tr!(keys::GIT_SCANNER_STDERR_TITLE,
+                        label = outcome.label
+                    ));
                     if outcome.stderr.trim().is_empty() {
-                        console.raw("(無輸出)\n");
+                        console.raw(&format!("{}\n", i18n::t(keys::GIT_SCANNER_NO_OUTPUT)));
                     } else {
                         console.raw(&ensure_trailing_newline(&outcome.stderr));
                     }
 
                     match outcome.status {
                         ScanStatus::Clean => {
-                            console.success_item(&format!("{} 通過", outcome.label));
+                            console.success_item(&crate::tr!(keys::GIT_SCANNER_PASSED,
+                                label = outcome.label
+                            ));
                             scan_success += 1;
                         }
                         ScanStatus::Findings => {
                             has_findings = true;
                             console.error_item(
-                                &format!("{} 發現疑似憑證", outcome.label),
+                                &crate::tr!(keys::GIT_SCANNER_FINDINGS,
+                                    label = outcome.label
+                                ),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
                         }
                         ScanStatus::Error => {
                             console.error_item(
-                                &format!("{} 掃描失敗", outcome.label),
+                                &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED,
+                                    label = outcome.label
+                                ),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
@@ -165,7 +198,9 @@ pub fn run() {
             }
             Err(err) => {
                 console.error_item(
-                    &format!("{} 掃描失敗", tool.display_name()),
+                    &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED,
+                        label = tool.display_name()
+                    ),
                     &err.to_string(),
                 );
                 scan_failed += 1;
@@ -175,16 +210,20 @@ pub fn run() {
         console.blank_line();
     }
 
-    console.show_summary("掃描完成", scan_success, scan_failed);
+    console.show_summary(
+        i18n::t(keys::GIT_SCANNER_SCAN_SUMMARY),
+        scan_success,
+        scan_failed,
+    );
     if has_findings {
-        console.warning("偵測到疑似憑證，請檢視上述原始輸出");
+        console.warning(i18n::t(keys::GIT_SCANNER_FINDINGS_WARNING));
     }
 }
 
 fn format_exit_code(exit_code: Option<i32>) -> String {
     match exit_code {
-        Some(code) => format!("退出碼 {}", code),
-        None => "未知退出碼".to_string(),
+        Some(code) => crate::tr!(keys::GIT_SCANNER_EXIT_CODE, code = code),
+        None => i18n::t(keys::GIT_SCANNER_EXIT_CODE_UNKNOWN).to_string(),
     }
 }
 
@@ -222,7 +261,7 @@ fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<Worktr
 
     let tracked = git_list_tracked(repo_root)?;
     if tracked.is_empty() {
-        console.warning("Git 內沒有已追蹤的檔案，工作樹掃描將略過");
+        console.warning(i18n::t(keys::GIT_SCANNER_NO_TRACKED_FILES));
         return Ok(WorktreeSnapshot {
             root: snapshot_root.clone(),
             cleanup_path: snapshot_root,
@@ -236,7 +275,7 @@ fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<Worktr
         .collect();
 
     if filtered.is_empty() {
-        console.warning("已追蹤檔案全部被 .gitignore 排除，工作樹掃描將略過");
+        console.warning(i18n::t(keys::GIT_SCANNER_ALL_IGNORED));
         return Ok(WorktreeSnapshot {
             root: snapshot_root.clone(),
             cleanup_path: snapshot_root,
@@ -298,7 +337,7 @@ fn git_list_tracked(repo_root: &Path) -> Result<Vec<String>> {
         .output()
         .map_err(|err| OperationError::Command {
             command: "git ls-files".to_string(),
-            message: format!("無法執行: {}", err),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
         })?;
 
     if !output.status.success() {
@@ -307,7 +346,7 @@ fn git_list_tracked(repo_root: &Path) -> Result<Vec<String>> {
             message: String::from_utf8_lossy(&output.stderr)
                 .lines()
                 .next()
-                .unwrap_or("未知錯誤")
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
                 .to_string(),
         });
     }
@@ -327,7 +366,7 @@ fn git_list_ignored(repo_root: &Path, paths: &[String]) -> Result<std::collectio
         .spawn()
         .map_err(|err| OperationError::Command {
             command: "git check-ignore".to_string(),
-            message: format!("無法執行: {}", err),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
         })?;
 
     if let Some(stdin) = child.stdin.as_mut() {
@@ -345,7 +384,7 @@ fn git_list_ignored(repo_root: &Path, paths: &[String]) -> Result<std::collectio
 
     let output = child.wait_with_output().map_err(|err| OperationError::Command {
         command: "git check-ignore".to_string(),
-        message: format!("無法執行: {}", err),
+        message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
     })?;
 
     let code = output.status.code().unwrap_or(-1);
@@ -355,7 +394,7 @@ fn git_list_ignored(repo_root: &Path, paths: &[String]) -> Result<std::collectio
             message: String::from_utf8_lossy(&output.stderr)
                 .lines()
                 .next()
-                .unwrap_or("未知錯誤")
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
                 .to_string(),
         });
     }

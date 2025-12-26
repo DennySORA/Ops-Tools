@@ -1,4 +1,5 @@
 use crate::core::{FileCleaner, OperationResult, OperationType};
+use crate::i18n::{self, keys};
 use crate::ui::Progress;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -30,7 +31,7 @@ impl FileCleaner for Cleaner {
     fn clean(&self, items: Vec<PathBuf>) -> Vec<OperationResult> {
         let mut results = Vec::new();
         let total = items.len() as u64;
-        let progress = Progress::new(total, "刪除中");
+        let progress = Progress::new(total, i18n::t(keys::TERRAFORM_PROGRESS_DELETING));
 
         for item in items {
             let result = match Self::remove_item(&item) {
@@ -42,7 +43,7 @@ impl FileCleaner for Cleaner {
             progress.inc();
         }
 
-        progress.finish_with_message("刪除完成");
+        progress.finish_with_message(i18n::t(keys::TERRAFORM_PROGRESS_DELETED));
         results
     }
 }

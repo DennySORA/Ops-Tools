@@ -1,3 +1,4 @@
+use crate::i18n::{self, keys};
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Copy, Debug)]
@@ -8,7 +9,7 @@ pub enum ScanTool {
 }
 
 pub struct ScanCommand {
-    pub label: &'static str,
+    pub label: String,
     pub args: Vec<String>,
     pub workdir: Option<PathBuf>,
 }
@@ -66,11 +67,20 @@ impl ScanTool {
         let repo_str = repo_path.display().to_string();
         let worktree_str = worktree_path.display().to_string();
         let file_url = format!("file://{}", repo_str);
+        let tool_name = self.display_name();
+        let history_scope = i18n::t(keys::GIT_SCANNER_SCOPE_GIT_HISTORY);
+        let worktree_scope = i18n::t(keys::GIT_SCANNER_SCOPE_WORKTREE);
+        let label_for = |scope: &str| -> String {
+            crate::tr!(keys::GIT_SCANNER_COMMAND_LABEL,
+                tool = tool_name,
+                scope = scope
+            )
+        };
 
         match self {
             ScanTool::Gitleaks => vec![
                 ScanCommand {
-                    label: "Gitleaks (Git 歷史)",
+                    label: label_for(history_scope),
                     args: vec![
                         "detect".to_string(),
                         "--source".to_string(),
@@ -83,7 +93,7 @@ impl ScanTool {
                     workdir: Some(repo_path.clone()),
                 },
                 ScanCommand {
-                    label: "Gitleaks (工作樹)",
+                    label: label_for(worktree_scope),
                     args: vec![
                         "detect".to_string(),
                         "--source".to_string(),
@@ -99,7 +109,7 @@ impl ScanTool {
             ],
             ScanTool::Trufflehog => vec![
                 ScanCommand {
-                    label: "TruffleHog (Git 歷史)",
+                    label: label_for(history_scope),
                     args: vec![
                         "git".to_string(),
                         file_url,
@@ -109,7 +119,7 @@ impl ScanTool {
                     workdir: Some(repo_path.clone()),
                 },
                 ScanCommand {
-                    label: "TruffleHog (工作樹)",
+                    label: label_for(worktree_scope),
                     args: vec![
                         "filesystem".to_string(),
                         worktree_str.clone(),
@@ -121,12 +131,12 @@ impl ScanTool {
             ],
             ScanTool::GitSecrets => vec![
                 ScanCommand {
-                    label: "Git-Secrets (工作樹)",
+                    label: label_for(worktree_scope),
                     args: vec!["--scan".to_string(), "-r".to_string()],
                     workdir: Some(worktree_path.clone()),
                 },
                 ScanCommand {
-                    label: "Git-Secrets (Git 歷史)",
+                    label: label_for(history_scope),
                     args: vec!["--scan-history".to_string()],
                     workdir: Some(repo_path),
                 },

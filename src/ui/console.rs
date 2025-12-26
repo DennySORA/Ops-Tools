@@ -1,4 +1,5 @@
 use colored::Colorize;
+use crate::i18n::{self, keys};
 use std::path::PathBuf;
 
 /// 控制台輸出工具
@@ -24,7 +25,11 @@ impl Console {
     }
 
     pub fn error(&self, message: &str) {
-        eprintln!("{} {}", "錯誤:".red().bold(), message);
+        eprintln!(
+            "{} {}",
+            i18n::t(keys::CONSOLE_ERROR_PREFIX).red().bold(),
+            message
+        );
     }
 
     pub fn raw(&self, message: &str) {
@@ -85,10 +90,12 @@ impl Console {
     pub fn show_summary(&self, title: &str, success: usize, failed: usize) {
         println!("\n{}", "=".repeat(50).cyan());
         println!(
-            "{} 成功: {}, 失敗: {}",
-            title.green(),
-            success.to_string().green(),
-            failed.to_string().red()
+            "{}",
+            crate::tr!(keys::CONSOLE_SUMMARY,
+                title = title.green(),
+                success = success.to_string().green(),
+                failed = failed.to_string().red()
+            )
         );
         println!("{}", "=".repeat(50).cyan());
     }

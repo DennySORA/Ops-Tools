@@ -101,6 +101,10 @@ Select a function from the menu:
 3. Upgrade Rust projects and toolchain
 4. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
 5. Manage MCP tools (Claude/Codex/Gemini)
+6. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+
+You'll be prompted to choose a language at startup, and you can switch languages later from the menu.
+Language preference is saved to `~/.config/ops-tools/config.toml` (Linux), `~/Library/Application Support/ops-tools/config.toml` (macOS), or `%APPDATA%\\ops-tools\\config.toml` (Windows).
 
 ## Contributing
 

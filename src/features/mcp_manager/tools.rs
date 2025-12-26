@@ -1,95 +1,102 @@
 use super::config::ENV_CONFIG;
+use crate::i18n::{self, keys};
 
 /// MCP 工具定義
 #[derive(Clone)]
 pub struct McpTool {
     pub name: &'static str,
-    pub display_name: &'static str,
+    pub display_name_key: &'static str,
     pub install_args: Vec<String>,
     pub requires_interactive: bool,
+}
+
+impl McpTool {
+    pub fn display_name(&self) -> &'static str {
+        i18n::t(self.display_name_key)
+    }
 }
 
 #[derive(Clone, Copy)]
 pub struct CloudflareTool {
     pub name: &'static str,
-    pub display_name: &'static str,
+    pub display_name_key: &'static str,
     pub url: &'static str,
 }
 
 const CLOUDFLARE_TOOLS: &[CloudflareTool] = &[
     CloudflareTool {
         name: "cloudflare-docs",
-        display_name: "Cloudflare Docs (文件查詢)",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_DOCS,
         url: "https://docs.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-workers-bindings",
-        display_name: "Cloudflare Workers Bindings",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_WORKERS_BINDINGS,
         url: "https://bindings.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-workers-builds",
-        display_name: "Cloudflare Workers Builds",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_WORKERS_BUILDS,
         url: "https://builds.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-observability",
-        display_name: "Cloudflare Observability",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_OBSERVABILITY,
         url: "https://observability.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-radar",
-        display_name: "Cloudflare Radar (網路趨勢)",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_RADAR,
         url: "https://radar.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-containers",
-        display_name: "Cloudflare Containers (Sandbox)",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_CONTAINERS,
         url: "https://containers.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-browser",
-        display_name: "Cloudflare Browser Rendering",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_BROWSER,
         url: "https://browser.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-logpush",
-        display_name: "Cloudflare Logpush",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_LOGPUSH,
         url: "https://logs.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-ai-gateway",
-        display_name: "Cloudflare AI Gateway",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_AI_GATEWAY,
         url: "https://ai-gateway.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-autorag",
-        display_name: "Cloudflare AutoRAG",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_AUTORAG,
         url: "https://autorag.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-auditlogs",
-        display_name: "Cloudflare Audit Logs",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_AUDITLOGS,
         url: "https://auditlogs.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-dns-analytics",
-        display_name: "Cloudflare DNS Analytics",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_DNS_ANALYTICS,
         url: "https://dns-analytics.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-dex",
-        display_name: "Cloudflare DEX",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_DEX,
         url: "https://dex.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-casb",
-        display_name: "Cloudflare One CASB",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_CASB,
         url: "https://casb.mcp.cloudflare.com/mcp",
     },
     CloudflareTool {
         name: "cloudflare-graphql",
-        display_name: "Cloudflare GraphQL",
+        display_name_key: keys::MCP_TOOL_CLOUDFLARE_GRAPHQL,
         url: "https://graphql.mcp.cloudflare.com/mcp",
     },
 ];
@@ -131,7 +138,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
     let mut tools = vec![
         McpTool {
             name: "sequential-thinking",
-            display_name: "Sequential Thinking (循序思考)",
+            display_name_key: keys::MCP_TOOL_SEQUENTIAL_THINKING,
             install_args: {
                 let mut args = vec!["sequential-thinking".to_string()];
                 if let Some(sep) = separator {
@@ -148,7 +155,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
         },
         McpTool {
             name: "chrome-devtools",
-            display_name: "Chrome DevTools (瀏覽器開發工具)",
+            display_name_key: keys::MCP_TOOL_CHROME_DEVTOOLS,
             install_args: {
                 let mut args = vec!["chrome-devtools".to_string()];
                 if let Some(sep) = separator {
@@ -165,7 +172,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
         },
         McpTool {
             name: "kubernetes",
-            display_name: "Kubernetes (K8s 管理)",
+            display_name_key: keys::MCP_TOOL_KUBERNETES,
             install_args: {
                 let mut args = vec!["kubernetes".to_string()];
                 if let Some(sep) = separator {
@@ -209,7 +216,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
         };
         tools.push(McpTool {
             name: "context7",
-            display_name: "Context7 (文檔查詢)",
+            display_name_key: keys::MCP_TOOL_CONTEXT7,
             install_args: context7_args,
             requires_interactive: false,
         });
@@ -238,7 +245,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             };
             tools.push(McpTool {
                 name: tool.name,
-                display_name: tool.display_name,
+                display_name_key: tool.display_name_key,
                 install_args: args,
                 requires_interactive: true,
             });
@@ -248,7 +255,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
     if let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) {
         tools.push(McpTool {
             name: "github",
-            display_name: "GitHub (GitHub 整合)",
+            display_name_key: keys::MCP_TOOL_GITHUB,
             install_args: {
                 let mut args = vec![
                     "github".to_string(),
@@ -283,6 +290,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::i18n::{self, keys, Language};
 
     #[test]
     fn test_cli_type_command() {
@@ -307,5 +315,24 @@ mod tests {
                 assert_eq!(tool.install_args[1], "npx");
             }
         }
+    }
+
+    #[test]
+    fn test_display_name_uses_locale() {
+        let _guard = i18n::test_lock();
+        let previous = i18n::current_language();
+        i18n::set_language(Language::English);
+
+        let tools = get_available_tools(CliType::Claude);
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name == "sequential-thinking")
+            .expect("Missing sequential-thinking tool");
+        assert_eq!(
+            tool.display_name(),
+            i18n::t(keys::MCP_TOOL_SEQUENTIAL_THINKING)
+        );
+
+        i18n::set_language(previous);
     }
 }

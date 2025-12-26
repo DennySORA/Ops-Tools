@@ -1,3 +1,5 @@
+use crate::i18n::keys;
+
 /// Cargo 工具套件定義
 #[derive(Debug, Clone)]
 pub struct CargoTool {
@@ -34,7 +36,7 @@ pub struct UpgradeStep {
     pub name: &'static str,
     pub command: &'static str,
     pub args: &'static [&'static str],
-    pub description: &'static str,
+    pub description_key: &'static str,
     pub requires_project: bool,
 }
 
@@ -43,14 +45,14 @@ impl UpgradeStep {
         name: &'static str,
         command: &'static str,
         args: &'static [&'static str],
-        description: &'static str,
+        description_key: &'static str,
         requires_project: bool,
     ) -> Self {
         Self {
             name,
             command,
             args,
-            description,
+            description_key,
             requires_project,
         }
     }
@@ -62,38 +64,44 @@ pub const UPGRADE_STEPS: &[UpgradeStep] = &[
         "Rustup Self Update",
         "rustup",
         &["self", "update"],
-        "更新 rustup 本身",
+        keys::RUST_UPGRADER_STEP_DESC_RUSTUP_SELF_UPDATE,
         false,
     ),
     UpgradeStep::new(
         "Rustup Update",
         "rustup",
         &["update"],
-        "更新 Rust 工具鏈",
+        keys::RUST_UPGRADER_STEP_DESC_RUSTUP_UPDATE,
         false,
     ),
     UpgradeStep::new(
         "Cargo Install Update",
         "cargo",
         &["install-update", "-a"],
-        "升級所有已安裝的 cargo crates",
+        keys::RUST_UPGRADER_STEP_DESC_CARGO_INSTALL_UPDATE,
         false,
     ),
     UpgradeStep::new(
         "Cargo Upgrade",
         "cargo",
         &["upgrade", "--incompatible"],
-        "升級專案依賴（包含破壞性更新）",
+        keys::RUST_UPGRADER_STEP_DESC_CARGO_UPGRADE,
         true,
     ),
     UpgradeStep::new(
         "Cargo Outdated",
         "cargo",
         &["outdated"],
-        "檢查過時的依賴",
+        keys::RUST_UPGRADER_STEP_DESC_CARGO_OUTDATED,
         true,
     ),
-    UpgradeStep::new("Cargo Audit", "cargo", &["audit"], "安全性漏洞掃描", true),
+    UpgradeStep::new(
+        "Cargo Audit",
+        "cargo",
+        &["audit"],
+        keys::RUST_UPGRADER_STEP_DESC_CARGO_AUDIT,
+        true,
+    ),
 ];
 
 #[cfg(test)]
@@ -125,6 +133,6 @@ mod tests {
         let step = &UPGRADE_STEPS[0];
         assert!(!step.name.is_empty());
         assert!(!step.command.is_empty());
-        assert!(!step.description.is_empty());
+        assert!(!step.description_key.is_empty());
     }
 }
