@@ -4,6 +4,8 @@
 
 [English](../README.md) | [繁體中文](README_zh-TW.md) | [日本語](README_ja.md)
 
+![Screenshot](image/01.png)
+
 ## 功能特色
 
 ### 1. Terraform/Terragrunt 缓存清理

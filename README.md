@@ -4,6 +4,8 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 
 [繁體中文](docs/README_zh-TW.md) | [简体中文](docs/README_zh-CN.md) | [日本語](docs/README_ja.md)
 
+![Screenshot](docs/image/01.png)
+
 ## Features
 
 ### 1. Terraform/Terragrunt Cache Cleaner
