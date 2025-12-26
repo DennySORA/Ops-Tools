@@ -118,6 +118,12 @@ pub fn run() {
 
     console.blank_line();
 
+    if to_install.iter().any(|mcp| mcp.requires_interactive) {
+        console.info("提示：部分 MCP 需要 OAuth 互動登入，請依 CLI 顯示的 URL 完成授權。");
+        console.info("若在 WSL，請使用 `wslview <URL>` 開啟瀏覽器，或改在 Windows 端執行 CLI。");
+        console.blank_line();
+    }
+
     // 執行安裝和移除
     let mut success_count = 0;
     let mut failed_count = 0;

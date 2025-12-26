@@ -41,10 +41,10 @@ How to enable:
 Available MCP options:
 - **Context7 MCP**: set `CONTEXT7_API_KEY` to enable the `context7` tool.
 - **GitHub MCP**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required) and `GITHUB_HOST` (optional, default `github.com`) to enable the `github` tool.
-- **Cloudflare MCP**: set `enable_cloudflare_mcp=true` and `CLOUDFLARE_API_TOKEN` to enable `cloudflare-*` tools.
+- **Cloudflare MCP**: set `enable_cloudflare_mcp=true` to enable `cloudflare-*` tools (OAuth during install).
 
-For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, `GITHUB_HOST`, and `CLOUDFLARE_API_TOKEN` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
-For Cloudflare MCP installs, the API token is sent as `Authorization: Bearer <token>`; Codex writes it into `~/.codex/config.toml`.
+For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
+Cloudflare MCP installs use OAuth in interactive mode (stdio inherited) so URL prompts and auth codes work. On WSL, open the auth URL with `wslview` or run the CLI on Windows if the localhost callback cannot reach WSL.
 
 ### 4. Git Secret Scanner
 Quickly installs and runs strict scans against the current Git repo:
