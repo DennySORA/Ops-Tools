@@ -36,10 +36,9 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（`true` で Cloudflare MCP を有効化）
-- `CLOUDFLARE_API_TOKEN`
 
 Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
-Cloudflare MCP は `Authorization: Bearer <token>` で API トークンを送信し、Codex は `~/.codex/config.toml` に書き込みます。
+Cloudflare MCP は OAuth の対話ログインを使用するため、CLI に表示される URL で認可を完了してください。WSL の場合は `wslview <URL>` を使用できます。
 
 ### 4. Git シークレットスキャナー
 現在の Git リポジトリを厳格モードで素早くスキャンします：
