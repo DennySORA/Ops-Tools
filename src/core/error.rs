@@ -1,5 +1,6 @@
 use std::fmt;
 use std::io;
+use crate::i18n::{self, keys};
 
 /// 統一的操作錯誤類型
 #[derive(Debug)]
@@ -19,22 +20,44 @@ pub enum OperationError {
 
     /// 使用者取消操作
     Cancelled,
+
+    /// 缺少 Cargo.toml
+    MissingCargoToml,
 }
 
 impl fmt::Display for OperationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io { path, source } => {
-                write!(f, "IO 錯誤 ({}): {}", path, source)
+                write!(
+                    f,
+                    "{}",
+                    crate::tr!(keys::ERROR_IO, path = path, source = source)
+                )
             }
             Self::Command { command, message } => {
-                write!(f, "命令 '{}' 執行失敗: {}", command, message)
+                write!(
+                    f,
+                    "{}",
+                    crate::tr!(keys::ERROR_COMMAND, command = command, message = message)
+                )
             }
             Self::Config { key, message } => {
-                write!(f, "配置錯誤 [{}]: {}", key, message)
+                write!(
+                    f,
+                    "{}",
+                    crate::tr!(keys::ERROR_CONFIG, key = key, message = message)
+                )
             }
-            Self::Validation(msg) => write!(f, "驗證錯誤: {}", msg),
-            Self::Cancelled => write!(f, "操作已取消"),
+            Self::Validation(msg) => {
+                write!(f, "{}", crate::tr!(keys::ERROR_VALIDATION, message = msg))
+            }
+            Self::Cancelled => write!(f, "{}", i18n::t(keys::ERROR_CANCELLED)),
+            Self::MissingCargoToml => write!(
+                f,
+                "{}",
+                i18n::t(keys::RUST_UPGRADER_VALIDATION_MISSING_CARGO)
+            ),
         }
     }
 }

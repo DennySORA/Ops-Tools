@@ -2,6 +2,7 @@ mod cleaner;
 mod scanner;
 mod service;
 
+use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use cleaner::Cleaner;
 use scanner::TerraformScanner;
@@ -16,7 +17,9 @@ pub fn run() {
     let current_dir = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            console.error(&format!("無法取得當前目錄: {}", e));
+            console.error(&crate::tr!(keys::TERRAFORM_CURRENT_DIR_FAILED,
+                error = e
+            ));
             return;
         }
     };
@@ -25,8 +28,10 @@ pub fn run() {
 }
 
 fn execute(root: &Path, console: &Console, prompts: &Prompts) {
-    console.info("開始掃描當前目錄...");
-    console.info(&format!("掃描目錄: {}", root.display()));
+    console.info(i18n::t(keys::TERRAFORM_SCAN_START));
+    console.info(&crate::tr!(keys::TERRAFORM_SCAN_DIR,
+        path = root.display()
+    ));
 
     let scanner = TerraformScanner::new();
     let cleaner = Cleaner::new();
@@ -36,20 +41,28 @@ fn execute(root: &Path, console: &Console, prompts: &Prompts) {
     let scan_result = service.scan(root);
 
     if scan_result.is_empty() {
-        console.warning("沒有找到任何 Terraform/Terragrunt 快取檔案");
+        console.warning(i18n::t(keys::TERRAFORM_NO_CACHE));
         return;
     }
 
     // 2. 顯示找到的項目
     console.show_paths_with_title(
-        &format!("找到 {} 個項目:", scan_result.count()),
+        &crate::tr!(keys::TERRAFORM_FOUND_ITEMS,
+            count = scan_result.count()
+        ),
         &scan_result.items,
-        |item| if item.is_dir() { "目錄" } else { "檔案" },
+        |item| {
+            if item.is_dir() {
+                i18n::t(keys::TERRAFORM_ITEM_DIR)
+            } else {
+                i18n::t(keys::TERRAFORM_ITEM_FILE)
+            }
+        },
     );
 
     // 3. 確認刪除
-    if !prompts.confirm_with_options("確定要刪除這些項目嗎？", false) {
-        console.warning("已取消刪除操作");
+    if !prompts.confirm_with_options(i18n::t(keys::TERRAFORM_CONFIRM_DELETE), false) {
+        console.warning(i18n::t(keys::TERRAFORM_DELETE_CANCELLED));
         return;
     }
 
@@ -59,15 +72,22 @@ fn execute(root: &Path, console: &Console, prompts: &Prompts) {
     // 5. 顯示結果
     for result in &clean_result.results {
         if result.success {
-            console.success_item(&format!("已刪除: {}", result.path.display()));
+            console.success_item(&crate::tr!(keys::TERRAFORM_DELETED,
+                path = result.path.display()
+            ));
         } else if let Some(err) = &result.error {
-            console.error_item(&format!("刪除失敗: {}", result.path.display()), err);
+            console.error_item(
+                &crate::tr!(keys::TERRAFORM_DELETE_FAILED,
+                    path = result.path.display()
+                ),
+                err,
+            );
         }
     }
 
     // 6. 顯示統計
     console.show_summary(
-        "清理完成",
+        i18n::t(keys::TERRAFORM_SUMMARY_TITLE),
         clean_result.stats.success,
         clean_result.stats.failed,
     );

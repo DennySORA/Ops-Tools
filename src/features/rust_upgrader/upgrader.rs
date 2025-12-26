@@ -1,4 +1,5 @@
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use std::path::Path;
 use std::process::Command;
 
@@ -80,7 +81,7 @@ impl RustUpgrader {
             .output()
             .map_err(|e| OperationError::Command {
                 command: "cargo install".to_string(),
-                message: format!("無法執行: {}", e),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
             })?;
 
         if output.status.success() {
@@ -89,7 +90,11 @@ impl RustUpgrader {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(OperationError::Command {
                 command: format!("cargo install {}", tool.crate_name),
-                message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                message: stderr
+                    .lines()
+                    .next()
+                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                    .to_string(),
             })
         }
     }
@@ -97,9 +102,7 @@ impl RustUpgrader {
     /// 執行升級步驟
     pub fn run_upgrade_step(&self, step: &UpgradeStep) -> Result<String> {
         if step.requires_project && !self.has_cargo_toml() {
-            return Err(OperationError::Validation(
-                "目前目錄沒有 Cargo.toml，無法執行此步驟".to_string(),
-            ));
+            return Err(OperationError::MissingCargoToml);
         }
 
         let mut command = Command::new(step.command);
@@ -111,7 +114,7 @@ impl RustUpgrader {
 
         let output = command.output().map_err(|e| OperationError::Command {
             command: step.command.to_string(),
-            message: format!("無法執行: {}", e),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
         })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -127,7 +130,11 @@ impl RustUpgrader {
         } else {
             Err(OperationError::Command {
                 command: format!("{} {}", step.command, step.args.join(" ")),
-                message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                message: stderr
+                    .lines()
+                    .next()
+                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                    .to_string(),
             })
         }
     }
@@ -149,7 +156,9 @@ impl RustUpgrader {
                 .output()
                 .map_err(|e| OperationError::Command {
                     command: command.to_string(),
-                    message: format!("Rust 未安裝或無法執行: {}", e),
+                    message: crate::tr!(keys::RUST_UPGRADER_RUST_MISSING_OR_UNAVAILABLE,
+                        error = e
+                    ),
                 })?;
 
         if output.status.success() {
@@ -157,7 +166,7 @@ impl RustUpgrader {
         } else {
             Err(OperationError::Command {
                 command: command.to_string(),
-                message: "無法取得版本資訊".to_string(),
+                message: i18n::t(keys::RUST_UPGRADER_VERSION_UNAVAILABLE).to_string(),
             })
         }
     }

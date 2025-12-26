@@ -1,0 +1,419 @@
+use std::collections::HashMap;
+use std::sync::{OnceLock, RwLock};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Language {
+    English,
+    TraditionalChinese,
+    SimplifiedChinese,
+    Japanese,
+}
+
+impl Language {
+    pub const ALL: [Language; 4] = [
+        Language::English,
+        Language::TraditionalChinese,
+        Language::SimplifiedChinese,
+        Language::Japanese,
+    ];
+
+    pub fn display_name(self) -> &'static str {
+        match self {
+            Language::English => "English",
+            Language::TraditionalChinese => "繁體中文",
+            Language::SimplifiedChinese => "简体中文",
+            Language::Japanese => "日本語",
+        }
+    }
+
+    pub fn code(self) -> &'static str {
+        match self {
+            Language::English => "en",
+            Language::TraditionalChinese => "zh-TW",
+            Language::SimplifiedChinese => "zh-CN",
+            Language::Japanese => "ja",
+        }
+    }
+
+    pub fn index(self) -> usize {
+        match self {
+            Language::English => 0,
+            Language::TraditionalChinese => 1,
+            Language::SimplifiedChinese => 2,
+            Language::Japanese => 3,
+        }
+    }
+
+    pub fn from_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(Language::English),
+            1 => Some(Language::TraditionalChinese),
+            2 => Some(Language::SimplifiedChinese),
+            3 => Some(Language::Japanese),
+            _ => None,
+        }
+    }
+
+    pub fn from_code(code: &str) -> Option<Self> {
+        match code.trim() {
+            "en" | "en-US" | "en-GB" => Some(Language::English),
+            "zh-TW" | "zh-Hant" | "zh-Hant-TW" => Some(Language::TraditionalChinese),
+            "zh-CN" | "zh-Hans" | "zh-Hans-CN" => Some(Language::SimplifiedChinese),
+            "ja" | "ja-JP" => Some(Language::Japanese),
+            _ => None,
+        }
+    }
+}
+
+impl Default for Language {
+    fn default() -> Self {
+        Language::TraditionalChinese
+    }
+}
+
+struct Bundle {
+    maps: HashMap<Language, HashMap<String, String>>,
+}
+
+impl Bundle {
+    fn get(&self, lang: Language, key: &str) -> Option<&str> {
+        self.maps
+            .get(&lang)
+            .and_then(|map| map.get(key).map(|value| value.as_str()))
+    }
+}
+
+static BUNDLE: OnceLock<Bundle> = OnceLock::new();
+static CURRENT_LANGUAGE: OnceLock<RwLock<Language>> = OnceLock::new();
+
+fn load_locale(raw: &str) -> HashMap<String, String> {
+    toml::from_str(raw).expect("Invalid locale data")
+}
+
+fn bundle() -> &'static Bundle {
+    BUNDLE.get_or_init(|| {
+        let mut maps = HashMap::new();
+        maps.insert(Language::English, load_locale(include_str!("locales/en.toml")));
+        maps.insert(
+            Language::TraditionalChinese,
+            load_locale(include_str!("locales/zh-TW.toml")),
+        );
+        maps.insert(
+            Language::SimplifiedChinese,
+            load_locale(include_str!("locales/zh-CN.toml")),
+        );
+        maps.insert(Language::Japanese, load_locale(include_str!("locales/ja.toml")));
+        Bundle { maps }
+    })
+}
+
+fn language_lock() -> &'static RwLock<Language> {
+    CURRENT_LANGUAGE.get_or_init(|| RwLock::new(Language::default()))
+}
+
+pub fn current_language() -> Language {
+    *language_lock()
+        .read()
+        .expect("Language lock poisoned")
+}
+
+pub fn set_language(language: Language) {
+    *language_lock()
+        .write()
+        .expect("Language lock poisoned") = language;
+}
+
+pub fn t(key: &str) -> &'static str {
+    let bundle = bundle();
+    let language = current_language();
+    bundle
+        .get(language, key)
+        .or_else(|| bundle.get(Language::English, key))
+        .unwrap_or("??")
+}
+
+#[macro_export]
+macro_rules! tr {
+    ($key:expr) => {
+        $crate::i18n::t($key).to_string()
+    };
+    ($key:expr, $($name:ident = $value:expr),+ $(,)?) => {{
+        let mut output = $crate::i18n::t($key).to_string();
+        $(
+            output = output.replace(concat!("{", stringify!($name), "}"), &$value.to_string());
+        )+
+        output
+    }};
+}
+
+pub mod keys {
+    pub const MENU_PROMPT: &str = "menu.prompt";
+    pub const MENU_TERRAFORM_CLEANER: &str = "menu.terraform_cleaner";
+    pub const MENU_TOOL_UPGRADER: &str = "menu.tool_upgrader";
+    pub const MENU_RUST_UPGRADER: &str = "menu.rust_upgrader";
+    pub const MENU_GIT_SCANNER: &str = "menu.git_scanner";
+    pub const MENU_MCP_MANAGER: &str = "menu.mcp_manager";
+    pub const MENU_LANGUAGE: &str = "menu.language";
+    pub const MENU_EXIT: &str = "menu.exit";
+    pub const MENU_GOODBYE: &str = "menu.goodbye";
+
+    pub const LANGUAGE_SELECT_PROMPT: &str = "language.select_prompt";
+    pub const LANGUAGE_CHANGED: &str = "language.changed";
+
+    pub const CONFIG_LOAD_FAILED: &str = "config.load_failed";
+    pub const CONFIG_SAVE_FAILED: &str = "config.save_failed";
+    pub const CONFIG_LANGUAGE_INVALID: &str = "config.language_invalid";
+
+    pub const CONSOLE_ERROR_PREFIX: &str = "console.error_prefix";
+    pub const CONSOLE_SUMMARY: &str = "console.summary";
+
+    pub const PROMPT_YES: &str = "prompt.yes";
+    pub const PROMPT_NO: &str = "prompt.no";
+
+    pub const ERROR_IO: &str = "error.io";
+    pub const ERROR_COMMAND: &str = "error.command";
+    pub const ERROR_CONFIG: &str = "error.config";
+    pub const ERROR_VALIDATION: &str = "error.validation";
+    pub const ERROR_CANCELLED: &str = "error.cancelled";
+    pub const ERROR_UNABLE_TO_EXECUTE: &str = "error.unable_to_execute";
+    pub const ERROR_UNKNOWN: &str = "error.unknown";
+    pub const ERROR_COMMAND_NOT_FOUND: &str = "error.command_not_found";
+
+    pub const TERRAFORM_CURRENT_DIR_FAILED: &str = "terraform.current_dir_failed";
+    pub const TERRAFORM_SCAN_START: &str = "terraform.scan_start";
+    pub const TERRAFORM_SCAN_DIR: &str = "terraform.scan_dir";
+    pub const TERRAFORM_NO_CACHE: &str = "terraform.no_cache";
+    pub const TERRAFORM_FOUND_ITEMS: &str = "terraform.found_items";
+    pub const TERRAFORM_ITEM_DIR: &str = "terraform.item_dir";
+    pub const TERRAFORM_ITEM_FILE: &str = "terraform.item_file";
+    pub const TERRAFORM_CONFIRM_DELETE: &str = "terraform.confirm_delete";
+    pub const TERRAFORM_DELETE_CANCELLED: &str = "terraform.delete_cancelled";
+    pub const TERRAFORM_DELETED: &str = "terraform.deleted";
+    pub const TERRAFORM_DELETE_FAILED: &str = "terraform.delete_failed";
+    pub const TERRAFORM_SUMMARY_TITLE: &str = "terraform.summary_title";
+    pub const TERRAFORM_PROGRESS_SCANNING: &str = "terraform.progress_scanning";
+    pub const TERRAFORM_PROGRESS_SCANNED: &str = "terraform.progress_scanned";
+    pub const TERRAFORM_PROGRESS_DELETING: &str = "terraform.progress_deleting";
+    pub const TERRAFORM_PROGRESS_DELETED: &str = "terraform.progress_deleted";
+
+    pub const TOOL_UPGRADER_HEADER: &str = "tool_upgrader.header";
+    pub const TOOL_UPGRADER_LIST_TITLE: &str = "tool_upgrader.list_title";
+    pub const TOOL_UPGRADER_CONFIRM: &str = "tool_upgrader.confirm";
+    pub const TOOL_UPGRADER_CANCELLED: &str = "tool_upgrader.cancelled";
+    pub const TOOL_UPGRADER_PROGRESS: &str = "tool_upgrader.progress";
+    pub const TOOL_UPGRADER_SUCCESS: &str = "tool_upgrader.success";
+    pub const TOOL_UPGRADER_FAILED: &str = "tool_upgrader.failed";
+    pub const TOOL_UPGRADER_SUMMARY: &str = "tool_upgrader.summary";
+
+    pub const RUST_UPGRADER_HEADER: &str = "rust_upgrader.header";
+    pub const RUST_UPGRADER_CHECKING_ENV: &str = "rust_upgrader.checking_env";
+    pub const RUST_UPGRADER_ENV_INSTALLED: &str = "rust_upgrader.env_installed";
+    pub const RUST_UPGRADER_ENV_MISSING: &str = "rust_upgrader.env_missing";
+    pub const RUST_UPGRADER_INSTALL_RUST_HINT: &str = "rust_upgrader.install_rust_hint";
+    pub const RUST_UPGRADER_CHECKING_TOOLS: &str = "rust_upgrader.checking_tools";
+    pub const RUST_UPGRADER_TOOL_INSTALLED: &str = "rust_upgrader.tool_installed";
+    pub const RUST_UPGRADER_TOOL_MISSING: &str = "rust_upgrader.tool_missing";
+    pub const RUST_UPGRADER_MISSING_TOOLS: &str = "rust_upgrader.missing_tools";
+    pub const RUST_UPGRADER_CONFIRM_INSTALL_TOOLS: &str =
+        "rust_upgrader.confirm_install_tools";
+    pub const RUST_UPGRADER_INSTALLING_TOOL: &str = "rust_upgrader.installing_tool";
+    pub const RUST_UPGRADER_INSTALL_SUCCESS: &str = "rust_upgrader.install_success";
+    pub const RUST_UPGRADER_INSTALL_FAILED: &str = "rust_upgrader.install_failed";
+    pub const RUST_UPGRADER_SKIP_INSTALL: &str = "rust_upgrader.skip_install";
+    pub const RUST_UPGRADER_ALL_TOOLS_INSTALLED: &str = "rust_upgrader.all_tools_installed";
+    pub const RUST_UPGRADER_UPGRADE_STEPS: &str = "rust_upgrader.upgrade_steps";
+    pub const RUST_UPGRADER_REQUIRES_PROJECT_TAG: &str =
+        "rust_upgrader.requires_project_tag";
+    pub const RUST_UPGRADER_CONFIRM_UPGRADE: &str = "rust_upgrader.confirm_upgrade";
+    pub const RUST_UPGRADER_CANCELLED: &str = "rust_upgrader.cancelled";
+    pub const RUST_UPGRADER_RUNNING_STEP: &str = "rust_upgrader.running_step";
+    pub const RUST_UPGRADER_STEP_DONE: &str = "rust_upgrader.step_done";
+    pub const RUST_UPGRADER_STEP_SKIPPED: &str = "rust_upgrader.step_skipped";
+    pub const RUST_UPGRADER_STEP_FAILED: &str = "rust_upgrader.step_failed";
+    pub const RUST_UPGRADER_SUMMARY: &str = "rust_upgrader.summary";
+    pub const RUST_UPGRADER_SKIPPED_COUNT: &str = "rust_upgrader.skipped_count";
+    pub const RUST_UPGRADER_OUTPUT_MORE_LINES: &str = "rust_upgrader.output_more_lines";
+    pub const RUST_UPGRADER_VALIDATION_MISSING_CARGO: &str =
+        "rust_upgrader.validation_missing_cargo";
+    pub const RUST_UPGRADER_RUST_MISSING_OR_UNAVAILABLE: &str =
+        "rust_upgrader.rust_missing_or_unavailable";
+    pub const RUST_UPGRADER_VERSION_UNAVAILABLE: &str = "rust_upgrader.version_unavailable";
+    pub const RUST_UPGRADER_STEP_DESC_RUSTUP_SELF_UPDATE: &str =
+        "rust_upgrader.step_desc.rustup_self_update";
+    pub const RUST_UPGRADER_STEP_DESC_RUSTUP_UPDATE: &str =
+        "rust_upgrader.step_desc.rustup_update";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_INSTALL_UPDATE: &str =
+        "rust_upgrader.step_desc.cargo_install_update";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_UPGRADE: &str =
+        "rust_upgrader.step_desc.cargo_upgrade";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_OUTDATED: &str =
+        "rust_upgrader.step_desc.cargo_outdated";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_AUDIT: &str =
+        "rust_upgrader.step_desc.cargo_audit";
+
+    pub const GIT_SCANNER_HEADER: &str = "git_scanner.header";
+    pub const GIT_SCANNER_CURRENT_DIR_FAILED: &str = "git_scanner.current_dir_failed";
+    pub const GIT_SCANNER_NOT_GIT_REPO: &str = "git_scanner.not_git_repo";
+    pub const GIT_SCANNER_GIT_NOT_FOUND: &str = "git_scanner.git_not_found";
+    pub const GIT_SCANNER_SCAN_DIR: &str = "git_scanner.scan_dir";
+    pub const GIT_SCANNER_STRICT_MODE: &str = "git_scanner.strict_mode";
+    pub const GIT_SCANNER_TOOLS_INTRO: &str = "git_scanner.tools_intro";
+    pub const GIT_SCANNER_STATUS_INSTALLED: &str = "git_scanner.status_installed";
+    pub const GIT_SCANNER_STATUS_MISSING: &str = "git_scanner.status_missing";
+    pub const GIT_SCANNER_CONFIRM_INSTALL: &str = "git_scanner.confirm_install";
+    pub const GIT_SCANNER_CANCELLED: &str = "git_scanner.cancelled";
+    pub const GIT_SCANNER_INSTALLING: &str = "git_scanner.installing";
+    pub const GIT_SCANNER_INSTALL_DONE: &str = "git_scanner.install_done";
+    pub const GIT_SCANNER_INSTALL_ALREADY: &str = "git_scanner.install_already";
+    pub const GIT_SCANNER_INSTALL_FAILED: &str = "git_scanner.install_failed";
+    pub const GIT_SCANNER_INSTALL_SUMMARY: &str = "git_scanner.install_summary";
+    pub const GIT_SCANNER_SKIP_TOOL: &str = "git_scanner.skip_tool";
+    pub const GIT_SCANNER_START_SCAN: &str = "git_scanner.start_scan";
+    pub const GIT_SCANNER_STDOUT_TITLE: &str = "git_scanner.stdout_title";
+    pub const GIT_SCANNER_STDERR_TITLE: &str = "git_scanner.stderr_title";
+    pub const GIT_SCANNER_NO_OUTPUT: &str = "git_scanner.no_output";
+    pub const GIT_SCANNER_PASSED: &str = "git_scanner.passed";
+    pub const GIT_SCANNER_FINDINGS: &str = "git_scanner.findings";
+    pub const GIT_SCANNER_SCAN_FAILED: &str = "git_scanner.scan_failed";
+    pub const GIT_SCANNER_SCAN_SUMMARY: &str = "git_scanner.scan_summary";
+    pub const GIT_SCANNER_FINDINGS_WARNING: &str = "git_scanner.findings_warning";
+    pub const GIT_SCANNER_EXIT_CODE: &str = "git_scanner.exit_code";
+    pub const GIT_SCANNER_EXIT_CODE_UNKNOWN: &str = "git_scanner.exit_code_unknown";
+    pub const GIT_SCANNER_NO_TRACKED_FILES: &str = "git_scanner.no_tracked_files";
+    pub const GIT_SCANNER_ALL_IGNORED: &str = "git_scanner.all_ignored";
+    pub const GIT_SCANNER_SCOPE_GIT_HISTORY: &str = "git_scanner.scope.git_history";
+    pub const GIT_SCANNER_SCOPE_WORKTREE: &str = "git_scanner.scope.worktree";
+    pub const GIT_SCANNER_COMMAND_LABEL: &str = "git_scanner.command_label";
+    pub const GIT_SCANNER_INSTALL_MISSING_AFTER: &str = "git_scanner.install_missing_after";
+    pub const GIT_SCANNER_INSTALL_STRATEGY_FAILED: &str =
+        "git_scanner.install_strategy_failed";
+    pub const GIT_SCANNER_INSTALL_NO_STRATEGY: &str = "git_scanner.install_no_strategy";
+    pub const GIT_SCANNER_UNSUPPORTED_PLATFORM: &str = "git_scanner.unsupported_platform";
+    pub const GIT_SCANNER_RELEASE_NOT_FOUND: &str = "git_scanner.release_not_found";
+    pub const GIT_SCANNER_EXTRACT_MISSING_BINARY: &str = "git_scanner.extract_missing_binary";
+    pub const GIT_SCANNER_RELEASE_PARSE_FAILED: &str = "git_scanner.release_parse_failed";
+    pub const GIT_SCANNER_RELEASE_MISSING_ASSETS: &str = "git_scanner.release_missing_assets";
+    pub const GIT_SCANNER_DOWNLOAD_TOOL_MISSING: &str = "git_scanner.download_tool_missing";
+    pub const GIT_SCANNER_TAR_MISSING: &str = "git_scanner.tar_missing";
+    pub const GIT_SCANNER_UNZIP_MISSING: &str = "git_scanner.unzip_missing";
+    pub const GIT_SCANNER_INSTALL_DIR_MISSING: &str = "git_scanner.install_dir_missing";
+
+    pub const MCP_MANAGER_HEADER: &str = "mcp_manager.header";
+    pub const MCP_MANAGER_SELECT_CLI: &str = "mcp_manager.select_cli";
+    pub const MCP_MANAGER_CANCELLED: &str = "mcp_manager.cancelled";
+    pub const MCP_MANAGER_USING_CLI: &str = "mcp_manager.using_cli";
+    pub const MCP_MANAGER_SCANNING: &str = "mcp_manager.scanning";
+    pub const MCP_MANAGER_NONE_INSTALLED: &str = "mcp_manager.none_installed";
+    pub const MCP_MANAGER_FOUND_INSTALLED: &str = "mcp_manager.found_installed";
+    pub const MCP_MANAGER_STATUS_INSTALLED: &str = "mcp_manager.status_installed";
+    pub const MCP_MANAGER_STATUS_MISSING: &str = "mcp_manager.status_missing";
+    pub const MCP_MANAGER_SELECT_INSTALL: &str = "mcp_manager.select_install";
+    pub const MCP_MANAGER_SELECT_HELP: &str = "mcp_manager.select_help";
+    pub const MCP_MANAGER_SELECT_PROMPT: &str = "mcp_manager.select_prompt";
+    pub const MCP_MANAGER_NO_CHANGES: &str = "mcp_manager.no_changes";
+    pub const MCP_MANAGER_CHANGE_SUMMARY: &str = "mcp_manager.change_summary";
+    pub const MCP_MANAGER_WILL_INSTALL: &str = "mcp_manager.will_install";
+    pub const MCP_MANAGER_WILL_REMOVE: &str = "mcp_manager.will_remove";
+    pub const MCP_MANAGER_CONFIRM_CHANGES: &str = "mcp_manager.confirm_changes";
+    pub const MCP_MANAGER_OAUTH_HINT: &str = "mcp_manager.oauth_hint";
+    pub const MCP_MANAGER_WSL_HINT: &str = "mcp_manager.wsl_hint";
+    pub const MCP_MANAGER_INSTALLING: &str = "mcp_manager.installing";
+    pub const MCP_MANAGER_INSTALL_SUCCESS: &str = "mcp_manager.install_success";
+    pub const MCP_MANAGER_INSTALL_FAILED: &str = "mcp_manager.install_failed";
+    pub const MCP_MANAGER_REMOVING: &str = "mcp_manager.removing";
+    pub const MCP_MANAGER_REMOVE_SUCCESS: &str = "mcp_manager.remove_success";
+    pub const MCP_MANAGER_REMOVE_FAILED: &str = "mcp_manager.remove_failed";
+    pub const MCP_MANAGER_SUMMARY: &str = "mcp_manager.summary";
+
+    pub const MCP_EXECUTOR_INTERACTIVE_FAILED: &str = "mcp_executor.interactive_failed";
+    pub const MCP_EXECUTOR_CONFIG_PARSE_FAILED: &str = "mcp_executor.config_parse_failed";
+    pub const MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED: &str =
+        "mcp_executor.config_serialize_failed";
+
+    pub const MCP_TOOL_SEQUENTIAL_THINKING: &str = "mcp.tool.sequential_thinking";
+    pub const MCP_TOOL_CHROME_DEVTOOLS: &str = "mcp.tool.chrome_devtools";
+    pub const MCP_TOOL_KUBERNETES: &str = "mcp.tool.kubernetes";
+    pub const MCP_TOOL_CONTEXT7: &str = "mcp.tool.context7";
+    pub const MCP_TOOL_GITHUB: &str = "mcp.tool.github";
+    pub const MCP_TOOL_CLOUDFLARE_DOCS: &str = "mcp.tool.cloudflare_docs";
+    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BINDINGS: &str =
+        "mcp.tool.cloudflare_workers_bindings";
+    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BUILDS: &str =
+        "mcp.tool.cloudflare_workers_builds";
+    pub const MCP_TOOL_CLOUDFLARE_OBSERVABILITY: &str = "mcp.tool.cloudflare_observability";
+    pub const MCP_TOOL_CLOUDFLARE_RADAR: &str = "mcp.tool.cloudflare_radar";
+    pub const MCP_TOOL_CLOUDFLARE_CONTAINERS: &str = "mcp.tool.cloudflare_containers";
+    pub const MCP_TOOL_CLOUDFLARE_BROWSER: &str = "mcp.tool.cloudflare_browser";
+    pub const MCP_TOOL_CLOUDFLARE_LOGPUSH: &str = "mcp.tool.cloudflare_logpush";
+    pub const MCP_TOOL_CLOUDFLARE_AI_GATEWAY: &str = "mcp.tool.cloudflare_ai_gateway";
+    pub const MCP_TOOL_CLOUDFLARE_AUTORAG: &str = "mcp.tool.cloudflare_autorag";
+    pub const MCP_TOOL_CLOUDFLARE_AUDITLOGS: &str = "mcp.tool.cloudflare_auditlogs";
+    pub const MCP_TOOL_CLOUDFLARE_DNS_ANALYTICS: &str = "mcp.tool.cloudflare_dns_analytics";
+    pub const MCP_TOOL_CLOUDFLARE_DEX: &str = "mcp.tool.cloudflare_dex";
+    pub const MCP_TOOL_CLOUDFLARE_CASB: &str = "mcp.tool.cloudflare_casb";
+    pub const MCP_TOOL_CLOUDFLARE_GRAPHQL: &str = "mcp.tool.cloudflare_graphql";
+}
+
+#[cfg(test)]
+pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    use std::sync::Mutex;
+    static TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    TEST_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("Language test lock poisoned")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn locales_share_keys() {
+        let _guard = test_lock();
+        let bundle = bundle();
+        let reference = bundle
+            .maps
+            .get(&Language::English)
+            .expect("Missing English locale");
+        let reference_keys: HashSet<&String> = reference.keys().collect();
+
+        for language in [
+            Language::TraditionalChinese,
+            Language::SimplifiedChinese,
+            Language::Japanese,
+        ] {
+            let locale = bundle
+                .maps
+                .get(&language)
+                .expect("Missing locale data");
+            let locale_keys: HashSet<&String> = locale.keys().collect();
+            assert_eq!(
+                locale_keys, reference_keys,
+                "Locale {:?} does not match English keys",
+                language
+            );
+        }
+    }
+
+    #[test]
+    fn set_language_updates_translation() {
+        let _guard = test_lock();
+        let previous = current_language();
+
+        set_language(Language::English);
+        assert_eq!(t(keys::MENU_EXIT), "Exit");
+
+        set_language(Language::TraditionalChinese);
+        assert_eq!(t(keys::MENU_EXIT), "退出");
+
+        set_language(previous);
+    }
+
+    #[test]
+    fn unknown_key_returns_placeholder() {
+        let _guard = test_lock();
+        assert_eq!(t("missing.key"), "??");
+    }
+}

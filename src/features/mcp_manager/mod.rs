@@ -2,6 +2,7 @@ mod config;
 mod executor;
 mod tools;
 
+use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use executor::McpExecutor;
 use tools::{get_available_tools, CliType, McpTool};
@@ -11,34 +12,39 @@ pub fn run() {
     let console = Console::new();
     let prompts = Prompts::new();
 
-    console.header("MCP 工具管理器");
+    console.header(i18n::t(keys::MCP_MANAGER_HEADER));
 
     // 選擇 CLI 類型
     let cli_options = ["Anthropic Claude", "OpenAI Codex", "Google Gemini"];
-    let cli_selection = prompts.select("請選擇要管理的 CLI", &cli_options);
+    let cli_selection = prompts.select(i18n::t(keys::MCP_MANAGER_SELECT_CLI), &cli_options);
 
     let cli = match cli_selection {
         Some(0) => CliType::Claude,
         Some(1) => CliType::Codex,
         Some(2) => CliType::Gemini,
         _ => {
-            console.warning("已取消操作");
+            console.warning(i18n::t(keys::MCP_MANAGER_CANCELLED));
             return;
         }
     };
 
-    console.info(&format!("\n正在使用 {} CLI...", cli.display_name()));
+    console.blank_line();
+    console.info(&crate::tr!(keys::MCP_MANAGER_USING_CLI,
+        cli = cli.display_name()
+    ));
 
     let executor = McpExecutor::new(cli);
 
     // 掃描已安裝的 MCP
-    console.info("正在掃描已安裝的 MCP...");
+    console.info(i18n::t(keys::MCP_MANAGER_SCANNING));
     let installed = executor.list_installed().unwrap_or_default();
 
     if installed.is_empty() {
-        console.warning("目前沒有已安裝的 MCP");
+        console.warning(i18n::t(keys::MCP_MANAGER_NONE_INSTALLED));
     } else {
-        console.success(&format!("找到 {} 個已安裝的 MCP：", installed.len()));
+        console.success(&crate::tr!(keys::MCP_MANAGER_FOUND_INSTALLED,
+            count = installed.len()
+        ));
         for name in &installed {
             console.list_item("✓", name);
         }
@@ -53,11 +59,11 @@ pub fn run() {
         .iter()
         .map(|mcp| {
             let status = if installed.contains(&mcp.name.to_string()) {
-                "[已安裝]"
+                i18n::t(keys::MCP_MANAGER_STATUS_INSTALLED)
             } else {
-                "[未安裝]"
+                i18n::t(keys::MCP_MANAGER_STATUS_MISSING)
             };
-            format!("{} {}", status, mcp.display_name)
+            format!("{} {}", status, mcp.display_name())
         })
         .collect();
 
@@ -66,10 +72,13 @@ pub fn run() {
         .map(|mcp| installed.contains(&mcp.name.to_string()))
         .collect();
 
-    console.info("\n請選擇要安裝的 MCP（已勾選的會保留，取消勾選會移除）：");
-    console.info("使用空白鍵勾選/取消，Enter 確認\n");
+    console.blank_line();
+    console.info(i18n::t(keys::MCP_MANAGER_SELECT_INSTALL));
+    console.info(i18n::t(keys::MCP_MANAGER_SELECT_HELP));
+    console.blank_line();
 
-    let selections = prompts.multi_select("選擇 MCP 工具", &items, &defaults);
+    let selections =
+        prompts.multi_select(i18n::t(keys::MCP_MANAGER_SELECT_PROMPT), &items, &defaults);
 
     // 計算需要安裝和移除的項目
     let mut to_install: Vec<&McpTool> = Vec::new();
@@ -87,40 +96,41 @@ pub fn run() {
     }
 
     if to_install.is_empty() && to_remove.is_empty() {
-        console.success("\n沒有需要變更的項目");
+        console.blank_line();
+        console.success(i18n::t(keys::MCP_MANAGER_NO_CHANGES));
         return;
     }
 
     // 顯示變更摘要
     console.blank_line();
     console.separator();
-    console.info("\n變更摘要：");
+    console.info(i18n::t(keys::MCP_MANAGER_CHANGE_SUMMARY));
 
     if !to_install.is_empty() {
-        console.success("將安裝：");
+        console.success(i18n::t(keys::MCP_MANAGER_WILL_INSTALL));
         for mcp in &to_install {
-            console.list_item("➕", mcp.display_name);
+            console.list_item("➕", mcp.display_name());
         }
     }
 
     if !to_remove.is_empty() {
-        console.warning("將移除：");
+        console.warning(i18n::t(keys::MCP_MANAGER_WILL_REMOVE));
         for mcp in &to_remove {
-            console.list_item("➖", mcp.display_name);
+            console.list_item("➖", mcp.display_name());
         }
     }
 
     console.blank_line();
-    if !prompts.confirm("確定要執行這些變更嗎？") {
-        console.warning("已取消操作");
+    if !prompts.confirm(i18n::t(keys::MCP_MANAGER_CONFIRM_CHANGES)) {
+        console.warning(i18n::t(keys::MCP_MANAGER_CANCELLED));
         return;
     }
 
     console.blank_line();
 
     if to_install.iter().any(|mcp| mcp.requires_interactive) {
-        console.info("提示：部分 MCP 需要 OAuth 互動登入，請依 CLI 顯示的 URL 完成授權。");
-        console.info("若在 WSL，請使用 `wslview <URL>` 開啟瀏覽器，或改在 Windows 端執行 CLI。");
+        console.info(i18n::t(keys::MCP_MANAGER_OAUTH_HINT));
+        console.info(i18n::t(keys::MCP_MANAGER_WSL_HINT));
         console.blank_line();
     }
 
@@ -133,16 +143,23 @@ pub fn run() {
         console.show_progress(
             i + 1,
             total_operations,
-            &format!("正在安裝 {}...", mcp.display_name),
+            &crate::tr!(keys::MCP_MANAGER_INSTALLING, tool = mcp.display_name()),
         );
 
         match executor.install(mcp) {
             Ok(()) => {
-                console.success_item(&format!("{} 安裝成功", mcp.display_name));
+                console.success_item(&crate::tr!(keys::MCP_MANAGER_INSTALL_SUCCESS,
+                    tool = mcp.display_name()
+                ));
                 success_count += 1;
             }
             Err(err) => {
-                console.error_item(&format!("{} 安裝失敗", mcp.display_name), &err.to_string());
+                console.error_item(
+                    &crate::tr!(keys::MCP_MANAGER_INSTALL_FAILED,
+                        tool = mcp.display_name()
+                    ),
+                    &err.to_string(),
+                );
                 failed_count += 1;
             }
         }
@@ -152,22 +169,33 @@ pub fn run() {
         console.show_progress(
             to_install.len() + i + 1,
             total_operations,
-            &format!("正在移除 {}...", mcp.display_name),
+            &crate::tr!(keys::MCP_MANAGER_REMOVING, tool = mcp.display_name()),
         );
 
         match executor.remove(mcp.name) {
             Ok(()) => {
-                console.success_item(&format!("{} 移除成功", mcp.display_name));
+                console.success_item(&crate::tr!(keys::MCP_MANAGER_REMOVE_SUCCESS,
+                    tool = mcp.display_name()
+                ));
                 success_count += 1;
             }
             Err(err) => {
-                console.error_item(&format!("{} 移除失敗", mcp.display_name), &err.to_string());
+                console.error_item(
+                    &crate::tr!(keys::MCP_MANAGER_REMOVE_FAILED,
+                        tool = mcp.display_name()
+                    ),
+                    &err.to_string(),
+                );
                 failed_count += 1;
             }
         }
     }
 
-    console.show_summary("MCP 管理完成", success_count, failed_count);
+    console.show_summary(
+        i18n::t(keys::MCP_MANAGER_SUMMARY),
+        success_count,
+        failed_count,
+    );
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use super::config::ENV_CONFIG;
 use super::tools::{CliType, McpTool};
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -26,7 +27,7 @@ impl McpExecutor {
             .output()
             .map_err(|e| OperationError::Command {
                 command: self.cli.command().to_string(),
-                message: format!("無法執行: {}", e),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
             })?;
 
         if output.status.success() {
@@ -53,7 +54,7 @@ impl McpExecutor {
                 .status()
                 .map_err(|e| OperationError::Command {
                     command: self.cli.command().to_string(),
-                    message: format!("無法執行: {}", e),
+                    message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
                 })?;
 
             if status.success() {
@@ -62,7 +63,7 @@ impl McpExecutor {
             } else {
                 Err(OperationError::Command {
                     command: format!("{} mcp add", self.cli.command()),
-                    message: "互動式安裝失敗，請檢查上方輸出".to_string(),
+                    message: i18n::t(keys::MCP_EXECUTOR_INTERACTIVE_FAILED).to_string(),
                 })
             }
         } else {
@@ -71,7 +72,7 @@ impl McpExecutor {
                 .output()
                 .map_err(|e| OperationError::Command {
                     command: self.cli.command().to_string(),
-                    message: format!("無法執行: {}", e),
+                    message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
                 })?;
 
             if output.status.success() {
@@ -81,7 +82,11 @@ impl McpExecutor {
                 let stderr = String::from_utf8_lossy(&output.stderr).to_string();
                 Err(OperationError::Command {
                     command: format!("{} mcp add", self.cli.command()),
-                    message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                    message: stderr
+                        .lines()
+                        .next()
+                        .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                        .to_string(),
                 })
             }
         }
@@ -95,7 +100,7 @@ impl McpExecutor {
             .output()
             .map_err(|e| OperationError::Command {
                 command: self.cli.command().to_string(),
-                message: format!("無法執行: {}", e),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
             })?;
 
         if output.status.success() {
@@ -104,7 +109,11 @@ impl McpExecutor {
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             Err(OperationError::Command {
                 command: format!("{} mcp remove", self.cli.command()),
-                message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                message: stderr
+                    .lines()
+                    .next()
+                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                    .to_string(),
             })
         }
     }
@@ -269,7 +278,7 @@ fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
     let mut root: Value = serde_json::from_str(&sanitized).map_err(|err| {
         OperationError::Config {
             key: path.display().to_string(),
-            message: format!("設定檔解析失敗: {}", err),
+            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_PARSE_FAILED, error = err),
         }
     })?;
 
@@ -278,7 +287,9 @@ fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
         let formatted = serde_json::to_string_pretty(&root).map_err(|err| {
             OperationError::Config {
                 key: path.display().to_string(),
-                message: format!("設定檔序列化失敗: {}", err),
+                message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
+                    error = err
+                ),
             }
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
@@ -298,7 +309,7 @@ fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
 
     let mut root: toml::Table = toml::from_str(&raw).map_err(|err| OperationError::Config {
         key: path.display().to_string(),
-        message: format!("設定檔解析失敗: {}", err),
+        message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_PARSE_FAILED, error = err),
     })?;
 
     let Some(servers) = root
@@ -350,7 +361,9 @@ fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
         context7.insert("http_headers".to_string(), TomlValue::Table(headers));
         let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
-            message: format!("設定檔序列化失敗: {}", err),
+            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
+                error = err
+            ),
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),
@@ -369,7 +382,7 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
 
     let mut root: toml::Table = toml::from_str(&raw).map_err(|err| OperationError::Config {
         key: path.display().to_string(),
-        message: format!("設定檔解析失敗: {}", err),
+        message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_PARSE_FAILED, error = err),
     })?;
 
     let Some(servers) = root
@@ -425,7 +438,9 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
         github.insert("env".to_string(), TomlValue::Table(env_map));
         let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
-            message: format!("設定檔序列化失敗: {}", err),
+            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
+                error = err
+            ),
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),

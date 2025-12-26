@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Git worktree scans now only include tracked, non-ignored files and print raw logs per scan.
 - Added Cloudflare MCP tools gated by `enable_cloudflare_mcp`.
 - Added interactive MCP install mode for tools that require browser-based auth callbacks.
+- Added UI language switching with full localization for English, Traditional Chinese, Simplified Chinese, and Japanese.
+- Persisted language preference in a standard per-user config directory.
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).

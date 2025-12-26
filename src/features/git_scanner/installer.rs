@@ -1,4 +1,5 @@
 use crate::core::{OperationError, Result};
+use crate::i18n::{self, keys};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -30,10 +31,15 @@ pub fn ensure_installed(tool: ScanTool) -> Result<InstallStatus> {
                 if let Some(path) = resolve_tool_path(tool) {
                     return Ok(InstallStatus::Installed(path));
                 }
-                errors.push(format!("{} 安裝完成但找不到指令", strategy.label));
+                errors.push(crate::tr!(keys::GIT_SCANNER_INSTALL_MISSING_AFTER,
+                    strategy = strategy.label
+                ));
             }
             Err(err) => {
-                errors.push(format!("{} 失敗: {}", strategy.label, err));
+                errors.push(crate::tr!(keys::GIT_SCANNER_INSTALL_STRATEGY_FAILED,
+                    strategy = strategy.label,
+                    error = err
+                ));
             }
         }
     }
@@ -60,7 +66,7 @@ pub fn ensure_installed(tool: ScanTool) -> Result<InstallStatus> {
     }
 
     if !attempted && errors.is_empty() {
-        errors.push("未找到可用的安裝方式".to_string());
+        errors.push(i18n::t(keys::GIT_SCANNER_INSTALL_NO_STRATEGY).to_string());
     }
 
     Ok(InstallStatus::Failed(errors))
@@ -126,7 +132,7 @@ fn run_install_strategy(strategy: &InstallStrategy) -> Result<()> {
         .output()
         .map_err(|err| OperationError::Command {
             command: program.clone(),
-            message: format!("無法執行: {}", err),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
         })?;
 
     if output.status.success() {
@@ -135,7 +141,11 @@ fn run_install_strategy(strategy: &InstallStrategy) -> Result<()> {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         Err(OperationError::Command {
             command: format!("{} {}", program, args.join(" ")),
-            message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+            message: stderr
+                .lines()
+                .next()
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                .to_string(),
         })
     }
 }
@@ -153,13 +163,13 @@ fn install_from_github_release(tool: ScanTool) -> Result<ReleaseInstallOutcome> 
 
     let Some(platform) = Platform::detect() else {
         return Ok(ReleaseInstallOutcome::Skipped(
-            "不支援的作業系統或架構".to_string(),
+            i18n::t(keys::GIT_SCANNER_UNSUPPORTED_PLATFORM).to_string(),
         ));
     };
 
     let Some(download) = fetch_release_asset(repo, &platform)? else {
         return Ok(ReleaseInstallOutcome::Failed(
-            "無法找到對應的 GitHub Release 版本".to_string(),
+            i18n::t(keys::GIT_SCANNER_RELEASE_NOT_FOUND).to_string(),
         ));
     };
 
@@ -168,7 +178,7 @@ fn install_from_github_release(tool: ScanTool) -> Result<ReleaseInstallOutcome> 
     let binary = find_binary_in_dir(&extract_dir, tool.binary_name())
         .ok_or_else(|| OperationError::Command {
             command: tool.binary_name().to_string(),
-            message: "解壓後找不到可執行檔".to_string(),
+            message: i18n::t(keys::GIT_SCANNER_EXTRACT_MISSING_BINARY).to_string(),
         })?;
 
     let installed_path = install_binary(&binary, tool.binary_name())?;
@@ -235,7 +245,9 @@ fn fetch_release_asset(repo: &str, platform: &Platform) -> Result<Option<Release
     let payload: serde_json::Value = serde_json::from_str(&json).map_err(|err| {
         OperationError::Config {
             key: api_url.clone(),
-            message: format!("解析 Release 失敗: {}", err),
+            message: crate::tr!(keys::GIT_SCANNER_RELEASE_PARSE_FAILED,
+                error = err
+            ),
         }
     })?;
 
@@ -244,7 +256,7 @@ fn fetch_release_asset(repo: &str, platform: &Platform) -> Result<Option<Release
         .and_then(|val| val.as_array())
         .ok_or_else(|| OperationError::Config {
             key: api_url.clone(),
-            message: "Release 資料缺少 assets".to_string(),
+            message: i18n::t(keys::GIT_SCANNER_RELEASE_MISSING_ASSETS).to_string(),
         })?;
 
     let mut matches = Vec::new();
@@ -329,7 +341,7 @@ fn fetch_url(url: &str) -> Result<String> {
             .output()
             .map_err(|err| OperationError::Command {
                 command: "curl".to_string(),
-                message: format!("無法執行: {}", err),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
             })?;
         if output.status.success() {
             return Ok(String::from_utf8_lossy(&output.stdout).to_string());
@@ -337,7 +349,11 @@ fn fetch_url(url: &str) -> Result<String> {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(OperationError::Command {
             command: "curl".to_string(),
-            message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+            message: stderr
+                .lines()
+                .next()
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                .to_string(),
         });
     }
 
@@ -347,7 +363,7 @@ fn fetch_url(url: &str) -> Result<String> {
             .output()
             .map_err(|err| OperationError::Command {
                 command: "wget".to_string(),
-                message: format!("無法執行: {}", err),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
             })?;
         if output.status.success() {
             return Ok(String::from_utf8_lossy(&output.stdout).to_string());
@@ -355,13 +371,17 @@ fn fetch_url(url: &str) -> Result<String> {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(OperationError::Command {
             command: "wget".to_string(),
-            message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+            message: stderr
+                .lines()
+                .next()
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                .to_string(),
         });
     }
 
     Err(OperationError::Command {
         command: "curl/wget".to_string(),
-        message: "找不到下載工具".to_string(),
+        message: i18n::t(keys::GIT_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
     })
 }
 
@@ -385,7 +405,7 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
             .output()
             .map_err(|err| OperationError::Command {
                 command: "curl".to_string(),
-                message: format!("無法執行: {}", err),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
             })?;
         if output.status.success() {
             return Ok(target);
@@ -393,7 +413,11 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(OperationError::Command {
             command: "curl".to_string(),
-            message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+            message: stderr
+                .lines()
+                .next()
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                .to_string(),
         });
     }
 
@@ -408,7 +432,7 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
             .output()
             .map_err(|err| OperationError::Command {
                 command: "wget".to_string(),
-                message: format!("無法執行: {}", err),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
             })?;
         if output.status.success() {
             return Ok(target);
@@ -416,13 +440,17 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(OperationError::Command {
             command: "wget".to_string(),
-            message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+            message: stderr
+                .lines()
+                .next()
+                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                .to_string(),
         });
     }
 
     Err(OperationError::Command {
         command: "curl/wget".to_string(),
-        message: "找不到下載工具".to_string(),
+        message: i18n::t(keys::GIT_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
     })
 }
 
@@ -441,7 +469,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
             let Some(tar_path) = is_command_available("tar") else {
                 return Err(OperationError::Command {
                     command: "tar".to_string(),
-                    message: "找不到 tar".to_string(),
+                    message: i18n::t(keys::GIT_SCANNER_TAR_MISSING).to_string(),
                 });
             };
             let output = Command::new(tar_path)
@@ -454,7 +482,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
                 .output()
                 .map_err(|err| OperationError::Command {
                     command: "tar".to_string(),
-                    message: format!("無法執行: {}", err),
+                    message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
                 })?;
             if output.status.success() {
                 Ok(extract_dir)
@@ -462,7 +490,11 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
                 let stderr = String::from_utf8_lossy(&output.stderr).to_string();
                 Err(OperationError::Command {
                     command: "tar".to_string(),
-                    message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                    message: stderr
+                        .lines()
+                        .next()
+                        .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                        .to_string(),
                 })
             }
         }
@@ -470,7 +502,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
             let Some(unzip_path) = is_command_available("unzip") else {
                 return Err(OperationError::Command {
                     command: "unzip".to_string(),
-                    message: "找不到 unzip".to_string(),
+                    message: i18n::t(keys::GIT_SCANNER_UNZIP_MISSING).to_string(),
                 });
             };
             let output = Command::new(unzip_path)
@@ -483,7 +515,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
                 .output()
                 .map_err(|err| OperationError::Command {
                     command: "unzip".to_string(),
-                    message: format!("無法執行: {}", err),
+                    message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
                 })?;
             if output.status.success() {
                 Ok(extract_dir)
@@ -491,7 +523,11 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
                 let stderr = String::from_utf8_lossy(&output.stderr).to_string();
                 Err(OperationError::Command {
                     command: "unzip".to_string(),
-                    message: stderr.lines().next().unwrap_or("未知錯誤").to_string(),
+                    message: stderr
+                        .lines()
+                        .next()
+                        .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
+                        .to_string(),
                 })
             }
         }
@@ -529,7 +565,7 @@ fn install_binary(source: &Path, binary: &str) -> Result<PathBuf> {
     let Some(target_dir) = local_bin_dir() else {
         return Err(OperationError::Command {
             command: "install".to_string(),
-            message: "找不到可寫入的安裝目錄".to_string(),
+            message: i18n::t(keys::GIT_SCANNER_INSTALL_DIR_MISSING).to_string(),
         });
     };
 

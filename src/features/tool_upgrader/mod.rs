@@ -1,6 +1,7 @@
 mod tools;
 mod upgrader;
 
+use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use tools::AI_TOOLS;
 use upgrader::PackageUpgrader;
@@ -10,16 +11,16 @@ pub fn run() {
     let console = Console::new();
     let prompts = Prompts::new();
 
-    console.header("升級 AI 程式碼助手工具");
+    console.header(i18n::t(keys::TOOL_UPGRADER_HEADER));
 
-    console.info("將升級以下工具：");
+    console.info(i18n::t(keys::TOOL_UPGRADER_LIST_TITLE));
     for tool in AI_TOOLS {
         console.list_item("📦", &format!("{} ({})", tool.name, tool.package));
     }
     console.separator();
 
-    if !prompts.confirm("確定要升級這些工具嗎？") {
-        console.warning("已取消升級");
+    if !prompts.confirm(i18n::t(keys::TOOL_UPGRADER_CONFIRM)) {
+        console.warning(i18n::t(keys::TOOL_UPGRADER_CANCELLED));
         return;
     }
 
@@ -30,11 +31,17 @@ pub fn run() {
     let mut failed_count = 0;
 
     for (i, tool) in AI_TOOLS.iter().enumerate() {
-        console.show_progress(i + 1, AI_TOOLS.len(), &format!("正在升級 {}...", tool.name));
+        console.show_progress(
+            i + 1,
+            AI_TOOLS.len(),
+            &crate::tr!(keys::TOOL_UPGRADER_PROGRESS, tool = tool.name),
+        );
 
         match upgrader.upgrade(tool.package) {
             Ok(output) => {
-                console.success_item(&format!("{} 升級成功", tool.name));
+                console.success_item(&crate::tr!(keys::TOOL_UPGRADER_SUCCESS,
+                    tool = tool.name
+                ));
                 if !output.trim().is_empty() {
                     for line in output.lines().take(3) {
                         console.list_item("  ", line);
@@ -43,14 +50,21 @@ pub fn run() {
                 success_count += 1;
             }
             Err(err) => {
-                console.error_item(&format!("{} 升級失敗", tool.name), &err.to_string());
+                console.error_item(
+                    &crate::tr!(keys::TOOL_UPGRADER_FAILED, tool = tool.name),
+                    &err.to_string(),
+                );
                 failed_count += 1;
             }
         }
         console.blank_line();
     }
 
-    console.show_summary("升級完成", success_count, failed_count);
+    console.show_summary(
+        i18n::t(keys::TOOL_UPGRADER_SUMMARY),
+        success_count,
+        failed_count,
+    );
 }
 
 #[cfg(test)]
