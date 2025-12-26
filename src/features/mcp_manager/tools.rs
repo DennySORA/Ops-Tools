@@ -6,6 +6,7 @@ pub struct McpTool {
     pub name: &'static str,
     pub display_name: &'static str,
     pub install_args: Vec<String>,
+    pub requires_interactive: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -143,6 +144,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 ]);
                 args
             },
+            requires_interactive: false,
         },
         McpTool {
             name: "chrome-devtools",
@@ -159,6 +161,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 ]);
                 args
             },
+            requires_interactive: false,
         },
         McpTool {
             name: "kubernetes",
@@ -175,6 +178,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 ]);
                 args
             },
+            requires_interactive: false,
         },
     ];
 
@@ -207,41 +211,37 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             name: "context7",
             display_name: "Context7 (文檔查詢)",
             install_args: context7_args,
+            requires_interactive: false,
         });
     }
 
     if ENV_CONFIG.enable_cloudflare_mcp() {
-        if let Some(token) = ENV_CONFIG.cloudflare_api_token {
-            for tool in CLOUDFLARE_TOOLS {
-                let args = match cli_type {
-                    CliType::Claude => vec![
-                        "--transport".to_string(),
-                        "http".to_string(),
-                        tool.name.to_string(),
-                        tool.url.to_string(),
-                        "--header".to_string(),
-                        format!("Authorization: Bearer {}", token),
-                    ],
-                    CliType::Codex => vec![
-                        tool.name.to_string(),
-                        "--url".to_string(),
-                        tool.url.to_string(),
-                    ],
-                    CliType::Gemini => vec![
-                        tool.name.to_string(),
-                        tool.url.to_string(),
-                        "--transport".to_string(),
-                        "http".to_string(),
-                        "--header".to_string(),
-                        format!("Authorization: Bearer {}", token),
-                    ],
-                };
-                tools.push(McpTool {
-                    name: tool.name,
-                    display_name: tool.display_name,
-                    install_args: args,
-                });
-            }
+        for tool in CLOUDFLARE_TOOLS {
+            let args = match cli_type {
+                CliType::Claude => vec![
+                    "--transport".to_string(),
+                    "http".to_string(),
+                    tool.name.to_string(),
+                    tool.url.to_string(),
+                ],
+                CliType::Codex => vec![
+                    tool.name.to_string(),
+                    "--url".to_string(),
+                    tool.url.to_string(),
+                ],
+                CliType::Gemini => vec![
+                    tool.name.to_string(),
+                    tool.url.to_string(),
+                    "--transport".to_string(),
+                    "http".to_string(),
+                ],
+            };
+            tools.push(McpTool {
+                name: tool.name,
+                display_name: tool.display_name,
+                install_args: args,
+                requires_interactive: true,
+            });
         }
     }
 
@@ -273,14 +273,11 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 ]);
                 args
             },
+            requires_interactive: false,
         });
     }
 
     tools
-}
-
-pub fn cloudflare_tool_names() -> Vec<&'static str> {
-    CLOUDFLARE_TOOLS.iter().map(|tool| tool.name).collect()
 }
 
 #[cfg(test)]
