@@ -4,6 +4,8 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 
 [English](../README.md) | [繁體中文](README_zh-TW.md) | [简体中文](README_zh-CN.md)
 
+![Screenshot](image/01.png)
+
 ## 機能
 
 ### 1. Terraform/Terragrunt キャッシュクリーナー

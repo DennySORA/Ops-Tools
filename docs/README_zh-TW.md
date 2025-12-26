@@ -4,6 +4,8 @@
 
 [English](../README.md) | [简体中文](README_zh-CN.md) | [日本語](README_ja.md)
 
+![Screenshot](image/01.png)
+
 ## 功能特色
 
 ### 1. Terraform/Terragrunt 快取清理
