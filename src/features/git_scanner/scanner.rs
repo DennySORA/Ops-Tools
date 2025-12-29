@@ -20,7 +20,11 @@ pub struct ScanOutcome {
     pub stderr: String,
 }
 
-pub fn run_scans(tool: ScanTool, repo_root: &Path, worktree_root: &Path) -> Result<Vec<ScanOutcome>> {
+pub fn run_scans(
+    tool: ScanTool,
+    repo_root: &Path,
+    worktree_root: &Path,
+) -> Result<Vec<ScanOutcome>> {
     let Some(tool_path) = resolve_tool_path(tool) else {
         return Err(OperationError::Command {
             command: tool.binary_name().to_string(),

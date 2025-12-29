@@ -181,7 +181,6 @@ impl McpExecutor {
         update_codex_github_config(&path, token, host)?;
         Ok(())
     }
-
 }
 
 /// 解析 mcp list 的輸出
@@ -239,8 +238,18 @@ fn gemini_settings_paths() -> Vec<PathBuf> {
     if let Ok(home) = env::var("HOME") {
         let home_path = PathBuf::from(home);
         paths.push(home_path.join(".gemini").join("settings.json"));
-        paths.push(home_path.join(".config").join("gemini").join("settings.json"));
-        paths.push(home_path.join(".config").join("gemini-cli").join("settings.json"));
+        paths.push(
+            home_path
+                .join(".config")
+                .join("gemini")
+                .join("settings.json"),
+        );
+        paths.push(
+            home_path
+                .join(".config")
+                .join("gemini-cli")
+                .join("settings.json"),
+        );
     }
 
     if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
@@ -275,23 +284,19 @@ fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
     }
 
     let sanitized = strip_json_comments(&raw);
-    let mut root: Value = serde_json::from_str(&sanitized).map_err(|err| {
-        OperationError::Config {
+    let mut root: Value =
+        serde_json::from_str(&sanitized).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
             message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_PARSE_FAILED, error = err),
-        }
-    })?;
+        })?;
 
     let changed = migrate_gemini_mcp_servers(&mut root);
     if changed {
-        let formatted = serde_json::to_string_pretty(&root).map_err(|err| {
-            OperationError::Config {
+        let formatted =
+            serde_json::to_string_pretty(&root).map_err(|err| OperationError::Config {
                 key: path.display().to_string(),
-                message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
-                    error = err
-                ),
-            }
-        })?;
+                message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED, error = err),
+            })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),
             source: err,
@@ -319,7 +324,10 @@ fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
         return Ok(false);
     };
 
-    let Some(context7) = servers.get_mut("context7").and_then(|value| value.as_table_mut()) else {
+    let Some(context7) = servers
+        .get_mut("context7")
+        .and_then(|value| value.as_table_mut())
+    else {
         return Ok(false);
     };
 
@@ -361,9 +369,7 @@ fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
         context7.insert("http_headers".to_string(), TomlValue::Table(headers));
         let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
-            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
-                error = err
-            ),
+            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED, error = err),
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),
@@ -392,7 +398,10 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
         return Ok(false);
     };
 
-    let Some(github) = servers.get_mut("github").and_then(|value| value.as_table_mut()) else {
+    let Some(github) = servers
+        .get_mut("github")
+        .and_then(|value| value.as_table_mut())
+    else {
         return Ok(false);
     };
 
@@ -422,7 +431,10 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
         }
     }
 
-    if let Some(env_vars) = github.get_mut("env_vars").and_then(|val| val.as_array_mut()) {
+    if let Some(env_vars) = github
+        .get_mut("env_vars")
+        .and_then(|val| val.as_array_mut())
+    {
         let before = env_vars.len();
         env_vars.retain(|item| {
             item.as_str()
@@ -438,9 +450,7 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
         github.insert("env".to_string(), TomlValue::Table(env_map));
         let formatted = toml::to_string(&root).map_err(|err| OperationError::Config {
             key: path.display().to_string(),
-            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED,
-                error = err
-            ),
+            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED, error = err),
         })?;
         fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
             path: path.display().to_string(),
@@ -513,16 +523,14 @@ fn strip_ansi_codes(input: &str) -> String {
     let mut chars = input.chars().peekable();
 
     while let Some(ch) = chars.next() {
-        if ch == '\u{1b}' {
-            if chars.peek().copied() == Some('[') {
-                chars.next();
-                while let Some(code_ch) = chars.next() {
-                    if code_ch.is_ascii_alphabetic() {
-                        break;
-                    }
+        if ch == '\u{1b}' && chars.peek().copied() == Some('[') {
+            chars.next();
+            for code_ch in chars.by_ref() {
+                if code_ch.is_ascii_alphabetic() {
+                    break;
                 }
-                continue;
             }
+            continue;
         }
         output.push(ch);
     }
@@ -559,7 +567,7 @@ fn strip_json_comments(input: &str) -> String {
             match chars.peek() {
                 Some('/') => {
                     chars.next();
-                    while let Some(next) = chars.next() {
+                    for next in chars.by_ref() {
                         if next == '\n' {
                             output.push('\n');
                             break;
@@ -676,8 +684,7 @@ bearer_token_env_var = "CONTEXT7_API_KEY"
         let changed = update_codex_context7_config(&path, "test-key").unwrap();
         assert!(changed);
 
-        let root: toml::Table =
-            toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let root: toml::Table = toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
         let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
         let context7 = servers.get("context7").unwrap().as_table().unwrap();
         assert!(context7.get("bearer_token_env_var").is_none());
@@ -719,8 +726,7 @@ env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN", "OTHER"]
         let changed = update_codex_github_config(&path, "token-1", "github.com").unwrap();
         assert!(changed);
 
-        let root: toml::Table =
-            toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let root: toml::Table = toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
         let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
         let github = servers.get("github").unwrap().as_table().unwrap();
         let env = github.get("env").unwrap().as_table().unwrap();
@@ -751,5 +757,4 @@ command = "npx"
         let changed = update_codex_github_config(&path, "token-1", "github.com").unwrap();
         assert!(!changed);
     }
-
 }

@@ -48,7 +48,5 @@ fn parse_bool_env(value: Option<&str>) -> bool {
         return false;
     };
     let trimmed = raw.trim();
-    trimmed == "1"
-        || trimmed.eq_ignore_ascii_case("true")
-        || trimmed.eq_ignore_ascii_case("yes")
+    trimmed == "1" || trimmed.eq_ignore_ascii_case("true") || trimmed.eq_ignore_ascii_case("yes")
 }

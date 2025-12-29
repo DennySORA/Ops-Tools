@@ -31,12 +31,14 @@ pub fn ensure_installed(tool: ScanTool) -> Result<InstallStatus> {
                 if let Some(path) = resolve_tool_path(tool) {
                     return Ok(InstallStatus::Installed(path));
                 }
-                errors.push(crate::tr!(keys::GIT_SCANNER_INSTALL_MISSING_AFTER,
+                errors.push(crate::tr!(
+                    keys::GIT_SCANNER_INSTALL_MISSING_AFTER,
                     strategy = strategy.label
                 ));
             }
             Err(err) => {
-                errors.push(crate::tr!(keys::GIT_SCANNER_INSTALL_STRATEGY_FAILED,
+                errors.push(crate::tr!(
+                    keys::GIT_SCANNER_INSTALL_STRATEGY_FAILED,
                     strategy = strategy.label,
                     error = err
                 ));
@@ -127,13 +129,14 @@ fn run_install_strategy(strategy: &InstallStrategy) -> Result<()> {
         args = sudo_args;
     }
 
-    let output = Command::new(&program)
-        .args(&args)
-        .output()
-        .map_err(|err| OperationError::Command {
-            command: program.clone(),
-            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
-        })?;
+    let output =
+        Command::new(&program)
+            .args(&args)
+            .output()
+            .map_err(|err| OperationError::Command {
+                command: program.clone(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
+            })?;
 
     if output.status.success() {
         Ok(())
@@ -175,11 +178,12 @@ fn install_from_github_release(tool: ScanTool) -> Result<ReleaseInstallOutcome> 
 
     let archive = download_to_temp(&download.url, download.extension)?;
     let extract_dir = extract_archive(&archive, download.extension)?;
-    let binary = find_binary_in_dir(&extract_dir, tool.binary_name())
-        .ok_or_else(|| OperationError::Command {
+    let binary = find_binary_in_dir(&extract_dir, tool.binary_name()).ok_or_else(|| {
+        OperationError::Command {
             command: tool.binary_name().to_string(),
             message: i18n::t(keys::GIT_SCANNER_EXTRACT_MISSING_BINARY).to_string(),
-        })?;
+        }
+    })?;
 
     let installed_path = install_binary(&binary, tool.binary_name())?;
     Ok(ReleaseInstallOutcome::Installed(installed_path))
@@ -242,14 +246,11 @@ enum ArchiveKind {
 fn fetch_release_asset(repo: &str, platform: &Platform) -> Result<Option<ReleaseAsset>> {
     let api_url = format!("https://api.github.com/repos/{}/releases/latest", repo);
     let json = fetch_url(&api_url)?;
-    let payload: serde_json::Value = serde_json::from_str(&json).map_err(|err| {
-        OperationError::Config {
+    let payload: serde_json::Value =
+        serde_json::from_str(&json).map_err(|err| OperationError::Config {
             key: api_url.clone(),
-            message: crate::tr!(keys::GIT_SCANNER_RELEASE_PARSE_FAILED,
-                error = err
-            ),
-        }
-    })?;
+            message: crate::tr!(keys::GIT_SCANNER_RELEASE_PARSE_FAILED, error = err),
+        })?;
 
     let assets = payload
         .get("assets")
@@ -423,12 +424,7 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
 
     if let Some(path) = is_command_available("wget") {
         let output = Command::new(path)
-            .args([
-                "-q",
-                "-O",
-                target.to_str().unwrap_or_default(),
-                url,
-            ])
+            .args(["-q", "-O", target.to_str().unwrap_or_default(), url])
             .output()
             .map_err(|err| OperationError::Command {
                 command: "wget".to_string(),
@@ -600,9 +596,7 @@ fn install_binary(source: &Path, binary: &str) -> Result<PathBuf> {
 }
 
 fn find_local_bin(binary: &str) -> Option<PathBuf> {
-    let Some(dir) = local_bin_dir() else {
-        return None;
-    };
+    let dir = local_bin_dir()?;
     let candidate = dir.join(binary);
     if candidate.is_file() {
         return Some(candidate);
@@ -616,9 +610,7 @@ fn local_bin_dir() -> Option<PathBuf> {
 }
 
 fn find_go_binary(binary: &str) -> Option<PathBuf> {
-    let Some(go_bin) = go_bin_dir() else {
-        return None;
-    };
+    let go_bin = go_bin_dir()?;
     let candidate = go_bin.join(binary);
     if candidate.is_file() {
         return Some(candidate);
@@ -642,9 +634,7 @@ fn go_bin_dir() -> Option<PathBuf> {
         }
     }
 
-    if is_command_available("go").is_none() {
-        return None;
-    }
+    is_command_available("go")?;
 
     let gobin = run_go_env("GOBIN")?;
     if !gobin.is_empty() {

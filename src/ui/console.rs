@@ -1,5 +1,5 @@
-use colored::Colorize;
 use crate::i18n::{self, keys};
+use colored::Colorize;
 use std::path::PathBuf;
 
 /// 控制台輸出工具
@@ -91,7 +91,8 @@ impl Console {
         println!("\n{}", "=".repeat(50).cyan());
         println!(
             "{}",
-            crate::tr!(keys::CONSOLE_SUMMARY,
+            crate::tr!(
+                keys::CONSOLE_SUMMARY,
                 title = title.green(),
                 success = success.to_string().green(),
                 failed = failed.to_string().red()
