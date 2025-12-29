@@ -51,6 +51,20 @@ Cloudflare MCP は OAuth の対話ログインを使用するため、CLI に表
 自動インストールは一般的なパッケージマネージャーと `go install` を優先し、見つからない場合は GitHub Release から取得します（`curl`/`wget` と `tar`/`unzip` が必要です）。
 ワーキングツリーのスキャンは Git で追跡済みかつ `.gitignore` で除外されていないファイルのみ対象で、各スキャンの生ログを出力します。
 
+### 5. プロンプトジェネレーター（Claude Code）
+Claude Code ワークフロー用の 4 ステッププロンプトを生成・実行します：
+- **生成**：YAML/JSON 仕様ファイルからプロンプトファイルを作成
+- **実行**：Claude CLI による対話式または自動プロンプト実行
+- **ステータス**：機能の実行進捗とステータスを確認
+
+4 ステップワークフロー：
+1. P1：要件、実装、INT デプロイ
+2. P2：INT E2E 検証
+3. P3：リファクタリングと最適化
+4. P4：INT E2E 回帰テスト
+
+各機能の進捗を追跡し、セッション管理により中断後の再開が可能です。
+
 ## インストール
 
 ### インストールスクリプト経由 (推奨 - Linux/macOS)
@@ -96,7 +110,8 @@ cargo run
 3. Rust プロジェクトとツールチェーンのアップグレード
 4. Git シークレットスキャン (Gitleaks/TruffleHog/Git-Secrets)
 5. MCP ツールの管理 (Claude/Codex/Gemini)
-6. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
+6. プロンプトジェネレーター（Claude Code 4 ステップワークフロー）
+7. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
 
 起動時に言語選択が表示され、後からメニューで切り替えできます。
 言語設定は `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）、`%APPDATA%\\ops-tools\\config.toml`（Windows）に保存されます。

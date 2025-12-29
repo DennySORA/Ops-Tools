@@ -51,6 +51,20 @@ Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 
 自动安装会先尝试常见包管理器与 `go install`，若找不到包则改用 GitHub Release（需要 `curl`/`wget` 和 `tar`/`unzip`）。
 工作树扫描仅包含 Git 已追踪且未被 `.gitignore` 排除的文件，并会输出每次扫描的原始 log。
 
+### 5. 提示生成器（Claude Code）
+为 Claude Code 工作流程生成并执行 4 步骤提示：
+- **生成**：从 YAML/JSON 规格文件创建提示文件
+- **执行**：通过 Claude CLI 交互式或自动执行提示
+- **状态**：查看功能执行进度与状态
+
+4 步骤工作流程：
+1. P1：需求、实现与 INT 部署
+2. P2：INT E2E 验证
+3. P3：重构与优化
+4. P4：INT E2E 回归测试
+
+每个功能都会追踪进度，支持 session 管理以便中断后继续执行。
+
 ## 安装
 
 ### 通过安装脚本 (推荐 - Linux/macOS)
@@ -96,7 +110,8 @@ cargo run
 3. 升级 Rust 项目与工具链
 4. Git 机密扫描（Gitleaks/TruffleHog/Git-Secrets）
 5. 管理 MCP 工具（Claude/Codex/Gemini）
-6. 语言设置（英文/繁体中文/简体中文/日文）
+6. 提示生成器（Claude Code 4 步骤工作流程）
+7. 语言设置（英文/繁体中文/简体中文/日文）
 
 启动时会先提示选择语言，之后也可以在菜单中切换。
 语言偏好会保存在 `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）或 `%APPDATA%\\ops-tools\\config.toml`（Windows）。
