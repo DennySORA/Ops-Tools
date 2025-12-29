@@ -156,9 +156,7 @@ impl RustUpgrader {
                 .output()
                 .map_err(|e| OperationError::Command {
                     command: command.to_string(),
-                    message: crate::tr!(keys::RUST_UPGRADER_RUST_MISSING_OR_UNAVAILABLE,
-                        error = e
-                    ),
+                    message: crate::tr!(keys::RUST_UPGRADER_RUST_MISSING_OR_UNAVAILABLE, error = e),
                 })?;
 
         if output.status.success() {

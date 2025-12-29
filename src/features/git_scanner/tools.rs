@@ -71,7 +71,8 @@ impl ScanTool {
         let history_scope = i18n::t(keys::GIT_SCANNER_SCOPE_GIT_HISTORY);
         let worktree_scope = i18n::t(keys::GIT_SCANNER_SCOPE_WORKTREE);
         let label_for = |scope: &str| -> String {
-            crate::tr!(keys::GIT_SCANNER_COMMAND_LABEL,
+            crate::tr!(
+                keys::GIT_SCANNER_COMMAND_LABEL,
                 tool = tool_name,
                 scope = scope
             )
@@ -150,12 +151,7 @@ impl ScanTool {
                 InstallStrategy::new("brew", "brew", &["install", "gitleaks"], false),
                 InstallStrategy::new("apt-get", "apt-get", &["install", "-y", "gitleaks"], true),
                 InstallStrategy::new("dnf", "dnf", &["install", "-y", "gitleaks"], true),
-                InstallStrategy::new(
-                    "pacman",
-                    "pacman",
-                    &["-S", "--noconfirm", "gitleaks"],
-                    true,
-                ),
+                InstallStrategy::new("pacman", "pacman", &["-S", "--noconfirm", "gitleaks"], true),
                 InstallStrategy::new(
                     "go install",
                     "go",
@@ -165,12 +161,7 @@ impl ScanTool {
             ],
             ScanTool::Trufflehog => vec![
                 InstallStrategy::new("brew", "brew", &["install", "trufflehog"], false),
-                InstallStrategy::new(
-                    "apt-get",
-                    "apt-get",
-                    &["install", "-y", "trufflehog"],
-                    true,
-                ),
+                InstallStrategy::new("apt-get", "apt-get", &["install", "-y", "trufflehog"], true),
                 InstallStrategy::new("dnf", "dnf", &["install", "-y", "trufflehog"], true),
                 InstallStrategy::new(
                     "pacman",

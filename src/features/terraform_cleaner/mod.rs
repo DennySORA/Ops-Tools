@@ -17,9 +17,7 @@ pub fn run() {
     let current_dir = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            console.error(&crate::tr!(keys::TERRAFORM_CURRENT_DIR_FAILED,
-                error = e
-            ));
+            console.error(&crate::tr!(keys::TERRAFORM_CURRENT_DIR_FAILED, error = e));
             return;
         }
     };
@@ -29,9 +27,7 @@ pub fn run() {
 
 fn execute(root: &Path, console: &Console, prompts: &Prompts) {
     console.info(i18n::t(keys::TERRAFORM_SCAN_START));
-    console.info(&crate::tr!(keys::TERRAFORM_SCAN_DIR,
-        path = root.display()
-    ));
+    console.info(&crate::tr!(keys::TERRAFORM_SCAN_DIR, path = root.display()));
 
     let scanner = TerraformScanner::new();
     let cleaner = Cleaner::new();
@@ -47,9 +43,7 @@ fn execute(root: &Path, console: &Console, prompts: &Prompts) {
 
     // 2. 顯示找到的項目
     console.show_paths_with_title(
-        &crate::tr!(keys::TERRAFORM_FOUND_ITEMS,
-            count = scan_result.count()
-        ),
+        &crate::tr!(keys::TERRAFORM_FOUND_ITEMS, count = scan_result.count()),
         &scan_result.items,
         |item| {
             if item.is_dir() {
@@ -72,14 +66,13 @@ fn execute(root: &Path, console: &Console, prompts: &Prompts) {
     // 5. 顯示結果
     for result in &clean_result.results {
         if result.success {
-            console.success_item(&crate::tr!(keys::TERRAFORM_DELETED,
+            console.success_item(&crate::tr!(
+                keys::TERRAFORM_DELETED,
                 path = result.path.display()
             ));
         } else if let Some(err) = &result.error {
             console.error_item(
-                &crate::tr!(keys::TERRAFORM_DELETE_FAILED,
-                    path = result.path.display()
-                ),
+                &crate::tr!(keys::TERRAFORM_DELETE_FAILED, path = result.path.display()),
                 err,
             );
         }

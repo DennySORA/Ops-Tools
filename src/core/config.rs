@@ -15,22 +15,22 @@ pub fn config_path() -> Option<PathBuf> {
             .map(PathBuf::from)
             .map(|base| base.join("ops-tools").join("config.toml"))
     } else if cfg!(target_os = "macos") {
+        env::var_os("HOME").map(PathBuf::from).map(|base| {
+            base.join("Library")
+                .join("Application Support")
+                .join("ops-tools")
+                .join("config.toml")
+        })
+    } else if let Some(config_home) = env::var_os("XDG_CONFIG_HOME") {
+        Some(
+            PathBuf::from(config_home)
+                .join("ops-tools")
+                .join("config.toml"),
+        )
+    } else {
         env::var_os("HOME")
             .map(PathBuf::from)
-            .map(|base| {
-                base.join("Library")
-                    .join("Application Support")
-                    .join("ops-tools")
-                    .join("config.toml")
-            })
-    } else {
-        if let Some(config_home) = env::var_os("XDG_CONFIG_HOME") {
-            Some(PathBuf::from(config_home).join("ops-tools").join("config.toml"))
-        } else {
-            env::var_os("HOME")
-                .map(PathBuf::from)
-                .map(|base| base.join(".config").join("ops-tools").join("config.toml"))
-        }
+            .map(|base| base.join(".config").join("ops-tools").join("config.toml"))
     }
 }
 
@@ -91,7 +91,9 @@ mod tests {
 
     fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(())).lock().expect("Env lock")
+        LOCK.get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("Env lock")
     }
 
     fn set_env(key: &str, value: &std::path::Path) {
@@ -137,7 +139,9 @@ mod tests {
 
         let path = config_path().expect("Expected config path");
         assert!(path.starts_with(temp.path()));
-        assert!(path.ends_with("ops-tools\\config.toml") || path.ends_with("ops-tools/config.toml"));
+        assert!(
+            path.ends_with("ops-tools\\config.toml") || path.ends_with("ops-tools/config.toml")
+        );
 
         restore_env("APPDATA", old_appdata);
     }

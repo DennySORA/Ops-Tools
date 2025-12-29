@@ -26,9 +26,7 @@ pub fn run() {
             console.list_item("🔧", &env.rustup_version);
         }
         Err(err) => {
-            console.error(&crate::tr!(keys::RUST_UPGRADER_ENV_MISSING,
-                error = err
-            ));
+            console.error(&crate::tr!(keys::RUST_UPGRADER_ENV_MISSING, error = err));
             console.info(i18n::t(keys::RUST_UPGRADER_INSTALL_RUST_HINT));
             return;
         }
@@ -56,7 +54,8 @@ pub fn run() {
 
     // 步驟 3: 安裝缺少的工具
     if !missing_tools.is_empty() {
-        console.warning(&crate::tr!(keys::RUST_UPGRADER_MISSING_TOOLS,
+        console.warning(&crate::tr!(
+            keys::RUST_UPGRADER_MISSING_TOOLS,
             count = missing_tools.len()
         ));
 
@@ -66,20 +65,23 @@ pub fn run() {
                 console.show_progress(
                     i + 1,
                     missing_tools.len(),
-                    &crate::tr!(keys::RUST_UPGRADER_INSTALLING_TOOL,
+                    &crate::tr!(
+                        keys::RUST_UPGRADER_INSTALLING_TOOL,
                         tool = status.tool.display_name
                     ),
                 );
 
                 match upgrader.install_tool(&status.tool) {
                     Ok(_) => {
-                        console.success_item(&crate::tr!(keys::RUST_UPGRADER_INSTALL_SUCCESS,
+                        console.success_item(&crate::tr!(
+                            keys::RUST_UPGRADER_INSTALL_SUCCESS,
                             tool = status.tool.display_name
                         ));
                     }
                     Err(err) => {
                         console.error_item(
-                            &crate::tr!(keys::RUST_UPGRADER_INSTALL_FAILED,
+                            &crate::tr!(
+                                keys::RUST_UPGRADER_INSTALL_FAILED,
                                 tool = status.tool.display_name
                             ),
                             &err.to_string(),
@@ -134,21 +136,18 @@ pub fn run() {
         console.show_progress(
             i + 1,
             UPGRADE_STEPS.len(),
-            &crate::tr!(keys::RUST_UPGRADER_RUNNING_STEP,
-                step = step.name
-            ),
+            &crate::tr!(keys::RUST_UPGRADER_RUNNING_STEP, step = step.name),
         );
 
         match upgrader.run_upgrade_step(step) {
             Ok(output) => {
-                console.success_item(&crate::tr!(keys::RUST_UPGRADER_STEP_DONE,
-                    step = step.name
-                ));
+                console.success_item(&crate::tr!(keys::RUST_UPGRADER_STEP_DONE, step = step.name));
                 display_output(&console, &output);
                 success_count += 1;
             }
             Err(OperationError::MissingCargoToml) => {
-                console.warning(&crate::tr!(keys::RUST_UPGRADER_STEP_SKIPPED,
+                console.warning(&crate::tr!(
+                    keys::RUST_UPGRADER_STEP_SKIPPED,
                     step = step.name
                 ));
                 skipped_count += 1;
@@ -171,7 +170,8 @@ pub fn run() {
         failed_count,
     );
     if skipped_count > 0 {
-        console.info(&crate::tr!(keys::RUST_UPGRADER_SKIPPED_COUNT,
+        console.info(&crate::tr!(
+            keys::RUST_UPGRADER_SKIPPED_COUNT,
             count = skipped_count
         ));
     }
@@ -197,7 +197,8 @@ fn display_output(console: &Console, output: &str) {
     if lines.len() > 5 {
         console.list_item(
             "  ",
-            &crate::tr!(keys::RUST_UPGRADER_OUTPUT_MORE_LINES,
+            &crate::tr!(
+                keys::RUST_UPGRADER_OUTPUT_MORE_LINES,
                 count = lines.len() - 5
             ),
         );

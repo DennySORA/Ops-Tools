@@ -39,9 +39,7 @@ pub fn run() {
 
         match upgrader.upgrade(tool.package) {
             Ok(output) => {
-                console.success_item(&crate::tr!(keys::TOOL_UPGRADER_SUCCESS,
-                    tool = tool.name
-                ));
+                console.success_item(&crate::tr!(keys::TOOL_UPGRADER_SUCCESS, tool = tool.name));
                 if !output.trim().is_empty() {
                     for line in output.lines().take(3) {
                         console.list_item("  ", line);

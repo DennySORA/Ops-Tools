@@ -1,6 +1,6 @@
+use crate::i18n::{self, keys};
 use std::fmt;
 use std::io;
-use crate::i18n::{self, keys};
 
 /// 統一的操作錯誤類型
 #[derive(Debug)]
