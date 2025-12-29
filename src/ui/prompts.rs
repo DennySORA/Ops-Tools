@@ -1,5 +1,5 @@
-use dialoguer::{theme::ColorfulTheme, MultiSelect, Select};
 use crate::i18n::{self, keys};
+use dialoguer::{theme::ColorfulTheme, MultiSelect, Select};
 
 /// 使用者輸入提示工具
 pub struct Prompts {

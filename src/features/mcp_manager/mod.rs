@@ -29,7 +29,8 @@ pub fn run() {
     };
 
     console.blank_line();
-    console.info(&crate::tr!(keys::MCP_MANAGER_USING_CLI,
+    console.info(&crate::tr!(
+        keys::MCP_MANAGER_USING_CLI,
         cli = cli.display_name()
     ));
 
@@ -42,7 +43,8 @@ pub fn run() {
     if installed.is_empty() {
         console.warning(i18n::t(keys::MCP_MANAGER_NONE_INSTALLED));
     } else {
-        console.success(&crate::tr!(keys::MCP_MANAGER_FOUND_INSTALLED,
+        console.success(&crate::tr!(
+            keys::MCP_MANAGER_FOUND_INSTALLED,
             count = installed.len()
         ));
         for name in &installed {
@@ -148,16 +150,15 @@ pub fn run() {
 
         match executor.install(mcp) {
             Ok(()) => {
-                console.success_item(&crate::tr!(keys::MCP_MANAGER_INSTALL_SUCCESS,
+                console.success_item(&crate::tr!(
+                    keys::MCP_MANAGER_INSTALL_SUCCESS,
                     tool = mcp.display_name()
                 ));
                 success_count += 1;
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::MCP_MANAGER_INSTALL_FAILED,
-                        tool = mcp.display_name()
-                    ),
+                    &crate::tr!(keys::MCP_MANAGER_INSTALL_FAILED, tool = mcp.display_name()),
                     &err.to_string(),
                 );
                 failed_count += 1;
@@ -174,16 +175,15 @@ pub fn run() {
 
         match executor.remove(mcp.name) {
             Ok(()) => {
-                console.success_item(&crate::tr!(keys::MCP_MANAGER_REMOVE_SUCCESS,
+                console.success_item(&crate::tr!(
+                    keys::MCP_MANAGER_REMOVE_SUCCESS,
                     tool = mcp.display_name()
                 ));
                 success_count += 1;
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::MCP_MANAGER_REMOVE_FAILED,
-                        tool = mcp.display_name()
-                    ),
+                    &crate::tr!(keys::MCP_MANAGER_REMOVE_FAILED, tool = mcp.display_name()),
                     &err.to_string(),
                 );
                 failed_count += 1;

@@ -22,7 +22,8 @@ pub fn run() {
     let current_dir = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(err) => {
-            console.error(&crate::tr!(keys::GIT_SCANNER_CURRENT_DIR_FAILED,
+            console.error(&crate::tr!(
+                keys::GIT_SCANNER_CURRENT_DIR_FAILED,
                 error = err
             ));
             return;
@@ -39,7 +40,8 @@ pub fn run() {
         return;
     }
 
-    console.info(&crate::tr!(keys::GIT_SCANNER_SCAN_DIR,
+    console.info(&crate::tr!(
+        keys::GIT_SCANNER_SCAN_DIR,
         path = repo_root.display()
     ));
     console.info(i18n::t(keys::GIT_SCANNER_STRICT_MODE));
@@ -85,20 +87,23 @@ pub fn run() {
             continue;
         }
 
-        console.info(&crate::tr!(keys::GIT_SCANNER_INSTALLING,
+        console.info(&crate::tr!(
+            keys::GIT_SCANNER_INSTALLING,
             tool = tool.display_name()
         ));
         install_attempted += 1;
         match ensure_installed(*tool) {
             Ok(InstallStatus::Installed(path)) => {
-                console.success_item(&crate::tr!(keys::GIT_SCANNER_INSTALL_DONE,
+                console.success_item(&crate::tr!(
+                    keys::GIT_SCANNER_INSTALL_DONE,
                     tool = tool.display_name(),
                     path = path.display()
                 ));
                 install_success += 1;
             }
             Ok(InstallStatus::AlreadyInstalled(path)) => {
-                console.success_item(&crate::tr!(keys::GIT_SCANNER_INSTALL_ALREADY,
+                console.success_item(&crate::tr!(
+                    keys::GIT_SCANNER_INSTALL_ALREADY,
                     tool = tool.display_name(),
                     path = path.display()
                 ));
@@ -137,20 +142,23 @@ pub fn run() {
 
     for tool in &tools {
         let Some(_) = resolve_tool_path(*tool) else {
-            console.warning(&crate::tr!(keys::GIT_SCANNER_SKIP_TOOL,
+            console.warning(&crate::tr!(
+                keys::GIT_SCANNER_SKIP_TOOL,
                 tool = tool.display_name()
             ));
             continue;
         };
 
-        console.info(&crate::tr!(keys::GIT_SCANNER_START_SCAN,
+        console.info(&crate::tr!(
+            keys::GIT_SCANNER_START_SCAN,
             tool = tool.display_name()
         ));
         match run_scans(*tool, &repo_root, worktree_snapshot.root()) {
             Ok(outcomes) => {
                 for outcome in outcomes {
                     console.separator();
-                    console.info(&crate::tr!(keys::GIT_SCANNER_STDOUT_TITLE,
+                    console.info(&crate::tr!(
+                        keys::GIT_SCANNER_STDOUT_TITLE,
                         label = outcome.label
                     ));
                     if outcome.stdout.trim().is_empty() {
@@ -158,7 +166,8 @@ pub fn run() {
                     } else {
                         console.raw(&ensure_trailing_newline(&outcome.stdout));
                     }
-                    console.info(&crate::tr!(keys::GIT_SCANNER_STDERR_TITLE,
+                    console.info(&crate::tr!(
+                        keys::GIT_SCANNER_STDERR_TITLE,
                         label = outcome.label
                     ));
                     if outcome.stderr.trim().is_empty() {
@@ -169,7 +178,8 @@ pub fn run() {
 
                     match outcome.status {
                         ScanStatus::Clean => {
-                            console.success_item(&crate::tr!(keys::GIT_SCANNER_PASSED,
+                            console.success_item(&crate::tr!(
+                                keys::GIT_SCANNER_PASSED,
                                 label = outcome.label
                             ));
                             scan_success += 1;
@@ -177,18 +187,14 @@ pub fn run() {
                         ScanStatus::Findings => {
                             has_findings = true;
                             console.error_item(
-                                &crate::tr!(keys::GIT_SCANNER_FINDINGS,
-                                    label = outcome.label
-                                ),
+                                &crate::tr!(keys::GIT_SCANNER_FINDINGS, label = outcome.label),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
                         }
                         ScanStatus::Error => {
                             console.error_item(
-                                &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED,
-                                    label = outcome.label
-                                ),
+                                &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED, label = outcome.label),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
@@ -198,9 +204,7 @@ pub fn run() {
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED,
-                        label = tool.display_name()
-                    ),
+                    &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED, label = tool.display_name()),
                     &err.to_string(),
                 );
                 scan_failed += 1;
@@ -319,11 +323,7 @@ fn create_temp_dir() -> Result<PathBuf> {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    let dir = base.join(format!(
-        "git-scan-{}-{}",
-        std::process::id(),
-        timestamp
-    ));
+    let dir = base.join(format!("git-scan-{}-{}", std::process::id(), timestamp));
     std::fs::create_dir_all(&dir).map_err(|err| OperationError::Io {
         path: dir.display().to_string(),
         source: err,
@@ -354,13 +354,22 @@ fn git_list_tracked(repo_root: &Path) -> Result<Vec<String>> {
     Ok(split_nul(&output.stdout))
 }
 
-fn git_list_ignored(repo_root: &Path, paths: &[String]) -> Result<std::collections::HashSet<String>> {
+fn git_list_ignored(
+    repo_root: &Path,
+    paths: &[String],
+) -> Result<std::collections::HashSet<String>> {
     if paths.is_empty() {
         return Ok(std::collections::HashSet::new());
     }
 
     let mut child = Command::new("git")
-        .args(["-C", &repo_root.display().to_string(), "check-ignore", "-z", "--stdin"])
+        .args([
+            "-C",
+            &repo_root.display().to_string(),
+            "check-ignore",
+            "-z",
+            "--stdin",
+        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -382,10 +391,12 @@ fn git_list_ignored(repo_root: &Path, paths: &[String]) -> Result<std::collectio
         })?;
     }
 
-    let output = child.wait_with_output().map_err(|err| OperationError::Command {
-        command: "git check-ignore".to_string(),
-        message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
-    })?;
+    let output = child
+        .wait_with_output()
+        .map_err(|err| OperationError::Command {
+            command: "git check-ignore".to_string(),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
+        })?;
 
     let code = output.status.code().unwrap_or(-1);
     if code != 0 && code != 1 {

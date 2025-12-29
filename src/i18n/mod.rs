@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum Language {
     English,
+    #[default]
     TraditionalChinese,
     SimplifiedChinese,
     Japanese,
@@ -65,12 +66,6 @@ impl Language {
     }
 }
 
-impl Default for Language {
-    fn default() -> Self {
-        Language::TraditionalChinese
-    }
-}
-
 struct Bundle {
     maps: HashMap<Language, HashMap<String, String>>,
 }
@@ -93,7 +88,10 @@ fn load_locale(raw: &str) -> HashMap<String, String> {
 fn bundle() -> &'static Bundle {
     BUNDLE.get_or_init(|| {
         let mut maps = HashMap::new();
-        maps.insert(Language::English, load_locale(include_str!("locales/en.toml")));
+        maps.insert(
+            Language::English,
+            load_locale(include_str!("locales/en.toml")),
+        );
         maps.insert(
             Language::TraditionalChinese,
             load_locale(include_str!("locales/zh-TW.toml")),
@@ -102,7 +100,10 @@ fn bundle() -> &'static Bundle {
             Language::SimplifiedChinese,
             load_locale(include_str!("locales/zh-CN.toml")),
         );
-        maps.insert(Language::Japanese, load_locale(include_str!("locales/ja.toml")));
+        maps.insert(
+            Language::Japanese,
+            load_locale(include_str!("locales/ja.toml")),
+        );
         Bundle { maps }
     })
 }
@@ -112,15 +113,11 @@ fn language_lock() -> &'static RwLock<Language> {
 }
 
 pub fn current_language() -> Language {
-    *language_lock()
-        .read()
-        .expect("Language lock poisoned")
+    *language_lock().read().expect("Language lock poisoned")
 }
 
 pub fn set_language(language: Language) {
-    *language_lock()
-        .write()
-        .expect("Language lock poisoned") = language;
+    *language_lock().write().expect("Language lock poisoned") = language;
 }
 
 pub fn t(key: &str) -> &'static str {
@@ -214,16 +211,14 @@ pub mod keys {
     pub const RUST_UPGRADER_TOOL_INSTALLED: &str = "rust_upgrader.tool_installed";
     pub const RUST_UPGRADER_TOOL_MISSING: &str = "rust_upgrader.tool_missing";
     pub const RUST_UPGRADER_MISSING_TOOLS: &str = "rust_upgrader.missing_tools";
-    pub const RUST_UPGRADER_CONFIRM_INSTALL_TOOLS: &str =
-        "rust_upgrader.confirm_install_tools";
+    pub const RUST_UPGRADER_CONFIRM_INSTALL_TOOLS: &str = "rust_upgrader.confirm_install_tools";
     pub const RUST_UPGRADER_INSTALLING_TOOL: &str = "rust_upgrader.installing_tool";
     pub const RUST_UPGRADER_INSTALL_SUCCESS: &str = "rust_upgrader.install_success";
     pub const RUST_UPGRADER_INSTALL_FAILED: &str = "rust_upgrader.install_failed";
     pub const RUST_UPGRADER_SKIP_INSTALL: &str = "rust_upgrader.skip_install";
     pub const RUST_UPGRADER_ALL_TOOLS_INSTALLED: &str = "rust_upgrader.all_tools_installed";
     pub const RUST_UPGRADER_UPGRADE_STEPS: &str = "rust_upgrader.upgrade_steps";
-    pub const RUST_UPGRADER_REQUIRES_PROJECT_TAG: &str =
-        "rust_upgrader.requires_project_tag";
+    pub const RUST_UPGRADER_REQUIRES_PROJECT_TAG: &str = "rust_upgrader.requires_project_tag";
     pub const RUST_UPGRADER_CONFIRM_UPGRADE: &str = "rust_upgrader.confirm_upgrade";
     pub const RUST_UPGRADER_CANCELLED: &str = "rust_upgrader.cancelled";
     pub const RUST_UPGRADER_RUNNING_STEP: &str = "rust_upgrader.running_step";
@@ -240,16 +235,13 @@ pub mod keys {
     pub const RUST_UPGRADER_VERSION_UNAVAILABLE: &str = "rust_upgrader.version_unavailable";
     pub const RUST_UPGRADER_STEP_DESC_RUSTUP_SELF_UPDATE: &str =
         "rust_upgrader.step_desc.rustup_self_update";
-    pub const RUST_UPGRADER_STEP_DESC_RUSTUP_UPDATE: &str =
-        "rust_upgrader.step_desc.rustup_update";
+    pub const RUST_UPGRADER_STEP_DESC_RUSTUP_UPDATE: &str = "rust_upgrader.step_desc.rustup_update";
     pub const RUST_UPGRADER_STEP_DESC_CARGO_INSTALL_UPDATE: &str =
         "rust_upgrader.step_desc.cargo_install_update";
-    pub const RUST_UPGRADER_STEP_DESC_CARGO_UPGRADE: &str =
-        "rust_upgrader.step_desc.cargo_upgrade";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_UPGRADE: &str = "rust_upgrader.step_desc.cargo_upgrade";
     pub const RUST_UPGRADER_STEP_DESC_CARGO_OUTDATED: &str =
         "rust_upgrader.step_desc.cargo_outdated";
-    pub const RUST_UPGRADER_STEP_DESC_CARGO_AUDIT: &str =
-        "rust_upgrader.step_desc.cargo_audit";
+    pub const RUST_UPGRADER_STEP_DESC_CARGO_AUDIT: &str = "rust_upgrader.step_desc.cargo_audit";
 
     pub const GIT_SCANNER_HEADER: &str = "git_scanner.header";
     pub const GIT_SCANNER_CURRENT_DIR_FAILED: &str = "git_scanner.current_dir_failed";
@@ -285,8 +277,7 @@ pub mod keys {
     pub const GIT_SCANNER_SCOPE_WORKTREE: &str = "git_scanner.scope.worktree";
     pub const GIT_SCANNER_COMMAND_LABEL: &str = "git_scanner.command_label";
     pub const GIT_SCANNER_INSTALL_MISSING_AFTER: &str = "git_scanner.install_missing_after";
-    pub const GIT_SCANNER_INSTALL_STRATEGY_FAILED: &str =
-        "git_scanner.install_strategy_failed";
+    pub const GIT_SCANNER_INSTALL_STRATEGY_FAILED: &str = "git_scanner.install_strategy_failed";
     pub const GIT_SCANNER_INSTALL_NO_STRATEGY: &str = "git_scanner.install_no_strategy";
     pub const GIT_SCANNER_UNSUPPORTED_PLATFORM: &str = "git_scanner.unsupported_platform";
     pub const GIT_SCANNER_RELEASE_NOT_FOUND: &str = "git_scanner.release_not_found";
@@ -327,8 +318,7 @@ pub mod keys {
 
     pub const MCP_EXECUTOR_INTERACTIVE_FAILED: &str = "mcp_executor.interactive_failed";
     pub const MCP_EXECUTOR_CONFIG_PARSE_FAILED: &str = "mcp_executor.config_parse_failed";
-    pub const MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED: &str =
-        "mcp_executor.config_serialize_failed";
+    pub const MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED: &str = "mcp_executor.config_serialize_failed";
 
     pub const MCP_TOOL_SEQUENTIAL_THINKING: &str = "mcp.tool.sequential_thinking";
     pub const MCP_TOOL_CHROME_DEVTOOLS: &str = "mcp.tool.chrome_devtools";
@@ -336,10 +326,8 @@ pub mod keys {
     pub const MCP_TOOL_CONTEXT7: &str = "mcp.tool.context7";
     pub const MCP_TOOL_GITHUB: &str = "mcp.tool.github";
     pub const MCP_TOOL_CLOUDFLARE_DOCS: &str = "mcp.tool.cloudflare_docs";
-    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BINDINGS: &str =
-        "mcp.tool.cloudflare_workers_bindings";
-    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BUILDS: &str =
-        "mcp.tool.cloudflare_workers_builds";
+    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BINDINGS: &str = "mcp.tool.cloudflare_workers_bindings";
+    pub const MCP_TOOL_CLOUDFLARE_WORKERS_BUILDS: &str = "mcp.tool.cloudflare_workers_builds";
     pub const MCP_TOOL_CLOUDFLARE_OBSERVABILITY: &str = "mcp.tool.cloudflare_observability";
     pub const MCP_TOOL_CLOUDFLARE_RADAR: &str = "mcp.tool.cloudflare_radar";
     pub const MCP_TOOL_CLOUDFLARE_CONTAINERS: &str = "mcp.tool.cloudflare_containers";
@@ -352,6 +340,30 @@ pub mod keys {
     pub const MCP_TOOL_CLOUDFLARE_DEX: &str = "mcp.tool.cloudflare_dex";
     pub const MCP_TOOL_CLOUDFLARE_CASB: &str = "mcp.tool.cloudflare_casb";
     pub const MCP_TOOL_CLOUDFLARE_GRAPHQL: &str = "mcp.tool.cloudflare_graphql";
+
+    // Prompt Generator
+    pub const MENU_PROMPT_GEN: &str = "menu.prompt_gen";
+    pub const PROMPT_GEN_HEADER: &str = "prompt_gen.header";
+    pub const PROMPT_GEN_SELECT_ACTION: &str = "prompt_gen.select_action";
+    pub const PROMPT_GEN_ACTION_GENERATE: &str = "prompt_gen.action_generate";
+    pub const PROMPT_GEN_ACTION_RUN: &str = "prompt_gen.action_run";
+    pub const PROMPT_GEN_ACTION_STATUS: &str = "prompt_gen.action_status";
+    pub const PROMPT_GEN_CANCELLED: &str = "prompt_gen.cancelled";
+    pub const PROMPT_GEN_INPUT_SPEC_FILE: &str = "prompt_gen.input_spec_file";
+    pub const PROMPT_GEN_INPUT_OUTPUT_DIR: &str = "prompt_gen.input_output_dir";
+    pub const PROMPT_GEN_INPUT_FEATURES_DIR: &str = "prompt_gen.input_features_dir";
+    pub const PROMPT_GEN_CONFIRM_OVERWRITE: &str = "prompt_gen.confirm_overwrite";
+    pub const PROMPT_GEN_GENERATING: &str = "prompt_gen.generating";
+    pub const PROMPT_GEN_GENERATED: &str = "prompt_gen.generated";
+    pub const PROMPT_GEN_LOADED_FEATURES: &str = "prompt_gen.loaded_features";
+    pub const PROMPT_GEN_FEATURE_GENERATED: &str = "prompt_gen.feature_generated";
+    pub const PROMPT_GEN_RUNNING: &str = "prompt_gen.running";
+    pub const PROMPT_GEN_FILE_NOT_FOUND: &str = "prompt_gen.file_not_found";
+    pub const PROMPT_GEN_DIR_NOT_FOUND: &str = "prompt_gen.dir_not_found";
+    pub const PROMPT_GEN_STATUS_TOTAL: &str = "prompt_gen.status_total";
+    pub const PROMPT_GEN_STATUS_READY: &str = "prompt_gen.status_ready";
+    pub const PROMPT_GEN_STATUS_IN_PROGRESS: &str = "prompt_gen.status_in_progress";
+    pub const PROMPT_GEN_STATUS_NOT_STARTED: &str = "prompt_gen.status_not_started";
 }
 
 #[cfg(test)]
@@ -384,10 +396,7 @@ mod tests {
             Language::SimplifiedChinese,
             Language::Japanese,
         ] {
-            let locale = bundle
-                .maps
-                .get(&language)
-                .expect("Missing locale data");
+            let locale = bundle.maps.get(&language).expect("Missing locale data");
             let locale_keys: HashSet<&String> = locale.keys().collect();
             assert_eq!(
                 locale_keys, reference_keys,
