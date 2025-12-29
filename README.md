@@ -58,6 +58,20 @@ Quickly installs and runs strict scans against the current Git repo:
 Auto-install tries common package managers and `go install`, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
 Working tree scans only include Git-tracked files and skip anything ignored by `.gitignore`, with raw logs printed per scan.
 
+### 5. Prompt Generator (Claude Code)
+Generate and execute 4-step prompts for Claude Code workflows:
+- **Generate**: Create prompt files from YAML/JSON specification files
+- **Run**: Interactive or automated prompt execution with Claude CLI
+- **Status**: View feature execution progress and status
+
+The 4-step workflow:
+1. P1: Requirements, implementation, and INT deployment
+2. P2: INT E2E validation
+3. P3: Refactoring and optimization
+4. P4: INT E2E regression testing
+
+Progress is tracked per feature with session management for resumable execution.
+
 ## Installation
 
 ### via Install Script (Recommended - Linux/macOS)
@@ -103,7 +117,8 @@ Select a function from the menu:
 3. Upgrade Rust projects and toolchain
 4. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
 5. Manage MCP tools (Claude/Codex/Gemini)
-6. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+6. Prompt Generator (Claude Code 4-step workflow)
+7. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
 
 You'll be prompted to choose a language at startup, and you can switch languages later from the menu.
 Language preference is saved to `~/.config/ops-tools/config.toml` (Linux), `~/Library/Application Support/ops-tools/config.toml` (macOS), or `%APPDATA%\\ops-tools\\config.toml` (Windows).
