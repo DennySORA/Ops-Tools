@@ -14,7 +14,7 @@ use console::{style, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input, MultiSelect, Select};
 use std::path::{Path, PathBuf};
 
-use super::executor::{Executor, ExecutorConfig};
+use super::executor::{CliType, Executor, ExecutorConfig};
 use super::progress::{read_state_status, FeatureInfo, FeatureStatus, Step};
 
 // ============================================================================
@@ -228,9 +228,27 @@ impl InteractiveRunner {
         Ok(())
     }
 
+    /// 取得當前 CLI 類型
+    #[allow(dead_code)]
+    pub fn cli_type(&self) -> CliType {
+        self.executor.cli_type()
+    }
+
     /// 顯示歡迎訊息
     pub fn show_welcome(&self) {
         self.term.clear_screen().ok();
+
+        let cli_name = self.executor.cli_type().display_name();
+        let title = format!("{}  Prompt Runner - 交互式執行器", cli_name);
+        let padding = 60_i32.saturating_sub(title.len() as i32) / 2;
+        let padded_title = format!(
+            "║{:>width$}{}{:>pad$}║",
+            "",
+            title,
+            "",
+            width = padding as usize,
+            pad = (60 - title.len() as i32 - padding).max(0) as usize
+        );
 
         println!();
         println!(
@@ -239,12 +257,7 @@ impl InteractiveRunner {
                 .cyan()
                 .bold()
         );
-        println!(
-            "{}",
-            style("║       Claude Code Prompt Runner - 交互式執行器            ║")
-                .cyan()
-                .bold()
-        );
+        println!("{}", style(padded_title).cyan().bold());
         println!(
             "{}",
             style("╚════════════════════════════════════════════════════════════╝")
@@ -733,13 +746,19 @@ impl InteractiveRunner {
     pub fn run_interactive(&mut self) -> Result<()> {
         self.show_welcome();
 
-        // 檢查 Claude CLI
+        // 檢查 CLI
+        let cli_name = self.executor.cli_type().display_name();
         if let Err(e) = self.executor.check_availability() {
-            println!("{} Claude CLI 不可用: {}", style("[錯誤]").red().bold(), e);
+            println!(
+                "{} {} CLI 不可用: {}",
+                style("[錯誤]").red().bold(),
+                cli_name,
+                e
+            );
             return Ok(());
         }
 
-        println!("{} Claude CLI 已就緒", style("[確認]").green());
+        println!("{} {} CLI 已就緒", style("[確認]").green(), cli_name);
 
         // 顯示快速命令提示
         println!();
