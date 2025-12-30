@@ -1,6 +1,6 @@
-//! Claude CLI 執行器
+//! AI CLI 執行器
 //!
-//! 負責呼叫 Claude CLI 並處理輸出
+//! 負責呼叫 Claude/Codex/Gemini CLI 並處理輸出
 
 use anyhow::{bail, Context, Result};
 use chrono::Local;
@@ -12,14 +12,63 @@ use std::process::{Command, Stdio};
 use super::progress::Step;
 
 // ============================================================================
+// CLI 類型
+// ============================================================================
+
+/// 支援的 CLI 類型
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CliType {
+    /// Claude Code CLI
+    #[default]
+    Claude,
+    /// OpenAI Codex CLI
+    Codex,
+    /// Google Gemini CLI
+    Gemini,
+}
+
+impl CliType {
+    /// 所有可用的 CLI 類型
+    pub const ALL: [CliType; 3] = [CliType::Claude, CliType::Codex, CliType::Gemini];
+
+    /// 取得 CLI 二進位檔案名稱
+    pub fn binary_name(&self) -> &'static str {
+        match self {
+            CliType::Claude => "claude",
+            CliType::Codex => "codex",
+            CliType::Gemini => "gemini",
+        }
+    }
+
+    /// 取得顯示名稱
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            CliType::Claude => "Claude Code",
+            CliType::Codex => "OpenAI Codex",
+            CliType::Gemini => "Google Gemini",
+        }
+    }
+
+    /// 從索引取得 CLI 類型
+    pub fn from_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(CliType::Claude),
+            1 => Some(CliType::Codex),
+            2 => Some(CliType::Gemini),
+            _ => None,
+        }
+    }
+}
+
+// ============================================================================
 // 執行器配置
 // ============================================================================
 
-/// Claude CLI 執行器配置
+/// AI CLI 執行器配置
 #[derive(Debug, Clone)]
 pub struct ExecutorConfig {
-    /// Claude CLI 二進位檔案路徑
-    pub claude_bin: String,
+    /// CLI 類型
+    pub cli_type: CliType,
     /// 是否跳過權限提示
     pub skip_permissions: bool,
     /// 輸出格式
@@ -31,7 +80,7 @@ pub struct ExecutorConfig {
 impl Default for ExecutorConfig {
     fn default() -> Self {
         Self {
-            claude_bin: "claude".to_string(),
+            cli_type: CliType::Claude,
             skip_permissions: true,
             output_format: OutputFormat::StreamJson,
             auto_continue: false,
@@ -75,7 +124,7 @@ pub struct StepResult {
 // 執行器
 // ============================================================================
 
-/// Claude CLI 執行器
+/// AI CLI 執行器
 pub struct Executor {
     config: ExecutorConfig,
 }
@@ -86,15 +135,27 @@ impl Executor {
         Self { config }
     }
 
-    /// 檢查 Claude CLI 是否可用
+    /// 取得當前 CLI 類型
+    pub fn cli_type(&self) -> CliType {
+        self.config.cli_type
+    }
+
+    /// 檢查 CLI 是否可用
     pub fn check_availability(&self) -> Result<()> {
-        let output = Command::new(&self.config.claude_bin)
+        let bin = self.config.cli_type.binary_name();
+        let output = Command::new(bin)
             .arg("--version")
             .output()
-            .with_context(|| format!("無法找到 Claude CLI: {}", self.config.claude_bin))?;
+            .with_context(|| {
+                format!(
+                    "無法找到 {} CLI: {}",
+                    self.config.cli_type.display_name(),
+                    bin
+                )
+            })?;
 
         if !output.status.success() {
-            bail!("Claude CLI 執行失敗");
+            bail!("{} CLI 執行失敗", self.config.cli_type.display_name());
         }
 
         Ok(())
@@ -127,19 +188,41 @@ impl Executor {
         let prompt_content = std::fs::read_to_string(prompt_path)
             .with_context(|| format!("無法讀取提示檔案：{}", prompt_path.display()))?;
 
-        // 建構命令
-        let mut cmd = Command::new(&self.config.claude_bin);
-        cmd.arg("-p")
-            .arg("--output-format")
-            .arg(self.config.output_format.as_arg())
-            .arg("--verbose");
+        // 建構命令（根據 CLI 類型）
+        let bin = self.config.cli_type.binary_name();
+        let mut cmd = Command::new(bin);
 
-        if self.config.skip_permissions {
-            cmd.arg("--dangerously-skip-permissions");
-        }
+        match self.config.cli_type {
+            CliType::Claude => {
+                cmd.arg("-p")
+                    .arg("--output-format")
+                    .arg(self.config.output_format.as_arg())
+                    .arg("--verbose");
 
-        if let Some(session_id) = resume_session {
-            cmd.arg("--resume").arg(session_id);
+                if self.config.skip_permissions {
+                    cmd.arg("--dangerously-skip-permissions");
+                }
+
+                if let Some(session_id) = resume_session {
+                    cmd.arg("--resume").arg(session_id);
+                }
+            }
+            CliType::Codex => {
+                // Codex CLI 使用 --full-auto 模式
+                cmd.arg("--full-auto").arg("--quiet");
+
+                if let Some(session_id) = resume_session {
+                    cmd.arg("--resume").arg(session_id);
+                }
+            }
+            CliType::Gemini => {
+                // Gemini CLI 使用 --non-interactive 模式
+                cmd.arg("--non-interactive");
+
+                if let Some(session_id) = resume_session {
+                    cmd.arg("--resume").arg(session_id);
+                }
+            }
         }
 
         cmd.stdin(Stdio::piped())
@@ -147,9 +230,10 @@ impl Executor {
             .stderr(Stdio::piped());
 
         // 啟動程序
+        let cli_name = self.config.cli_type.display_name();
         let mut child = cmd
             .spawn()
-            .with_context(|| format!("無法啟動 Claude CLI: {}", self.config.claude_bin))?;
+            .with_context(|| format!("無法啟動 {} CLI: {}", cli_name, bin))?;
 
         // 寫入提示到 stdin
         if let Some(mut stdin) = child.stdin.take() {
@@ -285,7 +369,21 @@ mod tests {
     #[test]
     fn test_executor_config_default() {
         let config = ExecutorConfig::default();
-        assert_eq!(config.claude_bin, "claude");
+        assert_eq!(config.cli_type, CliType::Claude);
         assert!(config.skip_permissions);
+    }
+
+    #[test]
+    fn test_cli_type_binary_names() {
+        assert_eq!(CliType::Claude.binary_name(), "claude");
+        assert_eq!(CliType::Codex.binary_name(), "codex");
+        assert_eq!(CliType::Gemini.binary_name(), "gemini");
+    }
+
+    #[test]
+    fn test_cli_type_display_names() {
+        assert_eq!(CliType::Claude.display_name(), "Claude Code");
+        assert_eq!(CliType::Codex.display_name(), "OpenAI Codex");
+        assert_eq!(CliType::Gemini.display_name(), "Google Gemini");
     }
 }

@@ -212,3 +212,5 @@
 "prompt_gen.status_ready" = "Ready"
 "prompt_gen.status_in_progress" = "In Progress"
 "prompt_gen.status_not_started" = "Not Started"
+"prompt_gen.select_cli" = "Select AI CLI to use"
+"prompt_gen.using_cli" = "Using {cli}..."

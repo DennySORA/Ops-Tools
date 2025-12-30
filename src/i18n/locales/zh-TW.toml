@@ -212,3 +212,5 @@
 "prompt_gen.status_ready" = "就緒"
 "prompt_gen.status_in_progress" = "進行中"
 "prompt_gen.status_not_started" = "未開始"
+"prompt_gen.select_cli" = "選擇要使用的 AI CLI"
+"prompt_gen.using_cli" = "使用 {cli}..."

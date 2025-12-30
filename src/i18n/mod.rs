@@ -364,6 +364,8 @@ pub mod keys {
     pub const PROMPT_GEN_STATUS_READY: &str = "prompt_gen.status_ready";
     pub const PROMPT_GEN_STATUS_IN_PROGRESS: &str = "prompt_gen.status_in_progress";
     pub const PROMPT_GEN_STATUS_NOT_STARTED: &str = "prompt_gen.status_not_started";
+    pub const PROMPT_GEN_SELECT_CLI: &str = "prompt_gen.select_cli";
+    pub const PROMPT_GEN_USING_CLI: &str = "prompt_gen.using_cli";
 }
 
 #[cfg(test)]
