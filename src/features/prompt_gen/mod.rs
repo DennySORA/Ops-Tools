@@ -21,7 +21,7 @@ use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use std::path::PathBuf;
 
-use executor::ExecutorConfig;
+use executor::{CliType, ExecutorConfig};
 use interactive::InteractiveRunner;
 use loader::SpecLoader;
 use progress::{FeatureInfo, Step};
@@ -169,6 +169,31 @@ fn cmd_generate(console: &Console, prompts: &Prompts) -> Result<()> {
 
 /// 執行命令
 fn cmd_run(console: &Console) -> Result<()> {
+    // 選擇 CLI 類型
+    let cli_options: Vec<String> = CliType::ALL
+        .iter()
+        .map(|c| c.display_name().to_string())
+        .collect();
+
+    let cli_selection = match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(i18n::t(keys::PROMPT_GEN_SELECT_CLI))
+        .items(&cli_options)
+        .default(0)
+        .interact_opt()
+    {
+        Ok(Some(sel)) => sel,
+        Ok(None) | Err(_) => {
+            console.warning(i18n::t(keys::PROMPT_GEN_CANCELLED));
+            return Ok(());
+        }
+    };
+
+    let cli_type = CliType::from_index(cli_selection).unwrap_or_default();
+    console.info(&crate::tr!(
+        keys::PROMPT_GEN_USING_CLI,
+        cli = cli_type.display_name()
+    ));
+
     // 取得功能目錄
     let features_dir: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt(i18n::t(keys::PROMPT_GEN_INPUT_FEATURES_DIR))
@@ -194,7 +219,7 @@ fn cmd_run(console: &Console) -> Result<()> {
 
     // 建立執行器配置
     let config = ExecutorConfig {
-        claude_bin: "claude".to_string(),
+        cli_type,
         skip_permissions: true,
         output_format: executor::OutputFormat::StreamJson,
         auto_continue: false,
