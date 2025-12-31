@@ -111,7 +111,7 @@ impl PromptRenderer {
             .replace("{REQUIREMENTS_BLOCK}", requirements_block)
             .replace("{ACCEPTANCE_BLOCK}", acceptance_block)
             .replace("{VERIFICATION_URL}", verification_url)
-            .replace("{INT_CREDENTIALS_BLOCK}", int_credentials_block)
+            .replace("{VERIFICATION_CREDENTIALS_BLOCK}", int_credentials_block)
             .replace("{STATE_REQUIREMENT}", state_requirement)
     }
 
@@ -217,8 +217,7 @@ mod tests {
         let prompts = PromptRenderer::render(&spec);
         let prompt_03 = &prompts.prompts[2].content;
 
-        assert!(prompt_03.contains("frontend-design skill"));
-        assert!(prompt_03.contains("chrome-devtools"));
+        assert!(prompt_03.contains("visual direction"));
     }
 
     #[test]
@@ -227,6 +226,6 @@ mod tests {
         let prompts = PromptRenderer::render(&spec);
         let prompt_03 = &prompts.prompts[2].content;
 
-        assert!(!prompt_03.contains("frontend-design skill"));
+        assert!(!prompt_03.contains("visual direction"));
     }
 }
