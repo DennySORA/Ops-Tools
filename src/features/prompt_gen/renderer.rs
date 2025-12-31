@@ -53,7 +53,7 @@ impl PromptRenderer {
             &context_block,
             &requirements_block,
             &acceptance_block,
-            spec.int_url.as_str(),
+            spec.verification_url.as_str(),
             &creds_block,
             &state_requirement,
         );
@@ -100,7 +100,7 @@ impl PromptRenderer {
         context_block: &str,
         requirements_block: &str,
         acceptance_block: &str,
-        int_url: &str,
+        verification_url: &str,
         int_credentials_block: &str,
         state_requirement: &str,
     ) -> String {
@@ -110,7 +110,7 @@ impl PromptRenderer {
             .replace("{CONTEXT_BLOCK}", context_block)
             .replace("{REQUIREMENTS_BLOCK}", requirements_block)
             .replace("{ACCEPTANCE_BLOCK}", acceptance_block)
-            .replace("{INT_URL}", int_url)
+            .replace("{VERIFICATION_URL}", verification_url)
             .replace("{INT_CREDENTIALS_BLOCK}", int_credentials_block)
             .replace("{STATE_REQUIREMENT}", state_requirement)
     }
@@ -161,7 +161,7 @@ pub fn render_all(specs: &[FeatureSpec]) -> Vec<FeaturePrompts> {
 mod tests {
     use super::*;
     use crate::features::prompt_gen::models::{
-        FeatureKey, FeatureName, IntUrl, OptionalTextContent,
+        FeatureKey, FeatureName, OptionalTextContent, VerificationUrl,
     };
 
     fn create_test_spec() -> FeatureSpec {
@@ -177,7 +177,7 @@ mod tests {
                 "Criteria 1".to_string(),
                 "Criteria 2".to_string(),
             ]),
-            int_url: IntUrl::new("https://example.com").unwrap(),
+            verification_url: VerificationUrl::new("https://example.com").unwrap(),
             int_credentials: OptionalTextContent::None,
             is_frontend: false,
         }

@@ -98,22 +98,18 @@ impl fmt::Display for FeatureName {
     }
 }
 
-/// INT 環境 URL（非空且必須是有效 URL 格式）
+/// 驗證 URL（可為空；若提供則必須是有效 URL 格式）
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct IntUrl(String);
+pub struct VerificationUrl(String);
 
-impl IntUrl {
+impl VerificationUrl {
     pub fn new(value: impl Into<String>) -> Result<Self, ValidationError> {
         let value = value.into().trim().to_string();
-        if value.is_empty() {
-            return Err(ValidationError::EmptyField("int_url".to_string()));
-        }
-        // 簡單的 URL 格式驗證
-        if !value.starts_with("http://") && !value.starts_with("https://") {
+        if !value.is_empty() && !value.starts_with("http://") && !value.starts_with("https://") {
             return Err(ValidationError::InvalidFormat {
-                field: "int_url".to_string(),
-                expected: "必須以 http:// 或 https:// 開頭".to_string(),
+                field: "verification_url".to_string(),
+                expected: "必須以 http:// 或 https:// 開頭，或留空".to_string(),
             });
         }
         Ok(Self(value))
@@ -124,7 +120,7 @@ impl IntUrl {
     }
 }
 
-impl TryFrom<String> for IntUrl {
+impl TryFrom<String> for VerificationUrl {
     type Error = ValidationError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -132,13 +128,13 @@ impl TryFrom<String> for IntUrl {
     }
 }
 
-impl From<IntUrl> for String {
-    fn from(url: IntUrl) -> Self {
+impl From<VerificationUrl> for String {
+    fn from(url: VerificationUrl) -> Self {
         url.0
     }
 }
 
-impl fmt::Display for IntUrl {
+impl fmt::Display for VerificationUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -267,8 +263,8 @@ pub struct FeatureSpec {
     #[serde(default)]
     pub acceptance_criteria: TextContent,
 
-    /// INT 環境 URL（必填）
-    pub int_url: IntUrl,
+    /// 驗證 URL（可為空）
+    pub verification_url: VerificationUrl,
 
     /// INT 環境憑證（選填）
     #[serde(default)]
@@ -408,16 +404,16 @@ mod tests {
     }
 
     #[test]
-    fn test_int_url_valid() {
-        assert!(IntUrl::new("https://example.com").is_ok());
-        assert!(IntUrl::new("http://localhost:3000").is_ok());
+    fn test_verification_url_valid() {
+        assert!(VerificationUrl::new("").is_ok());
+        assert!(VerificationUrl::new("https://example.com").is_ok());
+        assert!(VerificationUrl::new("http://localhost:3000").is_ok());
     }
 
     #[test]
-    fn test_int_url_invalid() {
-        assert!(IntUrl::new("").is_err());
-        assert!(IntUrl::new("ftp://example.com").is_err());
-        assert!(IntUrl::new("example.com").is_err());
+    fn test_verification_url_invalid() {
+        assert!(VerificationUrl::new("ftp://example.com").is_err());
+        assert!(VerificationUrl::new("example.com").is_err());
     }
 
     #[test]

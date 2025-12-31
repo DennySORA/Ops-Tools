@@ -63,6 +63,7 @@ Generate and execute 4-step prompts for Claude Code workflows:
 - **Generate**: Create prompt files from YAML/JSON specification files
 - **Run**: Interactive or automated prompt execution with Claude CLI
 - **Status**: View feature execution progress and status
+- Spec field `verification_url` may be empty to indicate no validation URL
 
 The 4-step workflow:
 1. P1: Requirements, implementation, and INT deployment
