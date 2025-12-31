@@ -130,7 +130,7 @@ features:
     acceptance_criteria:
       - "Criteria 1"
       - "Criteria 2"
-    int_url: "https://example.com"
+    verification_url: "https://example.com"
     is_frontend: false
 "#;
 
@@ -152,7 +152,7 @@ features:
             "context": "Test context",
             "requirements": "Test requirements",
             "acceptance_criteria": ["Criteria 1", "Criteria 2"],
-            "int_url": "https://example.com",
+            "verification_url": "https://example.com",
             "is_frontend": false
         }
     ]
