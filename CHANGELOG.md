@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
+- Prompt generator spec now uses `verification_url` (empty allowed) instead of `int_url`.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.

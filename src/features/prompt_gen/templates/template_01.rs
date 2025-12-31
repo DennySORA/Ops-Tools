@@ -8,7 +8,7 @@
 /// - `{CONTEXT_BLOCK}`: 上下文區塊
 /// - `{REQUIREMENTS_BLOCK}`: 需求區塊
 /// - `{ACCEPTANCE_BLOCK}`: 驗收條件區塊
-/// - `{INT_URL}`: INT 環境 URL
+/// - `{VERIFICATION_URL}`: 驗證 URL（可為空）
 /// - `{INT_CREDENTIALS_BLOCK}`: INT 環境憑證
 /// - `{STATE_REQUIREMENT}`: 狀態需求區塊
 pub const TEMPLATE_01: &str = r#"# [Feature] {FEATURE_KEY} - 需求、實作、部署（INT）
@@ -32,7 +32,7 @@ pub const TEMPLATE_01: &str = r#"# [Feature] {FEATURE_KEY} - 需求、實作、�
 - Acceptance Criteria:
 {ACCEPTANCE_BLOCK}
 
-- INT URL: {INT_URL}
+- Verification URL (optional): {VERIFICATION_URL}
 - INT Credentials / Login Method (if needed):
 {INT_CREDENTIALS_BLOCK}
 
