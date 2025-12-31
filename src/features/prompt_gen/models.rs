@@ -266,7 +266,7 @@ pub struct FeatureSpec {
     /// 驗證 URL（可為空）
     pub verification_url: VerificationUrl,
 
-    /// INT 環境憑證（選填）
+    /// 驗證環境憑證（選填）
     #[serde(default)]
     pub int_credentials: OptionalTextContent,
 

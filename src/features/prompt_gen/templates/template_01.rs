@@ -1,4 +1,4 @@
-//! 模板 01 - 需求、實作、部署（INT）
+//! 模板 01 - 需求、實作、部署（驗證環境）
 
 /// 第一階段模板：需求與交付
 ///
@@ -9,17 +9,17 @@
 /// - `{REQUIREMENTS_BLOCK}`: 需求區塊
 /// - `{ACCEPTANCE_BLOCK}`: 驗收條件區塊
 /// - `{VERIFICATION_URL}`: 驗證 URL（可為空）
-/// - `{INT_CREDENTIALS_BLOCK}`: INT 環境憑證
+/// - `{VERIFICATION_CREDENTIALS_BLOCK}`: 驗證環境憑證
 /// - `{STATE_REQUIREMENT}`: 狀態需求區塊
-pub const TEMPLATE_01: &str = r#"# [Feature] {FEATURE_KEY} - 需求、實作、部署（INT）
+pub const TEMPLATE_01: &str = r#"# [Feature] {FEATURE_KEY} - Requirements, Implementation, Deployment (Verification Environment)
 
-你是一位資深全端工程師/Tech Lead，在此 repo 內完成此功能並部署到 INT 環境。
-本輪工作（Prompt #1~#4）需要保持記憶與連貫性；但請同時把關鍵狀態寫進檔案，以便 runner 續跑。
+You are a senior full-stack engineer/Tech Lead. Implement this feature in the codebase and deploy it to the verification environment.
+This round of work (Prompt #1-#4) must remain coherent; also write key state to files so it can be continued later.
 
-## 強制工具要求（必須遵守）
-- 你必須使用 `sequential-thinking` 來做規劃（先規劃再動手）。
+## Planning Requirements (Must Follow)
+- Complete structured planning before implementation (use any planning tool if available).
 
-## 輸入資訊
+## Inputs
 - Feature Key: {FEATURE_KEY}
 - Feature Name: {FEATURE_NAME}
 
@@ -33,44 +33,44 @@ pub const TEMPLATE_01: &str = r#"# [Feature] {FEATURE_KEY} - 需求、實作、�
 {ACCEPTANCE_BLOCK}
 
 - Verification URL (optional): {VERIFICATION_URL}
-- INT Credentials / Login Method (if needed):
-{INT_CREDENTIALS_BLOCK}
+- Verification Credentials / Login Method (if needed):
+{VERIFICATION_CREDENTIALS_BLOCK}
 
 {STATE_REQUIREMENT}
 
-## 產出與落檔（必須）
-在 `features/{FEATURE_KEY}/` 產出並維護以下檔案（若不存在就建立）：
-1) `STATE.md`：本輪狀態（本 prompt 的決策、已完成項、待辦、風險、如何在 int 驗證；含 STATUS 欄位）
-2) `E2E_PLAN.md`：可在瀏覽器執行的端到端測試清單（步驟要非常具體）
-3) `ACCEPTANCE.md`：把驗收條件轉成可檢查項（checklist）
-4) `RUNBOOK_INT.md`：如何部署/如何回滾/需要的設定
-5) `CHANGELOG.md`：本功能變更摘要（面向 reviewer）
+## Required Artifacts (Must Produce)
+Create and maintain the following files under `features/{FEATURE_KEY}/` (create if missing):
+1) `STATE.md`: Current state (decisions, completed items, TODOs, risks, how to validate in the verification environment; include STATUS field)
+2) `E2E_PLAN.md`: Browser-executable end-to-end checklist (steps must be precise)
+3) `ACCEPTANCE.md`: Convert acceptance criteria into a checklist
+4) `RUNBOOK_VERIFICATION.md`: How to deploy, rollback, and required configuration
+5) `CHANGELOG.md`: Feature change summary (reviewer-facing)
 
-## 執行流程（請嚴格照順序）
-1) 使用 `sequential-thinking`：
-   - 讀 repo 結構、關聯模組與既有行為
-   - 澄清需求與邊界（缺資訊時：做合理假設並寫入 `STATE.md`，不要卡住）
-   - 設計方案：資料流/模組邊界/錯誤處理/觀測性/測試策略
-   - 拆出可交付的最小步驟（每一步可 build、可測、可回退）
+## Execution Flow (Strict Order)
+1) Structured planning:
+   - Review codebase structure, related modules, and current behavior
+   - Clarify requirements and boundaries (if missing info, make reasonable assumptions and record in `STATE.md`)
+   - Design the solution: data flow, module boundaries, error handling, observability, test strategy
+   - Break into minimal deliverable steps (each step should build, test, and be reversible)
 
-2) 實作：
-   - 實作功能與必要的後端/前端改動（依 repo 慣例）
-   - 補齊必要測試（單元/整合，至少涵蓋主要成功路徑與重要失敗路徑）
-   - 確保 lint/format/typecheck/build 通過
+2) Implementation:
+   - Implement required backend/frontend changes following codebase conventions
+   - Add necessary tests (unit/integration; cover key success and failure paths)
+   - Ensure lint/format/typecheck/build pass
 
-3) 部署到 INT：
-   - 依 repo 的部署方式完成部署
-   - 將部署方式、版本/commit、設定差異寫入 `RUNBOOK_INT.md` 與 `STATE.md`
+3) Deploy to the verification environment:
+   - Follow the codebase deployment approach
+   - Record deployment method, version/commit, and config differences in `RUNBOOK_VERIFICATION.md` and `STATE.md`
 
-4) 收尾：
-   - 更新 `E2E_PLAN.md`（讓下一個 Prompt #2 可以直接照做）
-   - 更新 `STATE.md`，並把 STATUS 設為 `P1_DONE_INT_DEPLOYED`
+4) Wrap-up:
+   - Update `E2E_PLAN.md` (so Prompt #2 can follow it directly)
+   - Update `STATE.md` and set STATUS to `P1_DONE_DEPLOYED`
 
-## 重要約束
-- 憑證/金鑰/Token 不得寫進程式碼或 repo。需要時請使用環境變數或既有 secret 機制。
+## Important Constraints
+- Credentials/keys/tokens must not be committed to the codebase. Use environment variables or existing secret mechanisms.
 
-## 最終回覆格式（必須）
-- 本 prompt 完成摘要（含已部署到 INT 的證據：版本/commit/tag、部署位置）
-- STATE.md 狀態（包含 STATUS）
-- 下一步（Prompt #2）執行指引（對應 `E2E_PLAN.md`）
+## Final Response Format (Required)
+- Summary of work completed (include evidence of verification deployment: version/commit/tag and target location)
+- STATE.md status (including STATUS)
+- Guidance for Prompt #2 (aligned with `E2E_PLAN.md`)
 "#;

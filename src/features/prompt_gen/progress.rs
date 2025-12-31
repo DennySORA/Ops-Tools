@@ -22,11 +22,11 @@ pub enum Step {
     None,
     /// 步驟 1: 需求與交付
     P1,
-    /// 步驟 2: INT E2E 驗證
+    /// 步驟 2: 驗證環境 E2E 驗證
     P2,
     /// 步驟 3: 重構與優化
     P3,
-    /// 步驟 4: INT E2E 回歸
+    /// 步驟 4: 驗證環境 E2E 回歸
     P4,
 }
 
@@ -83,10 +83,10 @@ impl Step {
     pub fn description(&self) -> &'static str {
         match self {
             Step::None => "未開始",
-            Step::P1 => "需求、實作、部署（INT）",
-            Step::P2 => "INT E2E 驗證",
+            Step::P1 => "需求、實作、部署（驗證環境）",
+            Step::P2 => "驗證環境 E2E 驗證",
             Step::P3 => "重構、流程優化、品質提升",
-            Step::P4 => "INT E2E 回歸驗證",
+            Step::P4 => "驗證環境 E2E 回歸驗證",
         }
     }
 
@@ -111,11 +111,11 @@ impl fmt::Display for Step {
 pub enum FeatureStatus {
     /// 未知狀態
     Unknown,
-    /// P1 完成並部署到 INT
+    /// P1 完成並部署
     P1DoneIntDeployed,
     /// P2 E2E 通過
     P2E2EPassed,
-    /// P3 重構完成並部署到 INT
+    /// P3 重構完成並部署
     P3RefactoredIntDeployed,
     /// 就緒
     Ready,
@@ -126,9 +126,11 @@ impl FeatureStatus {
     pub fn from_str(s: &str) -> Self {
         let s = s.trim().to_uppercase();
         match s.as_str() {
-            "P1_DONE_INT_DEPLOYED" => Self::P1DoneIntDeployed,
+            "P1_DONE_DEPLOYED" | "P1_DONE_INT_DEPLOYED" => Self::P1DoneIntDeployed,
             "P2_E2E_PASSED" => Self::P2E2EPassed,
-            "P3_REFACTORED_INT_DEPLOYED" => Self::P3RefactoredIntDeployed,
+            "P3_REFACTORED_DEPLOYED" | "P3_REFACTORED_INT_DEPLOYED" => {
+                Self::P3RefactoredIntDeployed
+            }
             "READY" => Self::Ready,
             _ => Self::Unknown,
         }
@@ -144,9 +146,9 @@ impl fmt::Display for FeatureStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Unknown => "UNKNOWN",
-            Self::P1DoneIntDeployed => "P1_DONE_INT_DEPLOYED",
+            Self::P1DoneIntDeployed => "P1_DONE_DEPLOYED",
             Self::P2E2EPassed => "P2_E2E_PASSED",
-            Self::P3RefactoredIntDeployed => "P3_REFACTORED_INT_DEPLOYED",
+            Self::P3RefactoredIntDeployed => "P3_REFACTORED_DEPLOYED",
             Self::Ready => "READY",
         };
         write!(f, "{}", s)
@@ -387,6 +389,10 @@ LAST_DONE="p2"
     #[test]
     fn test_feature_status_parse() {
         assert_eq!(FeatureStatus::from_str("READY"), FeatureStatus::Ready);
+        assert_eq!(
+            FeatureStatus::from_str("P1_DONE_DEPLOYED"),
+            FeatureStatus::P1DoneIntDeployed
+        );
         assert_eq!(
             FeatureStatus::from_str("P1_DONE_INT_DEPLOYED"),
             FeatureStatus::P1DoneIntDeployed
