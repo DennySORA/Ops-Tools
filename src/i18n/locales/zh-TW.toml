@@ -190,8 +190,8 @@
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
 
-"menu.prompt_gen" = "Prompt 生成器 (Claude Code)"
-"prompt_gen.header" = "Claude Code Prompt 生成器"
+"menu.prompt_gen" = "Prompt 生成器 (LLM)"
+"prompt_gen.header" = "LLM Prompt 生成器"
 "prompt_gen.select_action" = "選擇操作"
 "prompt_gen.action_generate" = "從規格檔生成提示"
 "prompt_gen.action_run" = "執行提示（交互式）"

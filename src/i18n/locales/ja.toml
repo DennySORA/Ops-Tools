@@ -190,8 +190,8 @@
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
 
-"menu.prompt_gen" = "Prompt ジェネレーター (Claude Code)"
-"prompt_gen.header" = "Claude Code Prompt ジェネレーター"
+"menu.prompt_gen" = "Prompt ジェネレーター (LLM)"
+"prompt_gen.header" = "LLM Prompt ジェネレーター"
 "prompt_gen.select_action" = "操作を選択"
 "prompt_gen.action_generate" = "仕様ファイルからプロンプトを生成"
 "prompt_gen.action_run" = "プロンプトを実行（対話型）"

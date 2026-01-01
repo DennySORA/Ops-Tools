@@ -58,8 +58,8 @@ Quickly installs and runs strict scans against the current Git repo:
 Auto-install tries common package managers and `go install`, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
 Working tree scans only include Git-tracked files and skip anything ignored by `.gitignore`, with raw logs printed per scan.
 
-### 5. Prompt Generator (Claude Code)
-Generate and execute 4-step prompts for Claude Code workflows:
+### 5. LLM Prompt Generator
+Generate and execute 4-step prompts for LLM workflows:
 - **Generate**: Create prompt files from YAML/JSON specification files
 - **Run**: Interactive or automated prompt execution with Claude CLI
 - **Status**: View feature execution progress and status
@@ -118,7 +118,7 @@ Select a function from the menu:
 3. Upgrade Rust projects and toolchain
 4. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
 5. Manage MCP tools (Claude/Codex/Gemini)
-6. Prompt Generator (Claude Code 4-step workflow)
+6. LLM Prompt Generator (4-step workflow)
 7. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
 
 You'll be prompted to choose a language at startup, and you can switch languages later from the menu.

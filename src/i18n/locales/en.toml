@@ -190,8 +190,8 @@
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
 
-"menu.prompt_gen" = "Prompt Generator (Claude Code)"
-"prompt_gen.header" = "Claude Code Prompt Generator"
+"menu.prompt_gen" = "Prompt Generator (LLM)"
+"prompt_gen.header" = "LLM Prompt Generator"
 "prompt_gen.select_action" = "Select action"
 "prompt_gen.action_generate" = "Generate prompts from spec file"
 "prompt_gen.action_run" = "Run prompts (interactive)"
