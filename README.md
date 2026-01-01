@@ -65,11 +65,13 @@ Generate and execute 4-step prompts for LLM workflows:
 - **Status**: View feature execution progress and status
 - Spec field `verification_url` may be empty to indicate no validation URL
 
+[View the Prompt Template for Feature Specifications](docs/PROMPT_TEMPLATE.md)
+
 The 4-step workflow:
-1. P1: Requirements, implementation, and INT deployment
-2. P2: INT E2E validation
+1. P1: Requirements, implementation, and deployment
+2. P2: E2E validation in verification environment
 3. P3: Refactoring and optimization
-4. P4: INT E2E regression testing
+4. P4: E2E regression testing in verification environment
 
 Progress is tracked per feature with session management for resumable execution.
 
