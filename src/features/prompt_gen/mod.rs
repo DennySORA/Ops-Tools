@@ -1,4 +1,4 @@
-//! Prompt Generator - Claude Code 4 步驟提示生成與執行
+//! Prompt Generator - LLM 4 步驟提示生成與執行
 //!
 //! 提供功能：
 //! - 從 YAML/JSON 規格生成 4 步驟提示檔案
