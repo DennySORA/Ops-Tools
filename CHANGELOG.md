@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
 - Prompt generator spec now uses `verification_url` (empty allowed) instead of `int_url`.
 - Prompt generator templates now use verification-environment wording and status tokens (`P1_DONE_DEPLOYED`, `P3_REFACTORED_DEPLOYED`) while still accepting legacy INT tokens.
+- Renamed Claude Code prompt generator UI to LLM prompt generator in menus and docs.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.
