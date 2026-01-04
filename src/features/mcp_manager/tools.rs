@@ -147,7 +147,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args.extend(vec![
                     "npx".to_string(),
                     "-y".to_string(),
-                    "@modelcontextprotocol/server-sequential-thinking".to_string(),
+                    "@modelcontextprotocol/server-sequential-thinking@latest".to_string(),
                 ]);
                 args
             },
