@@ -147,6 +147,7 @@ pub mod keys {
     pub const MENU_PROMPT: &str = "menu.prompt";
     pub const MENU_TERRAFORM_CLEANER: &str = "menu.terraform_cleaner";
     pub const MENU_TOOL_UPGRADER: &str = "menu.tool_upgrader";
+    pub const MENU_PACKAGE_MANAGER: &str = "menu.package_manager";
     pub const MENU_RUST_UPGRADER: &str = "menu.rust_upgrader";
     pub const MENU_GIT_SCANNER: &str = "menu.git_scanner";
     pub const MENU_MCP_MANAGER: &str = "menu.mcp_manager";
@@ -201,6 +202,37 @@ pub mod keys {
     pub const TOOL_UPGRADER_SUCCESS: &str = "tool_upgrader.success";
     pub const TOOL_UPGRADER_FAILED: &str = "tool_upgrader.failed";
     pub const TOOL_UPGRADER_SUMMARY: &str = "tool_upgrader.summary";
+
+    pub const PACKAGE_MANAGER_HEADER: &str = "package_manager.header";
+    pub const PACKAGE_MANAGER_UNSUPPORTED_OS: &str = "package_manager.unsupported_os";
+    pub const PACKAGE_MANAGER_MODE_PROMPT: &str = "package_manager.mode_prompt";
+    pub const PACKAGE_MANAGER_MODE_INSTALL: &str = "package_manager.mode_install";
+    pub const PACKAGE_MANAGER_MODE_UPDATE: &str = "package_manager.mode_update";
+    pub const PACKAGE_MANAGER_INSTALL_PROMPT: &str = "package_manager.install_prompt";
+    pub const PACKAGE_MANAGER_UPDATE_PROMPT: &str = "package_manager.update_prompt";
+    pub const PACKAGE_MANAGER_NO_CHANGES: &str = "package_manager.no_changes";
+    pub const PACKAGE_MANAGER_NO_INSTALLED: &str = "package_manager.no_installed";
+    pub const PACKAGE_MANAGER_CANCELLED: &str = "package_manager.cancelled";
+    pub const PACKAGE_MANAGER_ACTION_RUNNING: &str = "package_manager.action_running";
+    pub const PACKAGE_MANAGER_ACTION_SUCCESS: &str = "package_manager.action_success";
+    pub const PACKAGE_MANAGER_ACTION_FAILED: &str = "package_manager.action_failed";
+    pub const PACKAGE_MANAGER_SUMMARY: &str = "package_manager.summary";
+    pub const PACKAGE_MANAGER_ACTION_INSTALL: &str = "package_manager.action.install";
+    pub const PACKAGE_MANAGER_ACTION_UPDATE: &str = "package_manager.action.update";
+    pub const PACKAGE_MANAGER_ACTION_REMOVE: &str = "package_manager.action.remove";
+    pub const PACKAGE_MANAGER_CURL_UPDATE_FAILED: &str = "package_manager.curl_update_failed";
+    pub const PACKAGE_MANAGER_MISSING_PM: &str = "package_manager.missing_pm";
+    pub const PACKAGE_MANAGER_RUSTUP_MISSING: &str = "package_manager.rustup_missing";
+    pub const PACKAGE_MANAGER_GO_VERSION_MISSING: &str = "package_manager.go_version_missing";
+    pub const PACKAGE_MANAGER_GO_FILE_MISSING: &str = "package_manager.go_file_missing";
+    pub const PACKAGE_MANAGER_CODENAME_MISSING: &str = "package_manager.codename_missing";
+    pub const PACKAGE_MANAGER_ARCH_UNSUPPORTED: &str = "package_manager.arch_unsupported";
+    pub const PACKAGE_MANAGER_GIT_REQUIRED: &str = "package_manager.git_required";
+    pub const PACKAGE_MANAGER_BINARY_NOT_FOUND: &str = "package_manager.binary_not_found";
+    pub const PACKAGE_MANAGER_RELEASE_ASSET_MISSING: &str = "package_manager.release_asset_missing";
+    pub const PACKAGE_MANAGER_UV_MISSING: &str = "package_manager.uv_missing";
+    pub const PACKAGE_MANAGER_SUDO_REQUIRED: &str = "package_manager.sudo_required";
+    pub const PACKAGE_MANAGER_VIM_PLUG_HINT: &str = "package_manager.vim_plug_hint";
 
     pub const RUST_UPGRADER_HEADER: &str = "rust_upgrader.header";
     pub const RUST_UPGRADER_CHECKING_ENV: &str = "rust_upgrader.checking_env";

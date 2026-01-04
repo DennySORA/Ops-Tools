@@ -21,6 +21,7 @@ fn main() {
         let options = vec![
             i18n::t(keys::MENU_TERRAFORM_CLEANER),
             i18n::t(keys::MENU_TOOL_UPGRADER),
+            i18n::t(keys::MENU_PACKAGE_MANAGER),
             i18n::t(keys::MENU_RUST_UPGRADER),
             i18n::t(keys::MENU_GIT_SCANNER),
             i18n::t(keys::MENU_MCP_MANAGER),
@@ -39,12 +40,13 @@ fn main() {
         match selection {
             0 => features::terraform_cleaner::run(),
             1 => features::tool_upgrader::run(),
-            2 => features::rust_upgrader::run(),
-            3 => features::git_scanner::run(),
-            4 => features::mcp_manager::run(),
-            5 => features::prompt_gen::run(),
-            6 => select_language(&prompts, &console),
-            7 => {
+            2 => features::package_manager::run(),
+            3 => features::rust_upgrader::run(),
+            4 => features::git_scanner::run(),
+            5 => features::mcp_manager::run(),
+            6 => features::prompt_gen::run(),
+            7 => select_language(&prompts, &console),
+            8 => {
                 println!("{}", i18n::t(keys::MENU_GOODBYE).green());
                 break;
             }

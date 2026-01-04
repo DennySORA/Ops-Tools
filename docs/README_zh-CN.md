@@ -21,7 +21,23 @@
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. MCP 工具管理
+### 3. 软件包安装/更新（macOS/Linux）
+通过交互勾选安装、移除与更新常用工具：
+- `nvm`（安装最新 Node.js）
+- `pnpm`
+- `Rust`（通过 rustup）
+- `Go`（下载最新版官方压缩包/pkg）
+- `Terraform`
+- `kubectl`
+- `kubectx`
+- `k9s`
+- `git`
+- `uv`（安装最新 Python）
+- `tmux`（包含 TPM 与 tmux.conf 设置）
+- `vim`（包含 vim-plug 与 molokai 设置）
+- `ffmpeg`（Linux 使用构建脚本，macOS 使用 Homebrew）
+
+### 4. MCP 工具管理
 管理 Claude、Codex 和 Gemini CLI 的 MCP 服务器：
 
 | MCP 工具 | 说明 |
@@ -42,7 +58,7 @@
 对于 Codex MCP 安装，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的编译期值会写入 `~/.codex/config.toml`，运行时不需环境变量。
 Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 完成授权；WSL 可用 `wslview <URL>` 打开。
 
-### 4. Git 机密扫描
+### 5. Git 机密扫描
 快速安装并以严格模式扫描当前 Git 项目：
 - `gitleaks`（Git 历史 + 工作树）
 - `trufflehog`（Git 历史 + 工作树）
@@ -51,7 +67,7 @@ Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 
 自动安装会先尝试常见包管理器与 `go install`，若找不到包则改用 GitHub Release（需要 `curl`/`wget` 和 `tar`/`unzip`）。
 工作树扫描仅包含 Git 已追踪且未被 `.gitignore` 排除的文件，并会输出每次扫描的原始 log。
 
-### 5. 提示生成器（LLM）
+### 6. 提示生成器（LLM）
 为 LLM 工作流程生成并执行 4 步骤提示：
 - **生成**：从 YAML/JSON 规格文件创建提示文件
 - **执行**：通过 Claude CLI 交互式或自动执行提示
@@ -109,11 +125,12 @@ cargo run
 选择功能菜单：
 1. 清理 Terraform/Terragrunt 缓存文件
 2. 升级 AI 代码助手工具
-3. 升级 Rust 项目与工具链
-4. Git 机密扫描（Gitleaks/TruffleHog/Git-Secrets）
-5. 管理 MCP 工具（Claude/Codex/Gemini）
-6. 提示生成器（LLM 4 步骤工作流程）
-7. 语言设置（英文/繁体中文/简体中文/日文）
+3. 安装/更新系统软件包（macOS/Linux）
+4. 升级 Rust 项目与工具链
+5. Git 机密扫描（Gitleaks/TruffleHog/Git-Secrets）
+6. 管理 MCP 工具（Claude/Codex/Gemini）
+7. 提示生成器（LLM 4 步骤工作流程）
+8. 语言设置（英文/繁体中文/简体中文/日文）
 
 启动时会先提示选择语言，之后也可以在菜单中切换。
 语言偏好会保存在 `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）或 `%APPDATA%\\ops-tools\\config.toml`（Windows）。

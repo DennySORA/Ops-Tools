@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added interactive MCP install mode for tools that require browser-based auth callbacks.
 - Added UI language switching with full localization for English, Traditional Chinese, Simplified Chinese, and Japanese.
 - Persisted language preference in a standard per-user config directory.
+- Added a macOS/Linux package installer/updater with interactive install/remove/update for common dev tools (nvm, pnpm, Rust, Go, Terraform, kubectl, kubectx, k9s, git, uv, tmux, vim, ffmpeg).
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).

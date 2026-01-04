@@ -21,7 +21,23 @@ Batch upgrades for popular AI code assistants:
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
-### 3. MCP Tool Management
+### 3. Package Installer/Updater (macOS/Linux)
+Install, remove, and update common tools with an interactive checklist:
+- `nvm` (installs latest Node.js)
+- `pnpm`
+- `Rust` (via rustup)
+- `Go` (downloads latest official archive/pkg)
+- `Terraform`
+- `kubectl`
+- `kubectx`
+- `k9s`
+- `git`
+- `uv` (installs latest Python)
+- `tmux` (includes TPM + tmux.conf setup)
+- `vim` (includes vim-plug + molokai config)
+- `ffmpeg` (build script on Linux, Homebrew on macOS)
+
+### 4. MCP Tool Management
 Manages MCP servers for Claude, Codex, and Gemini CLI:
 
 | MCP Tool | Description |
@@ -49,7 +65,7 @@ For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSON
 Cloudflare MCP installs use OAuth in interactive mode (stdio inherited) so URL prompts and auth codes work. On WSL, open the auth URL with `wslview` or run the CLI on Windows if the localhost callback cannot reach WSL.
 Cloudflare's MCP server catalog: https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/
 
-### 4. Git Secret Scanner
+### 5. Git Secret Scanner
 Quickly installs and runs strict scans against the current Git repo:
 - `gitleaks` (history + working tree)
 - `trufflehog` (history + working tree)
@@ -58,7 +74,7 @@ Quickly installs and runs strict scans against the current Git repo:
 Auto-install tries common package managers and `go install`, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
 Working tree scans only include Git-tracked files and skip anything ignored by `.gitignore`, with raw logs printed per scan.
 
-### 5. LLM Prompt Generator
+### 6. LLM Prompt Generator
 Generate and execute 4-step prompts for LLM workflows:
 - **Generate**: Create prompt files from YAML/JSON specification files
 - **Run**: Interactive or automated prompt execution with Claude CLI
@@ -117,11 +133,12 @@ cargo run
 Select a function from the menu:
 1. Clean Terraform/Terragrunt cache files
 2. Upgrade AI code assistant tools
-3. Upgrade Rust projects and toolchain
-4. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
-5. Manage MCP tools (Claude/Codex/Gemini)
-6. LLM Prompt Generator (4-step workflow)
-7. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+3. Install/Update system packages (macOS/Linux)
+4. Upgrade Rust projects and toolchain
+5. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
+6. Manage MCP tools (Claude/Codex/Gemini)
+7. LLM Prompt Generator (4-step workflow)
+8. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
 
 You'll be prompted to choose a language at startup, and you can switch languages later from the menu.
 Language preference is saved to `~/.config/ops-tools/config.toml` (Linux), `~/Library/Application Support/ops-tools/config.toml` (macOS), or `%APPDATA%\\ops-tools\\config.toml` (Windows).
