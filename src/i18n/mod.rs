@@ -390,6 +390,10 @@ pub mod keys {
     pub const KUBECONFIG_TMUX_ENV_SET: &str = "kubeconfig.tmux_env_set";
     pub const KUBECONFIG_TMUX_ENV_FAILED: &str = "kubeconfig.tmux_env_failed";
     pub const KUBECONFIG_SHELL_HINT: &str = "kubeconfig.shell_hint";
+    pub const KUBECONFIG_SHELL_APPLIED: &str = "kubeconfig.shell_applied";
+    pub const KUBECONFIG_SHELL_APPLY_FAILED: &str = "kubeconfig.shell_apply_failed";
+    pub const KUBECONFIG_SHELL_UNAPPLIED: &str = "kubeconfig.shell_unapplied";
+    pub const KUBECONFIG_SHELL_UNAPPLY_FAILED: &str = "kubeconfig.shell_unapply_failed";
     pub const KUBECONFIG_NO_CONFIG: &str = "kubeconfig.no_config";
     pub const KUBECONFIG_FOUND_CONFIG: &str = "kubeconfig.found_config";
     pub const KUBECONFIG_CONFIRM_CLEANUP: &str = "kubeconfig.confirm_cleanup";
