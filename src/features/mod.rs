@@ -1,4 +1,5 @@
 pub mod git_scanner;
+pub mod kubeconfig_manager;
 pub mod mcp_manager;
 pub mod package_manager;
 pub mod prompt_gen;

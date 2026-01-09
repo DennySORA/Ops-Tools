@@ -373,6 +373,35 @@ pub mod keys {
     pub const MCP_TOOL_CLOUDFLARE_CASB: &str = "mcp.tool.cloudflare_casb";
     pub const MCP_TOOL_CLOUDFLARE_GRAPHQL: &str = "mcp.tool.cloudflare_graphql";
 
+    // Kubeconfig Manager
+    pub const MENU_KUBECONFIG_MANAGER: &str = "menu.kubeconfig_manager";
+    pub const KUBECONFIG_HEADER: &str = "kubeconfig.header";
+    pub const KUBECONFIG_SELECT_ACTION: &str = "kubeconfig.select_action";
+    pub const KUBECONFIG_ACTION_SETUP: &str = "kubeconfig.action_setup";
+    pub const KUBECONFIG_ACTION_CLEANUP: &str = "kubeconfig.action_cleanup";
+    pub const KUBECONFIG_ACTION_LIST: &str = "kubeconfig.action_list";
+    pub const KUBECONFIG_ACTION_CLEANUP_ALL: &str = "kubeconfig.action_cleanup_all";
+    pub const KUBECONFIG_CANCELLED: &str = "kubeconfig.cancelled";
+    pub const KUBECONFIG_NOT_IN_TMUX: &str = "kubeconfig.not_in_tmux";
+    pub const KUBECONFIG_WINDOW_ID: &str = "kubeconfig.window_id";
+    pub const KUBECONFIG_WINDOW_ID_FAILED: &str = "kubeconfig.window_id_failed";
+    pub const KUBECONFIG_SETUP_SUCCESS: &str = "kubeconfig.setup_success";
+    pub const KUBECONFIG_SETUP_FAILED: &str = "kubeconfig.setup_failed";
+    pub const KUBECONFIG_TMUX_ENV_SET: &str = "kubeconfig.tmux_env_set";
+    pub const KUBECONFIG_TMUX_ENV_FAILED: &str = "kubeconfig.tmux_env_failed";
+    pub const KUBECONFIG_SHELL_HINT: &str = "kubeconfig.shell_hint";
+    pub const KUBECONFIG_NO_CONFIG: &str = "kubeconfig.no_config";
+    pub const KUBECONFIG_FOUND_CONFIG: &str = "kubeconfig.found_config";
+    pub const KUBECONFIG_CONFIRM_CLEANUP: &str = "kubeconfig.confirm_cleanup";
+    pub const KUBECONFIG_CLEANUP_SUCCESS: &str = "kubeconfig.cleanup_success";
+    pub const KUBECONFIG_CLEANUP_FAILED: &str = "kubeconfig.cleanup_failed";
+    pub const KUBECONFIG_TMUX_ENV_UNSET_FAILED: &str = "kubeconfig.tmux_env_unset_failed";
+    pub const KUBECONFIG_UNSET_HINT: &str = "kubeconfig.unset_hint";
+    pub const KUBECONFIG_NO_CONFIGS: &str = "kubeconfig.no_configs";
+    pub const KUBECONFIG_LIST_TITLE: &str = "kubeconfig.list_title";
+    pub const KUBECONFIG_CONFIRM_CLEANUP_ALL: &str = "kubeconfig.confirm_cleanup_all";
+    pub const KUBECONFIG_CLEANUP_ALL_SUMMARY: &str = "kubeconfig.cleanup_all_summary";
+
     // Prompt Generator
     pub const MENU_PROMPT_GEN: &str = "menu.prompt_gen";
     pub const PROMPT_GEN_HEADER: &str = "prompt_gen.header";

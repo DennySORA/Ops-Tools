@@ -26,6 +26,7 @@ fn main() {
             i18n::t(keys::MENU_GIT_SCANNER),
             i18n::t(keys::MENU_MCP_MANAGER),
             i18n::t(keys::MENU_PROMPT_GEN),
+            i18n::t(keys::MENU_KUBECONFIG_MANAGER),
             i18n::t(keys::MENU_LANGUAGE),
             i18n::t(keys::MENU_EXIT),
         ];
@@ -45,8 +46,9 @@ fn main() {
             4 => features::git_scanner::run(),
             5 => features::mcp_manager::run(),
             6 => features::prompt_gen::run(),
-            7 => select_language(&prompts, &console),
-            8 => {
+            7 => features::kubeconfig_manager::run(),
+            8 => select_language(&prompts, &console),
+            9 => {
                 println!("{}", i18n::t(keys::MENU_GOODBYE).green());
                 break;
             }
