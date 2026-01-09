@@ -1748,11 +1748,7 @@ fn latest_github_asset(
         SupportedOs::Linux => "Linux",
         SupportedOs::Macos => "Darwin",
     };
-    let arch_token = match go_arch()? {
-        "amd64" => "amd64",
-        "arm64" => "arm64",
-        other => other,
-    };
+    let arch_token = go_arch()?;
 
     let asset = release
         .assets
