@@ -76,13 +76,21 @@ fn execute_setup(service: &KubeconfigService, console: &Console) {
                 console.success(i18n::t(keys::KUBECONFIG_TMUX_ENV_SET));
             }
 
-            // 提示使用者設定 shell 環境變數
+            // 自動在當前 shell 執行 export 指令
             console.blank_line();
-            console.info(i18n::t(keys::KUBECONFIG_SHELL_HINT));
-            console.raw(&format!(
-                "\n  export KUBECONFIG=\"{}\"\n\n",
-                config_path.display()
-            ));
+            if let Err(err) = service.apply_shell_env(&config_path) {
+                console.warning(&crate::tr!(
+                    keys::KUBECONFIG_SHELL_APPLY_FAILED,
+                    error = err
+                ));
+                console.info(i18n::t(keys::KUBECONFIG_SHELL_HINT));
+                console.raw(&format!(
+                    "\n  export KUBECONFIG=\"{}\"\n\n",
+                    config_path.display()
+                ));
+            } else {
+                console.success(i18n::t(keys::KUBECONFIG_SHELL_APPLIED));
+            }
         }
         Err(err) => {
             console.error(&crate::tr!(keys::KUBECONFIG_SETUP_FAILED, error = err));
@@ -139,10 +147,18 @@ fn execute_cleanup(service: &KubeconfigService, console: &Console, prompts: &Pro
                 ));
             }
 
-            // 提示使用者重設 shell 環境變數
+            // 自動在當前 shell 執行 unset 指令
             console.blank_line();
-            console.info(i18n::t(keys::KUBECONFIG_UNSET_HINT));
-            console.raw("\n  unset KUBECONFIG\n\n");
+            if let Err(err) = service.unapply_shell_env() {
+                console.warning(&crate::tr!(
+                    keys::KUBECONFIG_SHELL_UNAPPLY_FAILED,
+                    error = err
+                ));
+                console.info(i18n::t(keys::KUBECONFIG_UNSET_HINT));
+                console.raw("\n  unset KUBECONFIG\n\n");
+            } else {
+                console.success(i18n::t(keys::KUBECONFIG_SHELL_UNAPPLIED));
+            }
         }
         Err(err) => {
             console.error(&crate::tr!(keys::KUBECONFIG_CLEANUP_FAILED, error = err));

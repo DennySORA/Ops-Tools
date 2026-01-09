@@ -106,6 +106,36 @@ impl KubeconfigService {
         Ok(())
     }
 
+    /// 透過 tmux send-keys 在當前 shell 自動執行 export 指令
+    pub fn apply_shell_env(&self, config_path: &Path) -> Result<(), String> {
+        let export_cmd = format!("export KUBECONFIG=\"{}\"", config_path.display());
+
+        let output = Command::new("tmux")
+            .args(["send-keys", &export_cmd, "Enter"])
+            .output()
+            .map_err(|e| format!("Failed to execute tmux send-keys: {}", e))?;
+
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        }
+
+        Ok(())
+    }
+
+    /// 透過 tmux send-keys 在當前 shell 自動執行 unset 指令
+    pub fn unapply_shell_env(&self) -> Result<(), String> {
+        let output = Command::new("tmux")
+            .args(["send-keys", "unset KUBECONFIG", "Enter"])
+            .output()
+            .map_err(|e| format!("Failed to execute tmux send-keys: {}", e))?;
+
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        }
+
+        Ok(())
+    }
+
     /// 移除 tmux 視窗的環境變數
     pub fn unset_tmux_env(&self, window_id: &str) -> Result<(), String> {
         let parts: Vec<&str> = window_id.split(':').collect();
