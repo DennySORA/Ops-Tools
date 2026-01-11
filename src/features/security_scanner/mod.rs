@@ -12,18 +12,18 @@ use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tools::all_tools;
 
-/// 執行 Git 安全掃描功能
+/// Execute Security Scanner
 pub fn run() {
     let console = Console::new();
     let prompts = Prompts::new();
 
-    console.header(i18n::t(keys::GIT_SCANNER_HEADER));
+    console.header(i18n::t(keys::SECURITY_SCANNER_HEADER));
 
     let current_dir = match std::env::current_dir() {
         Ok(dir) => dir,
         Err(err) => {
             console.error(&crate::tr!(
-                keys::GIT_SCANNER_CURRENT_DIR_FAILED,
+                keys::SECURITY_SCANNER_CURRENT_DIR_FAILED,
                 error = err
             ));
             return;
@@ -31,20 +31,20 @@ pub fn run() {
     };
 
     let Some(repo_root) = find_git_root(&current_dir) else {
-        console.error(i18n::t(keys::GIT_SCANNER_NOT_GIT_REPO));
+        console.error(i18n::t(keys::SECURITY_SCANNER_NOT_GIT_REPO));
         return;
     };
 
     if is_command_available("git").is_none() {
-        console.error(i18n::t(keys::GIT_SCANNER_GIT_NOT_FOUND));
+        console.error(i18n::t(keys::SECURITY_SCANNER_GIT_NOT_FOUND));
         return;
     }
 
     console.info(&crate::tr!(
-        keys::GIT_SCANNER_SCAN_DIR,
+        keys::SECURITY_SCANNER_SCAN_DIR,
         path = repo_root.display()
     ));
-    console.info(i18n::t(keys::GIT_SCANNER_STRICT_MODE));
+    console.info(i18n::t(keys::SECURITY_SCANNER_STRICT_MODE));
     console.blank_line();
 
     let worktree_snapshot = match build_worktree_snapshot(&repo_root, &console) {
@@ -56,18 +56,18 @@ pub fn run() {
     };
 
     let tools = all_tools();
-    console.info(i18n::t(keys::GIT_SCANNER_TOOLS_INTRO));
+    console.info(i18n::t(keys::SECURITY_SCANNER_TOOLS_INTRO));
     for tool in &tools {
         let status = if resolve_tool_path(*tool).is_some() {
-            i18n::t(keys::GIT_SCANNER_STATUS_INSTALLED)
+            i18n::t(keys::SECURITY_SCANNER_STATUS_INSTALLED)
         } else {
-            i18n::t(keys::GIT_SCANNER_STATUS_MISSING)
+            i18n::t(keys::SECURITY_SCANNER_STATUS_MISSING)
         };
         console.list_item("🔎", &format!("{} ({})", tool.display_name(), status));
     }
 
-    if !prompts.confirm_with_options(i18n::t(keys::GIT_SCANNER_CONFIRM_INSTALL), true) {
-        console.warning(i18n::t(keys::GIT_SCANNER_CANCELLED));
+    if !prompts.confirm_with_options(i18n::t(keys::SECURITY_SCANNER_CONFIRM_INSTALL), true) {
+        console.warning(i18n::t(keys::SECURITY_SCANNER_CANCELLED));
         return;
     }
 
@@ -82,20 +82,20 @@ pub fn run() {
             console.success_item(&format!(
                 "{} {}",
                 tool.display_name(),
-                i18n::t(keys::GIT_SCANNER_STATUS_INSTALLED)
+                i18n::t(keys::SECURITY_SCANNER_STATUS_INSTALLED)
             ));
             continue;
         }
 
         console.info(&crate::tr!(
-            keys::GIT_SCANNER_INSTALLING,
+            keys::SECURITY_SCANNER_INSTALLING,
             tool = tool.display_name()
         ));
         install_attempted += 1;
         match ensure_installed(*tool) {
             Ok(InstallStatus::Installed(path)) => {
                 console.success_item(&crate::tr!(
-                    keys::GIT_SCANNER_INSTALL_DONE,
+                    keys::SECURITY_SCANNER_INSTALL_DONE,
                     tool = tool.display_name(),
                     path = path.display()
                 ));
@@ -103,7 +103,7 @@ pub fn run() {
             }
             Ok(InstallStatus::AlreadyInstalled(path)) => {
                 console.success_item(&crate::tr!(
-                    keys::GIT_SCANNER_INSTALL_ALREADY,
+                    keys::SECURITY_SCANNER_INSTALL_ALREADY,
                     tool = tool.display_name(),
                     path = path.display()
                 ));
@@ -112,14 +112,14 @@ pub fn run() {
             Ok(InstallStatus::Failed(errors)) => {
                 let message = errors.join("; ");
                 console.error_item(
-                    &crate::tr!(keys::GIT_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &crate::tr!(keys::SECURITY_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
                     &message,
                 );
                 install_failed += 1;
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::GIT_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &crate::tr!(keys::SECURITY_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
                     &err.to_string(),
                 );
                 install_failed += 1;
@@ -129,7 +129,7 @@ pub fn run() {
 
     if install_attempted > 0 {
         console.show_summary(
-            i18n::t(keys::GIT_SCANNER_INSTALL_SUMMARY),
+            i18n::t(keys::SECURITY_SCANNER_INSTALL_SUMMARY),
             install_success,
             install_failed,
         );
@@ -143,14 +143,14 @@ pub fn run() {
     for tool in &tools {
         let Some(_) = resolve_tool_path(*tool) else {
             console.warning(&crate::tr!(
-                keys::GIT_SCANNER_SKIP_TOOL,
+                keys::SECURITY_SCANNER_SKIP_TOOL,
                 tool = tool.display_name()
             ));
             continue;
         };
 
         console.info(&crate::tr!(
-            keys::GIT_SCANNER_START_SCAN,
+            keys::SECURITY_SCANNER_START_SCAN,
             tool = tool.display_name()
         ));
         match run_scans(*tool, &repo_root, worktree_snapshot.root()) {
@@ -158,20 +158,20 @@ pub fn run() {
                 for outcome in outcomes {
                     console.separator();
                     console.info(&crate::tr!(
-                        keys::GIT_SCANNER_STDOUT_TITLE,
+                        keys::SECURITY_SCANNER_STDOUT_TITLE,
                         label = outcome.label
                     ));
                     if outcome.stdout.trim().is_empty() {
-                        console.raw(&format!("{}\n", i18n::t(keys::GIT_SCANNER_NO_OUTPUT)));
+                        console.raw(&format!("{}\n", i18n::t(keys::SECURITY_SCANNER_NO_OUTPUT)));
                     } else {
                         console.raw(&ensure_trailing_newline(&outcome.stdout));
                     }
                     console.info(&crate::tr!(
-                        keys::GIT_SCANNER_STDERR_TITLE,
+                        keys::SECURITY_SCANNER_STDERR_TITLE,
                         label = outcome.label
                     ));
                     if outcome.stderr.trim().is_empty() {
-                        console.raw(&format!("{}\n", i18n::t(keys::GIT_SCANNER_NO_OUTPUT)));
+                        console.raw(&format!("{}\n", i18n::t(keys::SECURITY_SCANNER_NO_OUTPUT)));
                     } else {
                         console.raw(&ensure_trailing_newline(&outcome.stderr));
                     }
@@ -179,7 +179,7 @@ pub fn run() {
                     match outcome.status {
                         ScanStatus::Clean => {
                             console.success_item(&crate::tr!(
-                                keys::GIT_SCANNER_PASSED,
+                                keys::SECURITY_SCANNER_PASSED,
                                 label = outcome.label
                             ));
                             scan_success += 1;
@@ -187,14 +187,14 @@ pub fn run() {
                         ScanStatus::Findings => {
                             has_findings = true;
                             console.error_item(
-                                &crate::tr!(keys::GIT_SCANNER_FINDINGS, label = outcome.label),
+                                &crate::tr!(keys::SECURITY_SCANNER_FINDINGS, label = outcome.label),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
                         }
                         ScanStatus::Error => {
                             console.error_item(
-                                &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED, label = outcome.label),
+                                &crate::tr!(keys::SECURITY_SCANNER_SCAN_FAILED, label = outcome.label),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
@@ -204,7 +204,7 @@ pub fn run() {
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::GIT_SCANNER_SCAN_FAILED, label = tool.display_name()),
+                    &crate::tr!(keys::SECURITY_SCANNER_SCAN_FAILED, label = tool.display_name()),
                     &err.to_string(),
                 );
                 scan_failed += 1;
@@ -215,19 +215,19 @@ pub fn run() {
     }
 
     console.show_summary(
-        i18n::t(keys::GIT_SCANNER_SCAN_SUMMARY),
+        i18n::t(keys::SECURITY_SCANNER_SCAN_SUMMARY),
         scan_success,
         scan_failed,
     );
     if has_findings {
-        console.warning(i18n::t(keys::GIT_SCANNER_FINDINGS_WARNING));
+        console.warning(i18n::t(keys::SECURITY_SCANNER_FINDINGS_WARNING));
     }
 }
 
 fn format_exit_code(exit_code: Option<i32>) -> String {
     match exit_code {
-        Some(code) => crate::tr!(keys::GIT_SCANNER_EXIT_CODE, code = code),
-        None => i18n::t(keys::GIT_SCANNER_EXIT_CODE_UNKNOWN).to_string(),
+        Some(code) => crate::tr!(keys::SECURITY_SCANNER_EXIT_CODE, code = code),
+        None => i18n::t(keys::SECURITY_SCANNER_EXIT_CODE_UNKNOWN).to_string(),
     }
 }
 
@@ -265,7 +265,7 @@ fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<Worktr
 
     let tracked = git_list_tracked(repo_root)?;
     if tracked.is_empty() {
-        console.warning(i18n::t(keys::GIT_SCANNER_NO_TRACKED_FILES));
+        console.warning(i18n::t(keys::SECURITY_SCANNER_NO_TRACKED_FILES));
         return Ok(WorktreeSnapshot {
             root: snapshot_root.clone(),
             cleanup_path: snapshot_root,
@@ -279,7 +279,7 @@ fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<Worktr
         .collect();
 
     if filtered.is_empty() {
-        console.warning(i18n::t(keys::GIT_SCANNER_ALL_IGNORED));
+        console.warning(i18n::t(keys::SECURITY_SCANNER_ALL_IGNORED));
         return Ok(WorktreeSnapshot {
             root: snapshot_root.clone(),
             cleanup_path: snapshot_root,
@@ -323,7 +323,7 @@ fn create_temp_dir() -> Result<PathBuf> {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    let dir = base.join(format!("git-scan-{}-{}", std::process::id(), timestamp));
+    let dir = base.join(format!("security-scan-{}-{}", std::process::id(), timestamp));
     std::fs::create_dir_all(&dir).map_err(|err| OperationError::Io {
         path: dir.display().to_string(),
         source: err,

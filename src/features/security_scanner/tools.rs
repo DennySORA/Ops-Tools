@@ -6,6 +6,8 @@ pub enum ScanTool {
     Gitleaks,
     Trufflehog,
     GitSecrets,
+    Trivy,
+    Semgrep,
 }
 
 pub struct ScanCommand {
@@ -37,6 +39,8 @@ pub fn all_tools() -> Vec<ScanTool> {
         ScanTool::Gitleaks,
         ScanTool::Trufflehog,
         ScanTool::GitSecrets,
+        ScanTool::Trivy,
+        ScanTool::Semgrep,
     ]
 }
 
@@ -46,6 +50,8 @@ impl ScanTool {
             ScanTool::Gitleaks => "Gitleaks",
             ScanTool::Trufflehog => "TruffleHog",
             ScanTool::GitSecrets => "Git-Secrets",
+            ScanTool::Trivy => "Trivy",
+            ScanTool::Semgrep => "Semgrep",
         }
     }
 
@@ -54,6 +60,8 @@ impl ScanTool {
             ScanTool::Gitleaks => "gitleaks",
             ScanTool::Trufflehog => "trufflehog",
             ScanTool::GitSecrets => "git-secrets",
+            ScanTool::Trivy => "trivy",
+            ScanTool::Semgrep => "semgrep",
         }
     }
 
@@ -68,11 +76,11 @@ impl ScanTool {
         let worktree_str = worktree_path.display().to_string();
         let file_url = format!("file://{}", repo_str);
         let tool_name = self.display_name();
-        let history_scope = i18n::t(keys::GIT_SCANNER_SCOPE_GIT_HISTORY);
-        let worktree_scope = i18n::t(keys::GIT_SCANNER_SCOPE_WORKTREE);
+        let history_scope = i18n::t(keys::SECURITY_SCANNER_SCOPE_GIT_HISTORY);
+        let worktree_scope = i18n::t(keys::SECURITY_SCANNER_SCOPE_WORKTREE);
         let label_for = |scope: &str| -> String {
             crate::tr!(
-                keys::GIT_SCANNER_COMMAND_LABEL,
+                keys::SECURITY_SCANNER_COMMAND_LABEL,
                 tool = tool_name,
                 scope = scope
             )
@@ -142,6 +150,34 @@ impl ScanTool {
                     workdir: Some(repo_path),
                 },
             ],
+            ScanTool::Trivy => vec![
+                ScanCommand {
+                    label: label_for("SCA & Misconfig"),
+                    args: vec![
+                        "fs".to_string(),
+                        worktree_str.clone(),
+                        "--scanners".to_string(),
+                        "vuln,config".to_string(),
+                        "--exit-code".to_string(),
+                        "1".to_string(),
+                        "--no-progress".to_string(),
+                    ],
+                    workdir: Some(worktree_path.clone()),
+                }
+            ],
+            ScanTool::Semgrep => vec![
+                ScanCommand {
+                    label: label_for("SAST"),
+                    args: vec![
+                        "scan".to_string(),
+                        "--config=auto".to_string(),
+                        "--error".to_string(),
+                        "--quiet".to_string(),
+                        worktree_str.clone(),
+                    ],
+                    workdir: Some(worktree_path.clone()),
+                }
+            ],
         }
     }
 
@@ -191,6 +227,22 @@ impl ScanTool {
                     &["-S", "--noconfirm", "git-secrets"],
                     true,
                 ),
+            ],
+            ScanTool::Trivy => vec![
+                InstallStrategy::new("brew", "brew", &["install", "trivy"], false),
+                InstallStrategy::new("apt-get", "apt-get", &["install", "-y", "trivy"], true),
+                InstallStrategy::new("pacman", "pacman", &["-S", "--noconfirm", "trivy"], true),
+                InstallStrategy::new(
+                    "go install",
+                    "go",
+                    &["install", "github.com/aquasecurity/trivy/cmd/trivy@latest"],
+                    false,
+                ),
+            ],
+            ScanTool::Semgrep => vec![
+                InstallStrategy::new("brew", "brew", &["install", "semgrep"], false),
+                InstallStrategy::new("pip", "pip", &["install", "semgrep"], false),
+                InstallStrategy::new("pip3", "pip3", &["install", "semgrep"], false),
             ],
         }
     }
