@@ -164,7 +164,8 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args.extend(vec![
                     "npx".to_string(),
                     "chrome-devtools-mcp@latest".to_string(),
-                    "--isolated=true".to_string(),
+                    "--isolated".to_string(),
+                    "--headless".to_string(),
                 ]);
                 args
             },
@@ -182,6 +183,23 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                     "npx".to_string(),
                     "-y".to_string(),
                     "kubernetes-mcp-server@latest".to_string(),
+                ]);
+                args
+            },
+            requires_interactive: false,
+        },
+        McpTool {
+            name: "tailwindcss",
+            display_name_key: keys::MCP_TOOL_TAILWINDCSS,
+            install_args: {
+                let mut args = vec!["tailwindcss".to_string()];
+                if let Some(sep) = separator {
+                    args.push(sep.to_string());
+                }
+                args.extend(vec![
+                    "npx".to_string(),
+                    "-y".to_string(),
+                    "tailwindcss-mcp-server@latest".to_string(),
                 ]);
                 args
             },

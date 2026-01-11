@@ -32,13 +32,13 @@ pub fn ensure_installed(tool: ScanTool) -> Result<InstallStatus> {
                     return Ok(InstallStatus::Installed(path));
                 }
                 errors.push(crate::tr!(
-                    keys::GIT_SCANNER_INSTALL_MISSING_AFTER,
+                    keys::SECURITY_SCANNER_INSTALL_MISSING_AFTER,
                     strategy = strategy.label
                 ));
             }
             Err(err) => {
                 errors.push(crate::tr!(
-                    keys::GIT_SCANNER_INSTALL_STRATEGY_FAILED,
+                    keys::SECURITY_SCANNER_INSTALL_STRATEGY_FAILED,
                     strategy = strategy.label,
                     error = err
                 ));
@@ -68,7 +68,7 @@ pub fn ensure_installed(tool: ScanTool) -> Result<InstallStatus> {
     }
 
     if !attempted && errors.is_empty() {
-        errors.push(i18n::t(keys::GIT_SCANNER_INSTALL_NO_STRATEGY).to_string());
+        errors.push(i18n::t(keys::SECURITY_SCANNER_INSTALL_NO_STRATEGY).to_string());
     }
 
     Ok(InstallStatus::Failed(errors))
@@ -166,13 +166,13 @@ fn install_from_github_release(tool: ScanTool) -> Result<ReleaseInstallOutcome> 
 
     let Some(platform) = Platform::detect() else {
         return Ok(ReleaseInstallOutcome::Skipped(
-            i18n::t(keys::GIT_SCANNER_UNSUPPORTED_PLATFORM).to_string(),
+            i18n::t(keys::SECURITY_SCANNER_UNSUPPORTED_PLATFORM).to_string(),
         ));
     };
 
     let Some(download) = fetch_release_asset(repo, &platform)? else {
         return Ok(ReleaseInstallOutcome::Failed(
-            i18n::t(keys::GIT_SCANNER_RELEASE_NOT_FOUND).to_string(),
+            i18n::t(keys::SECURITY_SCANNER_RELEASE_NOT_FOUND).to_string(),
         ));
     };
 
@@ -181,7 +181,7 @@ fn install_from_github_release(tool: ScanTool) -> Result<ReleaseInstallOutcome> 
     let binary = find_binary_in_dir(&extract_dir, tool.binary_name()).ok_or_else(|| {
         OperationError::Command {
             command: tool.binary_name().to_string(),
-            message: i18n::t(keys::GIT_SCANNER_EXTRACT_MISSING_BINARY).to_string(),
+            message: i18n::t(keys::SECURITY_SCANNER_EXTRACT_MISSING_BINARY).to_string(),
         }
     })?;
 
@@ -194,6 +194,8 @@ fn release_repo(tool: ScanTool) -> Option<&'static str> {
         ScanTool::Gitleaks => Some("gitleaks/gitleaks"),
         ScanTool::Trufflehog => Some("trufflesecurity/trufflehog"),
         ScanTool::GitSecrets => None,
+        ScanTool::Trivy => Some("aquasecurity/trivy"),
+        ScanTool::Semgrep => None,
     }
 }
 
@@ -249,7 +251,7 @@ fn fetch_release_asset(repo: &str, platform: &Platform) -> Result<Option<Release
     let payload: serde_json::Value =
         serde_json::from_str(&json).map_err(|err| OperationError::Config {
             key: api_url.clone(),
-            message: crate::tr!(keys::GIT_SCANNER_RELEASE_PARSE_FAILED, error = err),
+            message: crate::tr!(keys::SECURITY_SCANNER_RELEASE_PARSE_FAILED, error = err),
         })?;
 
     let assets = payload
@@ -257,7 +259,7 @@ fn fetch_release_asset(repo: &str, platform: &Platform) -> Result<Option<Release
         .and_then(|val| val.as_array())
         .ok_or_else(|| OperationError::Config {
             key: api_url.clone(),
-            message: i18n::t(keys::GIT_SCANNER_RELEASE_MISSING_ASSETS).to_string(),
+            message: i18n::t(keys::SECURITY_SCANNER_RELEASE_MISSING_ASSETS).to_string(),
         })?;
 
     let mut matches = Vec::new();
@@ -382,7 +384,7 @@ fn fetch_url(url: &str) -> Result<String> {
 
     Err(OperationError::Command {
         command: "curl/wget".to_string(),
-        message: i18n::t(keys::GIT_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
+        message: i18n::t(keys::SECURITY_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
     })
 }
 
@@ -446,7 +448,7 @@ fn download_to_temp(url: &str, extension: ArchiveKind) -> Result<PathBuf> {
 
     Err(OperationError::Command {
         command: "curl/wget".to_string(),
-        message: i18n::t(keys::GIT_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
+        message: i18n::t(keys::SECURITY_SCANNER_DOWNLOAD_TOOL_MISSING).to_string(),
     })
 }
 
@@ -465,7 +467,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
             let Some(tar_path) = is_command_available("tar") else {
                 return Err(OperationError::Command {
                     command: "tar".to_string(),
-                    message: i18n::t(keys::GIT_SCANNER_TAR_MISSING).to_string(),
+                    message: i18n::t(keys::SECURITY_SCANNER_TAR_MISSING).to_string(),
                 });
             };
             let output = Command::new(tar_path)
@@ -498,7 +500,7 @@ fn extract_archive(path: &Path, extension: ArchiveKind) -> Result<PathBuf> {
             let Some(unzip_path) = is_command_available("unzip") else {
                 return Err(OperationError::Command {
                     command: "unzip".to_string(),
-                    message: i18n::t(keys::GIT_SCANNER_UNZIP_MISSING).to_string(),
+                    message: i18n::t(keys::SECURITY_SCANNER_UNZIP_MISSING).to_string(),
                 });
             };
             let output = Command::new(unzip_path)
@@ -561,7 +563,7 @@ fn install_binary(source: &Path, binary: &str) -> Result<PathBuf> {
     let Some(target_dir) = local_bin_dir() else {
         return Err(OperationError::Command {
             command: "install".to_string(),
-            message: i18n::t(keys::GIT_SCANNER_INSTALL_DIR_MISSING).to_string(),
+            message: i18n::t(keys::SECURITY_SCANNER_INSTALL_DIR_MISSING).to_string(),
         });
     };
 
