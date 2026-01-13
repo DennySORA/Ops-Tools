@@ -150,34 +150,30 @@ impl ScanTool {
                     workdir: Some(repo_path),
                 },
             ],
-            ScanTool::Trivy => vec![
-                ScanCommand {
-                    label: label_for("SCA & Misconfig"),
-                    args: vec![
-                        "fs".to_string(),
-                        worktree_str.clone(),
-                        "--scanners".to_string(),
-                        "vuln,config".to_string(),
-                        "--exit-code".to_string(),
-                        "1".to_string(),
-                        "--no-progress".to_string(),
-                    ],
-                    workdir: Some(worktree_path.clone()),
-                }
-            ],
-            ScanTool::Semgrep => vec![
-                ScanCommand {
-                    label: label_for("SAST"),
-                    args: vec![
-                        "scan".to_string(),
-                        "--config=auto".to_string(),
-                        "--error".to_string(),
-                        "--quiet".to_string(),
-                        worktree_str.clone(),
-                    ],
-                    workdir: Some(worktree_path.clone()),
-                }
-            ],
+            ScanTool::Trivy => vec![ScanCommand {
+                label: label_for("SCA & Misconfig"),
+                args: vec![
+                    "fs".to_string(),
+                    worktree_str.clone(),
+                    "--scanners".to_string(),
+                    "vuln,config".to_string(),
+                    "--exit-code".to_string(),
+                    "1".to_string(),
+                    "--no-progress".to_string(),
+                ],
+                workdir: Some(worktree_path.clone()),
+            }],
+            ScanTool::Semgrep => vec![ScanCommand {
+                label: label_for("SAST"),
+                args: vec![
+                    "scan".to_string(),
+                    "--config=auto".to_string(),
+                    "--error".to_string(),
+                    "--quiet".to_string(),
+                    worktree_str.clone(),
+                ],
+                workdir: Some(worktree_path.clone()),
+            }],
         }
     }
 
