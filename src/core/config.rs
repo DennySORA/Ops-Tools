@@ -1,5 +1,6 @@
 use crate::core::{OperationError, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -7,6 +8,21 @@ use std::path::PathBuf;
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub language: Option<String>,
+    /// Menu usage statistics for sorting by frequency
+    #[serde(default)]
+    pub menu_usage: HashMap<String, u32>,
+}
+
+impl AppConfig {
+    /// Increment usage count for a menu item
+    pub fn increment_usage(&mut self, key: &str) {
+        *self.menu_usage.entry(key.to_string()).or_insert(0) += 1;
+    }
+
+    /// Get usage count for a menu item
+    pub fn get_usage(&self, key: &str) -> u32 {
+        self.menu_usage.get(key).copied().unwrap_or(0)
+    }
 }
 
 pub fn config_path() -> Option<PathBuf> {
@@ -100,6 +116,7 @@ mod tests {
         env::set_var(key, value);
     }
 
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     fn remove_env(key: &str) {
         env::remove_var(key);
     }
@@ -164,6 +181,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     fn test_save_and_load_config() {
         let _guard = env_lock();
         let temp = tempfile::tempdir().unwrap();
@@ -174,6 +192,7 @@ mod tests {
 
         let config = AppConfig {
             language: Some("en".to_string()),
+            ..Default::default()
         };
         save_config(&config).unwrap();
 
@@ -182,5 +201,45 @@ mod tests {
 
         restore_env("XDG_CONFIG_HOME", old_xdg);
         restore_env("HOME", old_home);
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn test_save_and_load_config() {
+        let _guard = env_lock();
+        let temp = tempfile::tempdir().unwrap();
+        let old_home = env::var_os("HOME");
+        set_env("HOME", temp.path());
+
+        let config = AppConfig {
+            language: Some("en".to_string()),
+            ..Default::default()
+        };
+        save_config(&config).unwrap();
+
+        let loaded = load_config().unwrap().expect("Expected config");
+        assert_eq!(loaded.language.as_deref(), Some("en"));
+
+        restore_env("HOME", old_home);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_save_and_load_config() {
+        let _guard = env_lock();
+        let temp = tempfile::tempdir().unwrap();
+        let old_appdata = env::var_os("APPDATA");
+        set_env("APPDATA", temp.path());
+
+        let config = AppConfig {
+            language: Some("en".to_string()),
+            ..Default::default()
+        };
+        save_config(&config).unwrap();
+
+        let loaded = load_config().unwrap().expect("Expected config");
+        assert_eq!(loaded.language.as_deref(), Some("en"));
+
+        restore_env("APPDATA", old_appdata);
     }
 }

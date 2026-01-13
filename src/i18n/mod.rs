@@ -145,13 +145,24 @@ macro_rules! tr {
 
 pub mod keys {
     pub const MENU_PROMPT: &str = "menu.prompt";
-    pub const MENU_TERRAFORM_CLEANER: &str = "menu.terraform_cleaner";
-    pub const MENU_TOOL_UPGRADER: &str = "menu.tool_upgrader";
-    pub const MENU_PACKAGE_MANAGER: &str = "menu.package_manager";
-    pub const MENU_RUST_UPGRADER: &str = "menu.rust_upgrader";
-    pub const MENU_SECURITY_SCANNER: &str = "menu.security_scanner";
-    pub const MENU_MCP_MANAGER: &str = "menu.mcp_manager";
-    pub const MENU_LANGUAGE: &str = "menu.language";
+    pub const MENU_TERRAFORM_CLEANER: &str = "menu.terraform_cleaner.name";
+    pub const MENU_TERRAFORM_CLEANER_DESC: &str = "menu.terraform_cleaner.desc";
+    pub const MENU_TOOL_UPGRADER: &str = "menu.tool_upgrader.name";
+    pub const MENU_TOOL_UPGRADER_DESC: &str = "menu.tool_upgrader.desc";
+    pub const MENU_PACKAGE_MANAGER: &str = "menu.package_manager.name";
+    pub const MENU_PACKAGE_MANAGER_DESC: &str = "menu.package_manager.desc";
+    pub const MENU_RUST_UPGRADER: &str = "menu.rust_upgrader.name";
+    pub const MENU_RUST_UPGRADER_DESC: &str = "menu.rust_upgrader.desc";
+    pub const MENU_SECURITY_SCANNER: &str = "menu.security_scanner.name";
+    pub const MENU_SECURITY_SCANNER_DESC: &str = "menu.security_scanner.desc";
+    pub const MENU_MCP_MANAGER: &str = "menu.mcp_manager.name";
+    pub const MENU_MCP_MANAGER_DESC: &str = "menu.mcp_manager.desc";
+    pub const MENU_PROMPT_GEN: &str = "menu.prompt_gen.name";
+    pub const MENU_PROMPT_GEN_DESC: &str = "menu.prompt_gen.desc";
+    pub const MENU_KUBECONFIG_MANAGER: &str = "menu.kubeconfig_manager.name";
+    pub const MENU_KUBECONFIG_MANAGER_DESC: &str = "menu.kubeconfig_manager.desc";
+    pub const MENU_LANGUAGE: &str = "menu.language.name";
+    pub const MENU_LANGUAGE_DESC: &str = "menu.language.desc";
     pub const MENU_EXIT: &str = "menu.exit";
     pub const MENU_GOODBYE: &str = "menu.goodbye";
 
@@ -308,15 +319,20 @@ pub mod keys {
     pub const SECURITY_SCANNER_SCOPE_GIT_HISTORY: &str = "security_scanner.scope.git_history";
     pub const SECURITY_SCANNER_SCOPE_WORKTREE: &str = "security_scanner.scope.worktree";
     pub const SECURITY_SCANNER_COMMAND_LABEL: &str = "security_scanner.command_label";
-    pub const SECURITY_SCANNER_INSTALL_MISSING_AFTER: &str = "security_scanner.install_missing_after";
-    pub const SECURITY_SCANNER_INSTALL_STRATEGY_FAILED: &str = "security_scanner.install_strategy_failed";
+    pub const SECURITY_SCANNER_INSTALL_MISSING_AFTER: &str =
+        "security_scanner.install_missing_after";
+    pub const SECURITY_SCANNER_INSTALL_STRATEGY_FAILED: &str =
+        "security_scanner.install_strategy_failed";
     pub const SECURITY_SCANNER_INSTALL_NO_STRATEGY: &str = "security_scanner.install_no_strategy";
     pub const SECURITY_SCANNER_UNSUPPORTED_PLATFORM: &str = "security_scanner.unsupported_platform";
     pub const SECURITY_SCANNER_RELEASE_NOT_FOUND: &str = "security_scanner.release_not_found";
-    pub const SECURITY_SCANNER_EXTRACT_MISSING_BINARY: &str = "security_scanner.extract_missing_binary";
+    pub const SECURITY_SCANNER_EXTRACT_MISSING_BINARY: &str =
+        "security_scanner.extract_missing_binary";
     pub const SECURITY_SCANNER_RELEASE_PARSE_FAILED: &str = "security_scanner.release_parse_failed";
-    pub const SECURITY_SCANNER_RELEASE_MISSING_ASSETS: &str = "security_scanner.release_missing_assets";
-    pub const SECURITY_SCANNER_DOWNLOAD_TOOL_MISSING: &str = "security_scanner.download_tool_missing";
+    pub const SECURITY_SCANNER_RELEASE_MISSING_ASSETS: &str =
+        "security_scanner.release_missing_assets";
+    pub const SECURITY_SCANNER_DOWNLOAD_TOOL_MISSING: &str =
+        "security_scanner.download_tool_missing";
     pub const SECURITY_SCANNER_TAR_MISSING: &str = "security_scanner.tar_missing";
     pub const SECURITY_SCANNER_UNZIP_MISSING: &str = "security_scanner.unzip_missing";
     pub const SECURITY_SCANNER_INSTALL_DIR_MISSING: &str = "security_scanner.install_dir_missing";
@@ -375,7 +391,6 @@ pub mod keys {
     pub const MCP_TOOL_TAILWINDCSS: &str = "mcp.tool.tailwindcss";
 
     // Kubeconfig Manager
-    pub const MENU_KUBECONFIG_MANAGER: &str = "menu.kubeconfig_manager";
     pub const KUBECONFIG_HEADER: &str = "kubeconfig.header";
     pub const KUBECONFIG_SELECT_ACTION: &str = "kubeconfig.select_action";
     pub const KUBECONFIG_ACTION_SETUP: &str = "kubeconfig.action_setup";
@@ -408,7 +423,6 @@ pub mod keys {
     pub const KUBECONFIG_CLEANUP_ALL_SUMMARY: &str = "kubeconfig.cleanup_all_summary";
 
     // Prompt Generator
-    pub const MENU_PROMPT_GEN: &str = "menu.prompt_gen";
     pub const PROMPT_GEN_HEADER: &str = "prompt_gen.header";
     pub const PROMPT_GEN_SELECT_ACTION: &str = "prompt_gen.select_action";
     pub const PROMPT_GEN_ACTION_GENERATE: &str = "prompt_gen.action_generate";

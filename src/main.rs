@@ -8,6 +8,104 @@ use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Select};
 use i18n::{keys, Language};
 use ui::{Console, Prompts};
+use unicode_width::UnicodeWidthStr;
+
+/// Menu item definition
+struct MenuItem {
+    name_key: &'static str,
+    desc_key: &'static str,
+    handler: fn(),
+}
+
+/// Get sortable menu items (excludes language and exit)
+fn sortable_menu_items() -> Vec<MenuItem> {
+    vec![
+        MenuItem {
+            name_key: keys::MENU_TERRAFORM_CLEANER,
+            desc_key: keys::MENU_TERRAFORM_CLEANER_DESC,
+            handler: features::terraform_cleaner::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_TOOL_UPGRADER,
+            desc_key: keys::MENU_TOOL_UPGRADER_DESC,
+            handler: features::tool_upgrader::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_PACKAGE_MANAGER,
+            desc_key: keys::MENU_PACKAGE_MANAGER_DESC,
+            handler: features::package_manager::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_RUST_UPGRADER,
+            desc_key: keys::MENU_RUST_UPGRADER_DESC,
+            handler: features::rust_upgrader::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_SECURITY_SCANNER,
+            desc_key: keys::MENU_SECURITY_SCANNER_DESC,
+            handler: features::security_scanner::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_MCP_MANAGER,
+            desc_key: keys::MENU_MCP_MANAGER_DESC,
+            handler: features::mcp_manager::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_PROMPT_GEN,
+            desc_key: keys::MENU_PROMPT_GEN_DESC,
+            handler: features::prompt_gen::run,
+        },
+        MenuItem {
+            name_key: keys::MENU_KUBECONFIG_MANAGER,
+            desc_key: keys::MENU_KUBECONFIG_MANAGER_DESC,
+            handler: features::kubeconfig_manager::run,
+        },
+    ]
+}
+
+/// Sort menu items by usage frequency (descending)
+fn sort_by_usage(items: &mut [MenuItem], config: &AppConfig) {
+    items.sort_by(|a, b| {
+        let usage_a = config.get_usage(a.name_key);
+        let usage_b = config.get_usage(b.name_key);
+        usage_b.cmp(&usage_a)
+    });
+}
+
+/// Format menu options with aligned names and descriptions
+fn format_menu_options(items: &[MenuItem]) -> Vec<String> {
+    let language_name = i18n::t(keys::MENU_LANGUAGE);
+    let language_desc = i18n::t(keys::MENU_LANGUAGE_DESC);
+
+    let max_name_width = items
+        .iter()
+        .map(|item| i18n::t(item.name_key).width())
+        .chain(std::iter::once(language_name.width()))
+        .max()
+        .unwrap_or(0);
+
+    let mut options: Vec<String> = items
+        .iter()
+        .map(|item| {
+            let name = i18n::t(item.name_key);
+            let desc = i18n::t(item.desc_key);
+            let padding = max_name_width - name.width();
+            format!("{}{} — {}", name, " ".repeat(padding), desc)
+        })
+        .collect();
+
+    let padding = max_name_width - language_name.width();
+    options.push(format!(
+        "{}{} — {}",
+        language_name,
+        " ".repeat(padding),
+        language_desc
+    ));
+
+    options.push(i18n::t(keys::MENU_EXIT).to_string());
+
+    options
+}
 
 fn main() {
     let prompts = Prompts::new();
@@ -18,44 +116,43 @@ fn main() {
     }
 
     loop {
-        let options = vec![
-            i18n::t(keys::MENU_TERRAFORM_CLEANER),
-            i18n::t(keys::MENU_TOOL_UPGRADER),
-            i18n::t(keys::MENU_PACKAGE_MANAGER),
-            i18n::t(keys::MENU_RUST_UPGRADER),
-            i18n::t(keys::MENU_SECURITY_SCANNER),
-            i18n::t(keys::MENU_MCP_MANAGER),
-            i18n::t(keys::MENU_PROMPT_GEN),
-            i18n::t(keys::MENU_KUBECONFIG_MANAGER),
-            i18n::t(keys::MENU_LANGUAGE),
-            i18n::t(keys::MENU_EXIT),
-        ];
+        let config = load_config().ok().flatten().unwrap_or_default();
+        let mut menu_items = sortable_menu_items();
+        sort_by_usage(&mut menu_items, &config);
+
+        let options = format_menu_options(&menu_items);
+        let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
 
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt(i18n::t(keys::MENU_PROMPT))
-            .items(&options)
+            .items(&option_refs)
             .default(0)
             .interact()
             .unwrap();
 
-        match selection {
-            0 => features::terraform_cleaner::run(),
-            1 => features::tool_upgrader::run(),
-            2 => features::package_manager::run(),
-            3 => features::rust_upgrader::run(),
-            4 => features::security_scanner::run(),
-            5 => features::mcp_manager::run(),
-            6 => features::prompt_gen::run(),
-            7 => features::kubeconfig_manager::run(),
-            8 => select_language(&prompts, &console),
-            9 => {
-                println!("{}", i18n::t(keys::MENU_GOODBYE).green());
-                break;
-            }
-            _ => unreachable!(),
+        let sortable_count = menu_items.len();
+
+        if selection < sortable_count {
+            let selected_item = &menu_items[selection];
+            record_usage(selected_item.name_key, &console);
+            (selected_item.handler)();
+        } else if selection == sortable_count {
+            select_language(&prompts, &console);
+        } else {
+            println!("{}", i18n::t(keys::MENU_GOODBYE).green());
+            break;
         }
 
         println!("\n");
+    }
+}
+
+/// Record menu usage to config
+fn record_usage(key: &str, console: &Console) {
+    let mut config = load_config().ok().flatten().unwrap_or_default();
+    config.increment_usage(key);
+    if let Err(err) = save_config(&config) {
+        console.warning(&crate::tr!(keys::CONFIG_SAVE_FAILED, error = err));
     }
 }
 

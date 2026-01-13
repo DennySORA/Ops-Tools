@@ -112,14 +112,20 @@ pub fn run() {
             Ok(InstallStatus::Failed(errors)) => {
                 let message = errors.join("; ");
                 console.error_item(
-                    &crate::tr!(keys::SECURITY_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &crate::tr!(
+                        keys::SECURITY_SCANNER_INSTALL_FAILED,
+                        tool = tool.display_name()
+                    ),
                     &message,
                 );
                 install_failed += 1;
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::SECURITY_SCANNER_INSTALL_FAILED, tool = tool.display_name()),
+                    &crate::tr!(
+                        keys::SECURITY_SCANNER_INSTALL_FAILED,
+                        tool = tool.display_name()
+                    ),
                     &err.to_string(),
                 );
                 install_failed += 1;
@@ -194,7 +200,10 @@ pub fn run() {
                         }
                         ScanStatus::Error => {
                             console.error_item(
-                                &crate::tr!(keys::SECURITY_SCANNER_SCAN_FAILED, label = outcome.label),
+                                &crate::tr!(
+                                    keys::SECURITY_SCANNER_SCAN_FAILED,
+                                    label = outcome.label
+                                ),
                                 &format_exit_code(outcome.exit_code),
                             );
                             scan_failed += 1;
@@ -204,7 +213,10 @@ pub fn run() {
             }
             Err(err) => {
                 console.error_item(
-                    &crate::tr!(keys::SECURITY_SCANNER_SCAN_FAILED, label = tool.display_name()),
+                    &crate::tr!(
+                        keys::SECURITY_SCANNER_SCAN_FAILED,
+                        label = tool.display_name()
+                    ),
                     &err.to_string(),
                 );
                 scan_failed += 1;
@@ -323,7 +335,11 @@ fn create_temp_dir() -> Result<PathBuf> {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    let dir = base.join(format!("security-scan-{}-{}", std::process::id(), timestamp));
+    let dir = base.join(format!(
+        "security-scan-{}-{}",
+        std::process::id(),
+        timestamp
+    ));
     std::fs::create_dir_all(&dir).map_err(|err| OperationError::Io {
         path: dir.display().to_string(),
         source: err,
