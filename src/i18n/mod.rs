@@ -446,6 +446,10 @@ pub mod keys {
     pub const PROMPT_GEN_STATUS_NOT_STARTED: &str = "prompt_gen.status_not_started";
     pub const PROMPT_GEN_SELECT_CLI: &str = "prompt_gen.select_cli";
     pub const PROMPT_GEN_USING_CLI: &str = "prompt_gen.using_cli";
+    pub const PROMPT_GEN_ACTION_VALIDATE: &str = "prompt_gen.action_validate";
+    pub const PROMPT_GEN_VALIDATING: &str = "prompt_gen.validating";
+    pub const PROMPT_GEN_VALIDATE_SUCCESS: &str = "prompt_gen.validate_success";
+    pub const PROMPT_GEN_VALIDATE_FAILED: &str = "prompt_gen.validate_failed";
 }
 
 #[cfg(test)]

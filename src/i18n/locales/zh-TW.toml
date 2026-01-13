@@ -288,3 +288,7 @@
 "prompt_gen.status_not_started" = "未開始"
 "prompt_gen.select_cli" = "選擇要使用的 AI CLI"
 "prompt_gen.using_cli" = "使用 {cli}..."
+"prompt_gen.action_validate" = "驗證規格檔格式"
+"prompt_gen.validating" = "正在驗證規格檔..."
+"prompt_gen.validate_success" = "規格檔有效（{count} 個功能）"
+"prompt_gen.validate_failed" = "驗證失敗：{error}"
