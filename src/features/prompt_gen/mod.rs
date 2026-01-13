@@ -40,6 +40,7 @@ pub fn run() {
             i18n::t(keys::PROMPT_GEN_ACTION_GENERATE),
             i18n::t(keys::PROMPT_GEN_ACTION_RUN),
             i18n::t(keys::PROMPT_GEN_ACTION_STATUS),
+            i18n::t(keys::PROMPT_GEN_ACTION_VALIDATE),
             i18n::t(keys::MENU_EXIT),
         ];
 
@@ -73,6 +74,11 @@ pub fn run() {
                 }
             }
             3 => {
+                if let Err(e) = cmd_validate(&console) {
+                    console.error(&format!("{}", e));
+                }
+            }
+            4 => {
                 return;
             }
             _ => unreachable!(),
@@ -87,6 +93,7 @@ fn cmd_generate(console: &Console, prompts: &Prompts) -> Result<()> {
     // 取得規格檔案路徑
     let spec_file: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt(i18n::t(keys::PROMPT_GEN_INPUT_SPEC_FILE))
+        .default("features.yaml".to_string())
         .interact_text()
         .context("Failed to read input")?;
 
@@ -371,6 +378,52 @@ fn cmd_status(console: &Console, _prompts: &Prompts) -> Result<()> {
         i18n::t(keys::PROMPT_GEN_STATUS_NOT_STARTED)
     );
     println!();
+
+    Ok(())
+}
+
+/// 驗證命令
+fn cmd_validate(console: &Console) -> Result<()> {
+    // 取得規格檔案路徑
+    let spec_file: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt(i18n::t(keys::PROMPT_GEN_INPUT_SPEC_FILE))
+        .default("features.yaml".to_string())
+        .interact_text()
+        .context("Failed to read input")?;
+
+    let spec_path = PathBuf::from(&spec_file);
+    if !spec_path.exists() {
+        console.error(&crate::tr!(
+            keys::PROMPT_GEN_FILE_NOT_FOUND,
+            path = spec_file
+        ));
+        return Ok(());
+    }
+
+    console.info(i18n::t(keys::PROMPT_GEN_VALIDATING));
+
+    // 載入並驗證規格
+    match SpecLoader::load_from_path(&spec_path) {
+        Ok(spec) => {
+            console.success(&crate::tr!(
+                keys::PROMPT_GEN_VALIDATE_SUCCESS,
+                count = spec.features.len()
+            ));
+
+            // 顯示功能清單
+            for (idx, feature) in spec.features.iter().enumerate() {
+                println!(
+                    "  {:2}. {} — {}",
+                    idx + 1,
+                    feature.feature_key.as_str(),
+                    feature.feature_name.as_str()
+                );
+            }
+        }
+        Err(e) => {
+            console.error(&crate::tr!(keys::PROMPT_GEN_VALIDATE_FAILED, error = e));
+        }
+    }
 
     Ok(())
 }

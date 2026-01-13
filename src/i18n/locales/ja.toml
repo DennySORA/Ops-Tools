@@ -288,3 +288,7 @@
 "prompt_gen.status_not_started" = "未開始"
 "prompt_gen.select_cli" = "使用する AI CLI を選択"
 "prompt_gen.using_cli" = "{cli} を使用中..."
+"prompt_gen.action_validate" = "仕様ファイル形式を検証"
+"prompt_gen.validating" = "仕様ファイルを検証中..."
+"prompt_gen.validate_success" = "仕様ファイルは有効です（{count} 個の機能）"
+"prompt_gen.validate_failed" = "検証失敗：{error}"

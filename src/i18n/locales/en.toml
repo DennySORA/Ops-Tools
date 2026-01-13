@@ -288,3 +288,7 @@
 "prompt_gen.status_not_started" = "Not Started"
 "prompt_gen.select_cli" = "Select AI CLI to use"
 "prompt_gen.using_cli" = "Using {cli}..."
+"prompt_gen.action_validate" = "Validate spec file format"
+"prompt_gen.validating" = "Validating spec file..."
+"prompt_gen.validate_success" = "Spec file is valid ({count} features)"
+"prompt_gen.validate_failed" = "Validation failed: {error}"
