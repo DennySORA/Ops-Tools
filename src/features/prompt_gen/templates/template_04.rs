@@ -5,14 +5,19 @@
 /// 佔位符：
 /// - `{FEATURE_KEY}`: 功能鍵值
 /// - `{STATE_REQUIREMENT}`: 狀態需求區塊
+/// - `{PROJECT_TYPE}`: 專案類型（frontend/backend/cli/library/infra）
+/// - `{E2E_TESTING_INSTRUCTIONS}`: 根據專案類型的測試說明
 pub const TEMPLATE_04_FIXED: &str = r#"# [Fixed] Verification Environment E2E Regression (Post-Refactor, Until Passing)
 
 You are continuing the same feature context.
-Goal: for the refactored version, run full regression E2E in the verification environment using a real browser until `ACCEPTANCE.md` is fully satisfied.
+Goal: for the refactored version, run full regression E2E in the verification environment until `ACCEPTANCE.md` is fully satisfied.
+
+## Project Type
+- Type: {PROJECT_TYPE}
 
 ## Tooling Requirements (Must Follow)
 - Use structured planning to identify regression scope and risks.
-- Use a real browser and developer tools for comprehensive E2E (including console/network/error checks).
+- {E2E_TESTING_INSTRUCTIONS}
 
 {STATE_REQUIREMENT}
 
@@ -25,7 +30,7 @@ Goal: for the refactored version, run full regression E2E in the verification en
 
 ## Execution Steps (Must Follow)
 1) Structured planning: list regression areas and decide order
-2) Developer tools: run the full E2E plan and check console/network/perf/layout/interaction
+2) Run the full E2E plan using appropriate tools for {PROJECT_TYPE} projects
 3) Fix loop on failure: minimal fix -> test -> deploy to the verification environment -> re-validate
 4) When all pass:
    - Update `E2E_RUN_REPORT.md`
