@@ -1,4 +1,8 @@
+mod config_content;
+mod installers;
 mod operations;
+mod shell;
+mod types;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
