@@ -58,13 +58,15 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
 Cloudflare MCP は OAuth の対話ログインを使用するため、CLI に表示される URL で認可を完了してください。WSL の場合は `wslview <URL>` を使用できます。
 
-### 5. Git シークレットスキャナー
+### 5. プロジェクトセキュリティスキャナー
 現在の Git リポジトリを厳格モードで素早くスキャンします：
 - `gitleaks`（Git 履歴 + ワーキングツリー）
 - `trufflehog`（Git 履歴 + ワーキングツリー）
 - `git-secrets`（Git 履歴 + ワーキングツリー）
+- `trivy`（ワーキングツリーの SCA + Misconfig）
+- `semgrep`（ワーキングツリーの SAST）
 
-自動インストールは一般的なパッケージマネージャーと `go install` を優先し、見つからない場合は GitHub Release から取得します（`curl`/`wget` と `tar`/`unzip` が必要です）。
+自動インストールは一般的なパッケージマネージャー、Trivy のインストールスクリプト、Semgrep の pipx/venv を優先し、見つからない場合は GitHub Release から取得します（`curl`/`wget` と `tar`/`unzip` が必要です）。
 ワーキングツリーのスキャンは Git で追跡済みかつ `.gitignore` で除外されていないファイルのみ対象で、各スキャンの生ログを出力します。
 
 ### 6. プロンプトジェネレーター（LLM）
@@ -127,7 +129,7 @@ cargo run
 2. AI コードアシスタントツールのアップグレード
 3. システムパッケージのインストール/更新（macOS/Linux）
 4. Rust プロジェクトとツールチェーンのアップグレード
-5. Git シークレットスキャン (Gitleaks/TruffleHog/Git-Secrets)
+5. セキュリティスキャン (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
 6. MCP ツールの管理 (Claude/Codex/Gemini)
 7. プロンプトジェネレーター（LLM 4 ステップワークフロー）
 8. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）

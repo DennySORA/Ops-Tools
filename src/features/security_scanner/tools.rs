@@ -1,6 +1,11 @@
 use crate::i18n::{self, keys};
 use std::path::{Path, PathBuf};
 
+const TRIVY_INSTALL_CURL_SCRIPT: &str = r#"set -e; command -v curl >/dev/null 2>&1; mkdir -p "$HOME/.local/bin"; tmp="${TMPDIR:-/tmp}/ops-tools-trivy-install.$$"; curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh -o "$tmp"; sh "$tmp" -b "$HOME/.local/bin"; rm -f "$tmp""#;
+const TRIVY_INSTALL_WGET_SCRIPT: &str = r#"set -e; command -v wget >/dev/null 2>&1; mkdir -p "$HOME/.local/bin"; tmp="${TMPDIR:-/tmp}/ops-tools-trivy-install.$$"; wget -qO "$tmp" https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh; sh "$tmp" -b "$HOME/.local/bin"; rm -f "$tmp""#;
+const SEMGREP_PIPX_APT_SCRIPT: &str = r#"set -e; command -v apt-get >/dev/null 2>&1; if command -v sudo >/dev/null 2>&1; then sudo apt-get install -y pipx; else apt-get install -y pipx; fi; mkdir -p "$HOME/.local/bin"; pipx install semgrep"#;
+const SEMGREP_VENV_SCRIPT: &str = r#"set -e; command -v python3 >/dev/null 2>&1; venv_dir="$HOME/.local/share/ops-tools/semgrep-venv"; python3 -m venv "$venv_dir"; "$venv_dir/bin/pip" install semgrep; mkdir -p "$HOME/.local/bin"; ln -sf "$venv_dir/bin/semgrep" "$HOME/.local/bin/semgrep""#;
+
 #[derive(Clone, Copy, Debug)]
 pub enum ScanTool {
     Gitleaks,
@@ -226,7 +231,20 @@ impl ScanTool {
             ],
             ScanTool::Trivy => vec![
                 InstallStrategy::new("brew", "brew", &["install", "trivy"], false),
+                InstallStrategy::new(
+                    "install.sh (curl)",
+                    "sh",
+                    &["-c", TRIVY_INSTALL_CURL_SCRIPT],
+                    false,
+                ),
+                InstallStrategy::new(
+                    "install.sh (wget)",
+                    "sh",
+                    &["-c", TRIVY_INSTALL_WGET_SCRIPT],
+                    false,
+                ),
                 InstallStrategy::new("apt-get", "apt-get", &["install", "-y", "trivy"], true),
+                InstallStrategy::new("dnf", "dnf", &["install", "-y", "trivy"], true),
                 InstallStrategy::new("pacman", "pacman", &["-S", "--noconfirm", "trivy"], true),
                 InstallStrategy::new(
                     "go install",
@@ -237,6 +255,19 @@ impl ScanTool {
             ],
             ScanTool::Semgrep => vec![
                 InstallStrategy::new("brew", "brew", &["install", "semgrep"], false),
+                InstallStrategy::new("pipx", "pipx", &["install", "semgrep"], false),
+                InstallStrategy::new(
+                    "apt-get pipx",
+                    "sh",
+                    &["-c", SEMGREP_PIPX_APT_SCRIPT],
+                    false,
+                ),
+                InstallStrategy::new(
+                    "python venv",
+                    "sh",
+                    &["-c", SEMGREP_VENV_SCRIPT],
+                    false,
+                ),
                 InstallStrategy::new("pip", "pip", &["install", "semgrep"], false),
                 InstallStrategy::new("pip3", "pip3", &["install", "semgrep"], false),
             ],

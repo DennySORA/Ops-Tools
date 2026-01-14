@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Write Context7 HTTP headers into Codex config when a build-time API key is available.
 - Write GitHub MCP env values into Codex config when build-time credentials are available.
 - Added GitHub release fallback installs for Gitleaks and TruffleHog when package managers are missing packages.
+- Improved security scanner auto-install for Trivy and Semgrep with install script, pipx, and venv fallbacks.
 
 ## [0.1.0] - 2025-12-23
 

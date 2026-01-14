@@ -58,13 +58,15 @@
 对于 Codex MCP 安装，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的编译期值会写入 `~/.codex/config.toml`，运行时不需环境变量。
 Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 完成授权；WSL 可用 `wslview <URL>` 打开。
 
-### 5. Git 机密扫描
+### 5. 项目安全扫描
 快速安装并以严格模式扫描当前 Git 项目：
 - `gitleaks`（Git 历史 + 工作树）
 - `trufflehog`（Git 历史 + 工作树）
 - `git-secrets`（Git 历史 + 工作树）
+- `trivy`（工作树 SCA + Misconfig）
+- `semgrep`（工作树 SAST）
 
-自动安装会先尝试常见包管理器与 `go install`，若找不到包则改用 GitHub Release（需要 `curl`/`wget` 和 `tar`/`unzip`）。
+自动安装会先尝试常见包管理器、Trivy 安装脚本，以及 Semgrep 的 pipx/venv，若找不到包则改用 GitHub Release（需要 `curl`/`wget` 和 `tar`/`unzip`）。
 工作树扫描仅包含 Git 已追踪且未被 `.gitignore` 排除的文件，并会输出每次扫描的原始 log。
 
 ### 6. 提示生成器（LLM）
@@ -127,7 +129,7 @@ cargo run
 2. 升级 AI 代码助手工具
 3. 安装/更新系统软件包（macOS/Linux）
 4. 升级 Rust 项目与工具链
-5. Git 机密扫描（Gitleaks/TruffleHog/Git-Secrets）
+5. 项目安全扫描（Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep）
 6. 管理 MCP 工具（Claude/Codex/Gemini）
 7. 提示生成器（LLM 4 步骤工作流程）
 8. 语言设置（英文/繁体中文/简体中文/日文）

@@ -65,13 +65,15 @@ For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSON
 Cloudflare MCP installs use OAuth in interactive mode (stdio inherited) so URL prompts and auth codes work. On WSL, open the auth URL with `wslview` or run the CLI on Windows if the localhost callback cannot reach WSL.
 Cloudflare's MCP server catalog: https://developers.cloudflare.com/agents/model-context-protocol/mcp-servers-for-cloudflare/
 
-### 5. Git Secret Scanner
+### 5. Project Security Scanner
 Quickly installs and runs strict scans against the current Git repo:
 - `gitleaks` (history + working tree)
 - `trufflehog` (history + working tree)
 - `git-secrets` (history + working tree)
+- `trivy` (SCA + misconfig on working tree)
+- `semgrep` (SAST on working tree)
 
-Auto-install tries common package managers and `go install`, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
+Auto-install tries common package managers, Trivy's install script, and pipx/venv for Semgrep, then falls back to GitHub releases (requires `curl`/`wget` and `tar`/`unzip`).
 Working tree scans only include Git-tracked files and skip anything ignored by `.gitignore`, with raw logs printed per scan.
 
 ### 6. LLM Prompt Generator
@@ -135,7 +137,7 @@ Select a function from the menu:
 2. Upgrade AI code assistant tools
 3. Install/Update system packages (macOS/Linux)
 4. Upgrade Rust projects and toolchain
-5. Git secret scan (Gitleaks/TruffleHog/Git-Secrets)
+5. Security scan (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
 6. Manage MCP tools (Claude/Codex/Gemini)
 7. LLM Prompt Generator (4-step workflow)
 8. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
