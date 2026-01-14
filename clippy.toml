@@ -1,0 +1,20 @@
+# Clippy configuration for Ops-Tools
+# See: https://doc.rust-lang.org/clippy/configuration.html
+
+# Maximum cognitive complexity before triggering warning
+cognitive-complexity-threshold = 25
+
+# Maximum lines in a function body
+too-many-lines-threshold = 100
+
+# Maximum number of arguments a function can have
+too-many-arguments-threshold = 7
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Disallowed methods (add as needed)
+# disallowed-methods = []
+
+# Allowed wildcard imports
+allowed-wildcard-imports = ["crate::i18n::keys"]
