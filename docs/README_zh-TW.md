@@ -72,10 +72,10 @@ Cloudflare MCP 會透過 OAuth 互動登入，安裝時請依 CLI 顯示的 URL 
 ### 6. 提示生成器（LLM）
 為 LLM 工作流程生成並執行 4 步驟提示：
 - **生成**：從 YAML/JSON 規格檔案建立提示檔案
-- **執行**：透過 Claude CLI 交互式或自動執行提示
+- **執行**：透過 Claude/Codex/Gemini CLI 交互式執行提示（可選全部或指定功能）
 - **狀態**：查看功能執行進度與狀態
-
-[查看功能規格說明書生成提示詞模板](PROMPT_TEMPLATE.md)
+- **驗證**：驗證規格檔格式
+- **YAML Prompt**：生成 YAML 規格 Prompt（內建模板）
 
 4 步驟工作流程：
 1. P1：需求、實作與部署

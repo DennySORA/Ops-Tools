@@ -79,11 +79,11 @@ Working tree scans only include Git-tracked files and skip anything ignored by `
 ### 6. LLM Prompt Generator
 Generate and execute 4-step prompts for LLM workflows:
 - **Generate**: Create prompt files from YAML/JSON specification files
-- **Run**: Interactive or automated prompt execution with Claude CLI
+- **Run**: Interactive runner for Claude/Codex/Gemini CLI (run all or selected features)
 - **Status**: View feature execution progress and status
+- **Validate**: Validate spec file format
+- **YAML Prompt**: Generate a YAML spec prompt (built-in template)
 - Spec field `verification_url` may be empty to indicate no validation URL
-
-[View the Prompt Template for Feature Specifications](docs/PROMPT_TEMPLATE.md)
 
 The 4-step workflow:
 1. P1: Requirements, implementation, and deployment
