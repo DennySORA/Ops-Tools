@@ -5,14 +5,19 @@
 /// 佔位符：
 /// - `{FEATURE_KEY}`: 功能鍵值
 /// - `{STATE_REQUIREMENT}`: 狀態需求區塊
+/// - `{PROJECT_TYPE}`: 專案類型（frontend/backend/cli/library/infra）
+/// - `{E2E_TESTING_INSTRUCTIONS}`: 根據專案類型的測試說明
 pub const TEMPLATE_02_FIXED: &str = r#"# [Fixed] Verification Environment E2E Validation (Until Passing)
 
 You are continuing the same feature context. Use the previous prompt outputs and codebase artifacts to run E2E.
-Goal: validate the feature end-to-end in the verification environment using a real browser. If it fails, fix, redeploy, and retest until it passes.
+Goal: validate the feature end-to-end in the verification environment. If it fails, fix, redeploy, and retest until it passes.
+
+## Project Type
+- Type: {PROJECT_TYPE}
 
 ## Tooling Requirements (Must Follow)
 - Use structured planning to schedule E2E execution and remediation.
-- Use a real browser and developer tools for comprehensive end-to-end testing (including console/network/error checks).
+- {E2E_TESTING_INSTRUCTIONS}
 
 {STATE_REQUIREMENT}
 
@@ -23,7 +28,7 @@ Goal: validate the feature end-to-end in the verification environment using a re
    - `features/{FEATURE_KEY}/RUNBOOK_VERIFICATION.md`
    - `features/{FEATURE_KEY}/STATE.md`
 
-2) Execute tests in the verification environment with a real browser (step-by-step UI/interaction/console/network checks)
+2) Execute tests in the verification environment using appropriate tools for {PROJECT_TYPE} projects
 3) If failing: fix -> test -> deploy to the verification environment -> re-validate (until passing)
 4) When passing:
    - Update `E2E_RUN_REPORT.md`

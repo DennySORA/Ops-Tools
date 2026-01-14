@@ -2,7 +2,7 @@
 //!
 //! 負責將 FeatureSpec 渲染為提示檔案
 
-use super::models::{FeaturePrompts, FeatureSpec, TextContent};
+use super::models::{FeaturePrompts, FeatureSpec, ProjectType, TextContent};
 use super::templates::{
     FRONTEND_SECTION, STATE_REQUIREMENT_BLOCK, TEMPLATE_01, TEMPLATE_02_FIXED, TEMPLATE_03,
     TEMPLATE_04_FIXED,
@@ -32,6 +32,9 @@ impl PromptRenderer {
     pub fn render(spec: &FeatureSpec) -> FeaturePrompts {
         let mut prompts = FeaturePrompts::new(spec.feature_key.clone());
 
+        // 取得有效的專案類型
+        let project_type = spec.effective_project_type();
+
         // 準備共用區塊
         let context_block = spec.context.to_block(false);
         let requirements_block = spec.requirements.to_block(false);
@@ -40,7 +43,7 @@ impl PromptRenderer {
             .int_credentials
             .to_block(false, "-（不需要或由環境變數/SSO/既有機制提供）");
         let state_requirement = Self::render_state_requirement(spec.feature_key.as_str());
-        let frontend_section_block = if spec.is_frontend {
+        let frontend_section_block = if project_type.needs_browser() {
             FRONTEND_SECTION.replace("{IS_FRONTEND}", "true")
         } else {
             String::new()
@@ -53,27 +56,29 @@ impl PromptRenderer {
             &context_block,
             &requirements_block,
             &acceptance_block,
-            spec.verification_url.as_str(),
+            spec.verification_url_str(),
             &creds_block,
             &state_requirement,
         );
         prompts.add_prompt(filenames::PROMPT_01, prompt_01);
 
         // 渲染 Prompt #2
-        let prompt_02 = Self::render_template_02(spec.feature_key.as_str(), &state_requirement);
+        let prompt_02 =
+            Self::render_template_02(spec.feature_key.as_str(), &state_requirement, project_type);
         prompts.add_prompt(filenames::PROMPT_02, prompt_02);
 
         // 渲染 Prompt #3
         let prompt_03 = Self::render_template_03(
             spec.feature_key.as_str(),
-            spec.is_frontend,
+            project_type.needs_browser(),
             &frontend_section_block,
             &state_requirement,
         );
         prompts.add_prompt(filenames::PROMPT_03, prompt_03);
 
         // 渲染 Prompt #4
-        let prompt_04 = Self::render_template_04(spec.feature_key.as_str(), &state_requirement);
+        let prompt_04 =
+            Self::render_template_04(spec.feature_key.as_str(), &state_requirement, project_type);
         prompts.add_prompt(filenames::PROMPT_04, prompt_04);
 
         prompts
@@ -116,10 +121,19 @@ impl PromptRenderer {
     }
 
     /// 渲染模板 02
-    fn render_template_02(feature_key: &str, state_requirement: &str) -> String {
+    fn render_template_02(
+        feature_key: &str,
+        state_requirement: &str,
+        project_type: ProjectType,
+    ) -> String {
         TEMPLATE_02_FIXED
             .replace("{FEATURE_KEY}", feature_key)
             .replace("{STATE_REQUIREMENT}", state_requirement)
+            .replace("{PROJECT_TYPE}", &project_type.to_string())
+            .replace(
+                "{E2E_TESTING_INSTRUCTIONS}",
+                project_type.e2e_instructions(),
+            )
     }
 
     /// 渲染模板 03
@@ -137,10 +151,19 @@ impl PromptRenderer {
     }
 
     /// 渲染模板 04
-    fn render_template_04(feature_key: &str, state_requirement: &str) -> String {
+    fn render_template_04(
+        feature_key: &str,
+        state_requirement: &str,
+        project_type: ProjectType,
+    ) -> String {
         TEMPLATE_04_FIXED
             .replace("{FEATURE_KEY}", feature_key)
             .replace("{STATE_REQUIREMENT}", state_requirement)
+            .replace("{PROJECT_TYPE}", &project_type.to_string())
+            .replace(
+                "{E2E_TESTING_INSTRUCTIONS}",
+                project_type.e2e_instructions(),
+            )
     }
 }
 
@@ -161,13 +184,15 @@ pub fn render_all(specs: &[FeatureSpec]) -> Vec<FeaturePrompts> {
 mod tests {
     use super::*;
     use crate::features::prompt_gen::models::{
-        FeatureKey, FeatureName, OptionalTextContent, VerificationUrl,
+        FeatureKey, FeatureName, FeatureOptions, OptionalTextContent, ProjectType, VerificationUrl,
     };
 
     fn create_test_spec() -> FeatureSpec {
         FeatureSpec {
             feature_key: FeatureKey::new("test-feature").unwrap(),
             feature_name: FeatureName::new("Test Feature").unwrap(),
+            project_type: ProjectType::Frontend,
+            options: FeatureOptions::from_project_type(ProjectType::Frontend),
             context: TextContent::Single("Test context".to_string()),
             requirements: TextContent::Multiple(vec![
                 "Requirement 1".to_string(),
@@ -177,7 +202,7 @@ mod tests {
                 "Criteria 1".to_string(),
                 "Criteria 2".to_string(),
             ]),
-            verification_url: VerificationUrl::new("https://example.com").unwrap(),
+            verification_url: Some(VerificationUrl::new("https://example.com").unwrap()),
             int_credentials: OptionalTextContent::None,
             is_frontend: false,
         }
@@ -212,7 +237,7 @@ mod tests {
     #[test]
     fn test_render_frontend_section() {
         let mut spec = create_test_spec();
-        spec.is_frontend = true;
+        spec.project_type = ProjectType::Frontend;
 
         let prompts = PromptRenderer::render(&spec);
         let prompt_03 = &prompts.prompts[2].content;
@@ -222,10 +247,64 @@ mod tests {
 
     #[test]
     fn test_render_non_frontend_no_section() {
-        let spec = create_test_spec();
+        let mut spec = create_test_spec();
+        spec.project_type = ProjectType::Backend;
+
         let prompts = PromptRenderer::render(&spec);
         let prompt_03 = &prompts.prompts[2].content;
 
         assert!(!prompt_03.contains("visual direction"));
+    }
+
+    #[test]
+    fn test_render_backend_project_type() {
+        let mut spec = create_test_spec();
+        spec.project_type = ProjectType::Backend;
+
+        let prompts = PromptRenderer::render(&spec);
+        let prompt_02 = &prompts.prompts[1].content;
+        let prompt_04 = &prompts.prompts[3].content;
+
+        assert!(prompt_02.contains("Type: backend"));
+        assert!(prompt_02.contains("HTTP client tools"));
+        assert!(prompt_04.contains("Type: backend"));
+    }
+
+    #[test]
+    fn test_render_cli_project_type() {
+        let mut spec = create_test_spec();
+        spec.project_type = ProjectType::Cli;
+
+        let prompts = PromptRenderer::render(&spec);
+        let prompt_02 = &prompts.prompts[1].content;
+
+        assert!(prompt_02.contains("Type: cli"));
+        assert!(prompt_02.contains("CLI commands"));
+    }
+
+    #[test]
+    fn test_render_library_project_type() {
+        let mut spec = create_test_spec();
+        spec.project_type = ProjectType::Library;
+
+        let prompts = PromptRenderer::render(&spec);
+        let prompt_02 = &prompts.prompts[1].content;
+
+        assert!(prompt_02.contains("Type: library"));
+        assert!(prompt_02.contains("test suite"));
+    }
+
+    #[test]
+    fn test_is_frontend_backward_compatibility() {
+        let mut spec = create_test_spec();
+        spec.project_type = ProjectType::Backend;
+        spec.is_frontend = true; // 向後相容：這應該覆蓋 project_type
+
+        let prompts = PromptRenderer::render(&spec);
+        let prompt_02 = &prompts.prompts[1].content;
+
+        // 應該使用 Frontend 的設定
+        assert!(prompt_02.contains("Type: frontend"));
+        assert!(prompt_02.contains("real browser"));
     }
 }

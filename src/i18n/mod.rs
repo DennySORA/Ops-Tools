@@ -450,6 +450,17 @@ pub mod keys {
     pub const PROMPT_GEN_VALIDATING: &str = "prompt_gen.validating";
     pub const PROMPT_GEN_VALIDATE_SUCCESS: &str = "prompt_gen.validate_success";
     pub const PROMPT_GEN_VALIDATE_FAILED: &str = "prompt_gen.validate_failed";
+
+    // YAML Prompt 生成
+    pub const PROMPT_GEN_ACTION_YAML_PROMPT: &str = "prompt_gen.action_yaml_prompt";
+    pub const PROMPT_GEN_SELECT_PROJECT_TYPE: &str = "prompt_gen.select_project_type";
+    pub const PROMPT_GEN_HAS_VERIFICATION_ENV: &str = "prompt_gen.has_verification_env";
+    pub const PROMPT_GEN_NEEDS_DEPLOYMENT: &str = "prompt_gen.needs_deployment";
+    pub const PROMPT_GEN_CUSTOM_VALIDATION: &str = "prompt_gen.custom_validation";
+    pub const PROMPT_GEN_YAML_PROMPT_GENERATED: &str = "prompt_gen.yaml_prompt_generated";
+    #[allow(dead_code)] // 預留給未來剪貼簿功能
+    pub const PROMPT_GEN_YAML_PROMPT_COPIED: &str = "prompt_gen.yaml_prompt_copied";
+    pub const PROMPT_GEN_INPUT_OUTPUT_FILE: &str = "prompt_gen.input_output_file";
 }
 
 #[cfg(test)]

@@ -24,8 +24,10 @@ use std::path::PathBuf;
 use executor::{CliType, ExecutorConfig};
 use interactive::InteractiveRunner;
 use loader::SpecLoader;
+use models::ProjectType;
 use progress::{FeatureInfo, Step};
 use renderer::render_all;
+use templates::yaml_gen_prompt::generate_yaml_prompt;
 use writer::PromptWriter;
 
 /// 執行 Prompt Generator 功能
@@ -41,6 +43,7 @@ pub fn run() {
             i18n::t(keys::PROMPT_GEN_ACTION_RUN),
             i18n::t(keys::PROMPT_GEN_ACTION_STATUS),
             i18n::t(keys::PROMPT_GEN_ACTION_VALIDATE),
+            i18n::t(keys::PROMPT_GEN_ACTION_YAML_PROMPT),
             i18n::t(keys::MENU_EXIT),
         ];
 
@@ -79,6 +82,11 @@ pub fn run() {
                 }
             }
             4 => {
+                if let Err(e) = cmd_yaml_prompt(&console, &prompts) {
+                    console.error(&format!("{}", e));
+                }
+            }
+            5 => {
                 return;
             }
             _ => unreachable!(),
@@ -229,7 +237,7 @@ fn cmd_run(console: &Console) -> Result<()> {
         cli_type,
         skip_permissions: true,
         output_format: executor::OutputFormat::StreamJson,
-        auto_continue: false,
+        auto_continue: true,
     };
 
     // 建立交互式執行器
@@ -423,6 +431,95 @@ fn cmd_validate(console: &Console) -> Result<()> {
         Err(e) => {
             console.error(&crate::tr!(keys::PROMPT_GEN_VALIDATE_FAILED, error = e));
         }
+    }
+
+    Ok(())
+}
+
+/// YAML Prompt 生成命令
+fn cmd_yaml_prompt(console: &Console, prompts: &Prompts) -> Result<()> {
+    // 選擇專案類型
+    let project_type_options: Vec<String> = ProjectType::ALL
+        .iter()
+        .map(|pt| format!("{} - {}", pt, pt.role_description()))
+        .collect();
+
+    let project_type_selection = match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(i18n::t(keys::PROMPT_GEN_SELECT_PROJECT_TYPE))
+        .items(&project_type_options)
+        .default(0)
+        .interact_opt()
+    {
+        Ok(Some(sel)) => sel,
+        Ok(None) | Err(_) => {
+            console.warning(i18n::t(keys::PROMPT_GEN_CANCELLED));
+            return Ok(());
+        }
+    };
+
+    let project_type = ProjectType::ALL[project_type_selection];
+
+    // 是否有遠端驗證環境
+    let has_verification_env = prompts.confirm_with_options(
+        i18n::t(keys::PROMPT_GEN_HAS_VERIFICATION_ENV),
+        project_type.typically_needs_verification_env(),
+    );
+
+    // 是否需要部署
+    let needs_deployment = prompts.confirm_with_options(
+        i18n::t(keys::PROMPT_GEN_NEEDS_DEPLOYMENT),
+        project_type.typically_needs_deployment(),
+    );
+
+    // 自定義驗證方式
+    let custom_validation: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt(i18n::t(keys::PROMPT_GEN_CUSTOM_VALIDATION))
+        .allow_empty(true)
+        .interact_text()
+        .context("Failed to read input")?;
+
+    let custom_validation_opt = if custom_validation.trim().is_empty() {
+        None
+    } else {
+        Some(custom_validation.as_str())
+    };
+
+    // 生成 YAML prompt
+    let prompt = generate_yaml_prompt(
+        project_type,
+        has_verification_env,
+        needs_deployment,
+        custom_validation_opt,
+    );
+
+    // 取得輸出檔案路徑
+    let output_file: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt(i18n::t(keys::PROMPT_GEN_INPUT_OUTPUT_FILE))
+        .allow_empty(true)
+        .interact_text()
+        .context("Failed to read input")?;
+
+    if output_file.trim().is_empty() {
+        // 直接顯示
+        println!();
+        println!("{}", style("─".repeat(80)).dim());
+        println!("{}", prompt);
+        println!("{}", style("─".repeat(80)).dim());
+        println!();
+        console.success(i18n::t(keys::PROMPT_GEN_YAML_PROMPT_GENERATED));
+    } else {
+        // 寫入檔案
+        let output_path = if PathBuf::from(&output_file).is_absolute() {
+            PathBuf::from(&output_file)
+        } else {
+            std::env::current_dir()?.join(&output_file)
+        };
+
+        std::fs::write(&output_path, &prompt)
+            .with_context(|| format!("Failed to write file: {}", output_path.display()))?;
+
+        console.success(i18n::t(keys::PROMPT_GEN_YAML_PROMPT_GENERATED));
+        console.info(&format!("  {}", output_path.display()));
     }
 
     Ok(())
