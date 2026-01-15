@@ -205,6 +205,29 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             },
             requires_interactive: false,
         },
+        McpTool {
+            name: "arxiv-mcp-server",
+            display_name_key: keys::MCP_TOOL_ARXIV,
+            install_args: {
+                let storage_path = ENV_CONFIG
+                    .arxiv_storage_path
+                    .unwrap_or("~/.arxiv-papers");
+                let mut args = vec!["arxiv-mcp-server".to_string()];
+                if let Some(sep) = separator {
+                    args.push(sep.to_string());
+                }
+                args.extend(vec![
+                    "uv".to_string(),
+                    "tool".to_string(),
+                    "run".to_string(),
+                    "arxiv-mcp-server".to_string(),
+                    "--storage-path".to_string(),
+                    storage_path.to_string(),
+                ]);
+                args
+            },
+            requires_interactive: false,
+        },
     ];
 
     // 只有在環境變數存在時才加入特定工具

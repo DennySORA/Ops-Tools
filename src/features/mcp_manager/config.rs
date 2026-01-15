@@ -4,6 +4,7 @@ pub struct EnvConfig {
     pub github_host: Option<&'static str>,
     pub context7_api_key: Option<&'static str>,
     pub enable_cloudflare_mcp_raw: Option<&'static str>,
+    pub arxiv_storage_path: Option<&'static str>,
 }
 
 impl EnvConfig {
@@ -16,6 +17,7 @@ impl EnvConfig {
                 option_env!("enable_cloudflare_mcp"),
                 option_env!("ENABLE_CLOUDFLARE_MCP"),
             ),
+            arxiv_storage_path: option_env!("ARXIV_STORAGE_PATH"),
         }
     }
 
