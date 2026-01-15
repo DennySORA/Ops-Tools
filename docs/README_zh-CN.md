@@ -46,6 +46,8 @@
 | `context7` | 文档查询 |
 | `chrome-devtools` | 浏览器开发工具 |
 | `kubernetes` | K8s 管理 |
+| `tailwindcss` | Tailwind CSS（CSS 框架）|
+| `arxiv-mcp-server` | arXiv 学术论文搜索与下载 |
 | `github` | GitHub 整合 |
 | `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability 等） |
 
@@ -54,6 +56,7 @@
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（设为 `true` 启用 Cloudflare MCP）
+- `ARXIV_STORAGE_PATH`（arXiv 论文存储路径，默认 `~/.arxiv-papers`）
 
 对于 Codex MCP 安装，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的编译期值会写入 `~/.codex/config.toml`，运行时不需环境变量。
 Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 完成授权；WSL 可用 `wslview <URL>` 打开。

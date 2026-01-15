@@ -46,6 +46,8 @@
 | `context7` | 文檔查詢 |
 | `chrome-devtools` | 瀏覽器開發工具 |
 | `kubernetes` | K8s 管理 |
+| `tailwindcss` | Tailwind CSS（CSS 框架）|
+| `arxiv-mcp-server` | arXiv 學術論文搜尋與下載 |
 | `github` | GitHub 整合 |
 | `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability 等） |
 
@@ -54,6 +56,7 @@
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（設為 `true` 啟用 Cloudflare MCP）
+- `ARXIV_STORAGE_PATH`（arXiv 論文儲存路徑，預設 `~/.arxiv-papers`）
 
 對 Codex MCP 安裝，`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` 的編譯期值會寫入 `~/.codex/config.toml`，執行時不需環境變數。
 Cloudflare MCP 會透過 OAuth 互動登入，安裝時請依 CLI 顯示的 URL 完成授權；WSL 可用 `wslview <URL>` 開啟。

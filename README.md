@@ -46,6 +46,8 @@ Manages MCP servers for Claude, Codex, and Gemini CLI:
 | `context7` | Documentation Query |
 | `chrome-devtools` | Chrome DevTools |
 | `kubernetes` | K8s Management |
+| `tailwindcss` | Tailwind CSS (Utility-first CSS) |
+| `arxiv-mcp-server` | arXiv Academic Paper Search & Download |
 | `github` | GitHub Integration |
 | `cloudflare-*` | Cloudflare MCP Servers (Docs/Workers/Observability/etc.) |
 
@@ -60,6 +62,7 @@ Available MCP options:
 - **Context7 MCP**: set `CONTEXT7_API_KEY` to enable the `context7` tool.
 - **GitHub MCP**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required) and `GITHUB_HOST` (optional, default `github.com`) to enable the `github` tool.
 - **Cloudflare MCP**: set `enable_cloudflare_mcp=true` to enable `cloudflare-*` tools (OAuth during install).
+- **arXiv MCP**: set `ARXIV_STORAGE_PATH` (optional, default `~/.arxiv-papers`) to configure paper storage location.
 
 For Codex MCP installs, build-time values for `CONTEXT7_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, and `GITHUB_HOST` are written into `~/.codex/config.toml`, so runtime env vars aren't required.
 Cloudflare MCP installs use OAuth in interactive mode (stdio inherited) so URL prompts and auth codes work. On WSL, open the auth URL with `wslview` or run the CLI on Windows if the localhost callback cannot reach WSL.

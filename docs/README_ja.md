@@ -46,6 +46,8 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 | `context7` | ドキュメント検索 |
 | `chrome-devtools` | Chrome 開発者ツール |
 | `kubernetes` | K8s 管理 |
+| `tailwindcss` | Tailwind CSS（CSS フレームワーク）|
+| `arxiv-mcp-server` | arXiv 学術論文検索・ダウンロード |
 | `github` | GitHub 統合 |
 | `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability など） |
 
@@ -54,6 +56,7 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 - `GITHUB_HOST`
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（`true` で Cloudflare MCP を有効化）
+- `ARXIV_STORAGE_PATH`（arXiv 論文の保存パス、デフォルトは `~/.arxiv-papers`）
 
 Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
 Cloudflare MCP は OAuth の対話ログインを使用するため、CLI に表示される URL で認可を完了してください。WSL の場合は `wslview <URL>` を使用できます。
