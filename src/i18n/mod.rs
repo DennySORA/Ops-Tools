@@ -389,6 +389,7 @@ pub mod keys {
     pub const MCP_TOOL_CLOUDFLARE_CASB: &str = "mcp.tool.cloudflare_casb";
     pub const MCP_TOOL_CLOUDFLARE_GRAPHQL: &str = "mcp.tool.cloudflare_graphql";
     pub const MCP_TOOL_TAILWINDCSS: &str = "mcp.tool.tailwindcss";
+    pub const MCP_TOOL_ARXIV: &str = "mcp.tool.arxiv";
 
     // Kubeconfig Manager
     pub const KUBECONFIG_HEADER: &str = "kubeconfig.header";

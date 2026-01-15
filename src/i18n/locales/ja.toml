@@ -233,6 +233,7 @@
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
 "mcp.tool.tailwindcss" = "Tailwind CSS (CSS フレームワーク)"
+"mcp.tool.arxiv" = "arXiv (学術論文検索・ダウンロード)"
 
 "kubeconfig.header" = "Kubeconfig ウィンドウ分離マネージャー"
 "kubeconfig.select_action" = "操作を選択"
