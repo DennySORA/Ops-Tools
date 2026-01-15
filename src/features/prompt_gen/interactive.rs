@@ -15,7 +15,10 @@ use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input, MultiSelect, 
 use std::path::{Path, PathBuf};
 
 use super::executor::{CliType, Executor, ExecutorConfig};
-use super::progress::{read_state_status, FeatureInfo, FeatureStatus, Step};
+use super::progress::{
+    expected_status_for_step, read_state_status, update_state_status, FeatureInfo, FeatureStatus,
+    Step,
+};
 
 // ============================================================================
 // 執行模式
@@ -652,8 +655,28 @@ impl InteractiveRunner {
                 feature.progress.mark_done(step, result.session_id);
                 feature.progress.save_to_file(feature.progress_file())?;
 
-                // 更新狀態
-                feature.status = read_state_status(feature.state_file())?;
+                // 自動更新 STATE.md（如果 LLM 沒有更新的話）
+                let expected_status = expected_status_for_step(step);
+                let current_status = read_state_status(feature.state_file())?;
+
+                // 只有當狀態落後或未知時才自動更新
+                if current_status == FeatureStatus::Unknown
+                    || (step == Step::P4 && !current_status.is_ready())
+                {
+                    update_state_status(
+                        feature.state_file(),
+                        &feature.feature_key,
+                        expected_status.clone(),
+                    )?;
+                    feature.status = expected_status;
+                    println!(
+                        "{} STATE.md 已自動更新: {}",
+                        style("[狀態]").magenta(),
+                        feature.status
+                    );
+                } else {
+                    feature.status = current_status;
+                }
 
                 println!(
                     "{} 進度已保存: {}",
@@ -717,12 +740,19 @@ impl InteractiveRunner {
             let feature_dir = self.features[idx].feature_dir.clone();
             self.features[idx] = FeatureInfo::load_from_dir(&feature_dir, &feature_key)?;
 
-            // 檢查是否已完成
-            if self.features[idx].status.is_ready() {
+            // 檢查是否已完成（P4 完成或 status 為 READY）
+            let is_completed = self.features[idx].progress.last_done == Step::P4
+                || self.features[idx].status.is_ready();
+            if is_completed {
                 println!(
-                    "{} 功能 {} 已就緒，跳過",
+                    "{} 功能 {} 已完成 ({}), 跳過",
                     style("[跳過]").dim(),
-                    style(&feature_key).cyan()
+                    style(&feature_key).cyan(),
+                    if self.features[idx].status.is_ready() {
+                        "READY"
+                    } else {
+                        "P4 done"
+                    }
                 );
                 continue;
             }
