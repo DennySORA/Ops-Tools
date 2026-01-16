@@ -88,6 +88,18 @@ LLM ワークフロー用の 4 ステッププロンプトを生成・実行し�
 
 各機能の進捗を追跡し、セッション管理により中断後の再開が可能です。
 
+### 7. コンテナイメージビルダー
+Docker または Buildah でマルチアーキテクチャコンテナイメージをビルドします：
+- **ビルドエンジン**：Docker (buildx) または Buildah（デーモンレス OCI ビルダー）
+- **マルチアーキテクチャサポート**：
+  - x86_64 / amd64（Intel/AMD 64 ビット）
+  - arm64 / aarch64（Apple Silicon、AWS Graviton）
+  - armv7 / arm/v7（Raspberry Pi 2/3）
+  - Jetson Nano（NVIDIA Jetson Nano aarch64）
+- **Dockerfile スキャナー**：Dockerfile、Containerfile、およびバリアント（Dockerfile.dev など）を自動検出
+- **レジストリプッシュ**：コンテナレジストリへのオプションプッシュ
+- **クイック選択**：最近使用したイメージ名、タグ、レジストリを記憶して素早く再利用
+
 ## インストール
 
 ### インストールスクリプト経由 (推奨 - Linux/macOS)
@@ -135,7 +147,8 @@ cargo run
 5. セキュリティスキャン (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
 6. MCP ツールの管理 (Claude/Codex/Gemini)
 7. プロンプトジェネレーター（LLM 4 ステップワークフロー）
-8. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
+8. コンテナイメージビルダー（Docker/Buildah マルチアーキ）
+9. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
 
 起動時に言語選択が表示され、後からメニューで切り替えできます。
 言語設定は `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）、`%APPDATA%\\ops-tools\\config.toml`（Windows）に保存されます。

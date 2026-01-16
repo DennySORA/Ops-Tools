@@ -96,6 +96,18 @@ The 4-step workflow:
 
 Progress is tracked per feature with session management for resumable execution.
 
+### 7. Container Image Builder
+Build multi-architecture container images with Docker or Buildah:
+- **Build Engines**: Docker (buildx) or Buildah (daemonless OCI builder)
+- **Multi-Architecture Support**:
+  - x86_64 / amd64 (Intel/AMD 64-bit)
+  - arm64 / aarch64 (Apple Silicon, AWS Graviton)
+  - armv7 / arm/v7 (Raspberry Pi 2/3)
+  - Jetson Nano (NVIDIA Jetson Nano aarch64)
+- **Dockerfile Scanner**: Auto-detects Dockerfile, Containerfile, and variants (Dockerfile.dev, etc.)
+- **Registry Push**: Optional push to container registries
+- **Quick Selection**: Remembers recent image names, tags, and registries for fast reuse
+
 ## Installation
 
 ### via Install Script (Recommended - Linux/macOS)
@@ -143,7 +155,8 @@ Select a function from the menu:
 5. Security scan (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
 6. Manage MCP tools (Claude/Codex/Gemini)
 7. LLM Prompt Generator (4-step workflow)
-8. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+8. Container Image Builder (Docker/Buildah multi-arch)
+9. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
 
 You'll be prompted to choose a language at startup, and you can switch languages later from the menu.
 Language preference is saved to `~/.config/ops-tools/config.toml` (Linux), `~/Library/Application Support/ops-tools/config.toml` (macOS), or `%APPDATA%\\ops-tools\\config.toml` (Windows).
