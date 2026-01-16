@@ -6,6 +6,19 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 
 ![Screenshot](docs/image/01.png)
 
+## Quick Overview
+
+| Feature | Description |
+|---------|-------------|
+| Terraform Cleanup | Remove `.terraform`, `.terragrunt-cache` and lock files |
+| AI Assistant Upgrade | Batch update Claude Code, Codex, Gemini CLI |
+| Package Manager | Install/update nvm, pnpm, Rust, Go, kubectl, k9s, tmux, vim, etc. |
+| MCP Manager | Manage MCP servers for Claude/Codex/Gemini |
+| Security Scanner | Run gitleaks, trufflehog, git-secrets, trivy, semgrep |
+| Prompt Generator | 4-step LLM workflow with progress tracking |
+| Container Builder | Docker/Buildah multi-arch builds (x86, arm64, armv7, Jetson) |
+| Kubeconfig Manager | tmux window-isolated kubeconfig |
+
 ## Features
 
 ### 1. Terraform/Terragrunt Cache Cleaner
