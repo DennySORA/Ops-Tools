@@ -262,12 +262,7 @@ impl ScanTool {
                     &["-c", SEMGREP_PIPX_APT_SCRIPT],
                     false,
                 ),
-                InstallStrategy::new(
-                    "python venv",
-                    "sh",
-                    &["-c", SEMGREP_VENV_SCRIPT],
-                    false,
-                ),
+                InstallStrategy::new("python venv", "sh", &["-c", SEMGREP_VENV_SCRIPT], false),
                 InstallStrategy::new("pip", "pip", &["install", "semgrep"], false),
                 InstallStrategy::new("pip3", "pip3", &["install", "semgrep"], false),
             ],

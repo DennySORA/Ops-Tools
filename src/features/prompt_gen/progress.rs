@@ -501,7 +501,11 @@ LAST_DONE="p2"
         let state_file = temp_dir.join("STATE.md");
 
         // 建立初始檔案
-        std::fs::write(&state_file, "# Test\n\nSTATUS: P1_DONE_DEPLOYED\n\nSome content").unwrap();
+        std::fs::write(
+            &state_file,
+            "# Test\n\nSTATUS: P1_DONE_DEPLOYED\n\nSome content",
+        )
+        .unwrap();
 
         // 更新狀態
         update_state_status(&state_file, "test-feature", FeatureStatus::Ready).unwrap();
