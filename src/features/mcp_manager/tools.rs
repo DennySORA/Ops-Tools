@@ -209,9 +209,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             name: "arxiv-mcp-server",
             display_name_key: keys::MCP_TOOL_ARXIV,
             install_args: {
-                let storage_path = ENV_CONFIG
-                    .arxiv_storage_path
-                    .unwrap_or("~/.arxiv-papers");
+                let storage_path = ENV_CONFIG.arxiv_storage_path.unwrap_or("~/.arxiv-papers");
                 let mut args = vec!["arxiv-mcp-server".to_string()];
                 if let Some(sep) = separator {
                     args.push(sep.to_string());
