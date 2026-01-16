@@ -462,6 +462,48 @@ pub mod keys {
     #[allow(dead_code)] // 預留給未來剪貼簿功能
     pub const PROMPT_GEN_YAML_PROMPT_COPIED: &str = "prompt_gen.yaml_prompt_copied";
     pub const PROMPT_GEN_INPUT_OUTPUT_FILE: &str = "prompt_gen.input_output_file";
+
+    // Container Builder
+    pub const MENU_CONTAINER_BUILDER: &str = "menu.container_builder.name";
+    pub const MENU_CONTAINER_BUILDER_DESC: &str = "menu.container_builder.desc";
+    pub const CONTAINER_BUILDER_HEADER: &str = "container_builder.header";
+    pub const CONTAINER_BUILDER_CURRENT_DIR_FAILED: &str = "container_builder.current_dir_failed";
+    pub const CONTAINER_BUILDER_CANCELLED: &str = "container_builder.cancelled";
+    pub const CONTAINER_BUILDER_SELECT_ENGINE: &str = "container_builder.select_engine";
+    pub const CONTAINER_BUILDER_ENGINE_DOCKER_DESC: &str = "container_builder.engine_docker_desc";
+    pub const CONTAINER_BUILDER_ENGINE_BUILDAH_DESC: &str = "container_builder.engine_buildah_desc";
+    pub const CONTAINER_BUILDER_ENGINE_NOT_FOUND: &str = "container_builder.engine_not_found";
+    pub const CONTAINER_BUILDER_USING_ENGINE: &str = "container_builder.using_engine";
+    pub const CONTAINER_BUILDER_SCANNING_DOCKERFILES: &str =
+        "container_builder.scanning_dockerfiles";
+    pub const CONTAINER_BUILDER_NO_DOCKERFILE: &str = "container_builder.no_dockerfile";
+    pub const CONTAINER_BUILDER_FOUND_DOCKERFILES: &str = "container_builder.found_dockerfiles";
+    pub const CONTAINER_BUILDER_SELECT_DOCKERFILE: &str = "container_builder.select_dockerfile";
+    pub const CONTAINER_BUILDER_SELECTED_DOCKERFILE: &str = "container_builder.selected_dockerfile";
+    pub const CONTAINER_BUILDER_SELECT_ARCH: &str = "container_builder.select_arch";
+    pub const CONTAINER_BUILDER_SELECTED_ARCH: &str = "container_builder.selected_arch";
+    pub const CONTAINER_BUILDER_SELECT_IMAGE_NAME: &str = "container_builder.select_image_name";
+    pub const CONTAINER_BUILDER_INPUT_IMAGE_NAME: &str = "container_builder.input_image_name";
+    pub const CONTAINER_BUILDER_NEW_IMAGE: &str = "container_builder.new_image";
+    pub const CONTAINER_BUILDER_SELECT_TAG: &str = "container_builder.select_tag";
+    pub const CONTAINER_BUILDER_INPUT_TAG: &str = "container_builder.input_tag";
+    pub const CONTAINER_BUILDER_NEW_TAG: &str = "container_builder.new_tag";
+    pub const CONTAINER_BUILDER_ASK_PUSH: &str = "container_builder.ask_push";
+    pub const CONTAINER_BUILDER_SELECT_REGISTRY: &str = "container_builder.select_registry";
+    pub const CONTAINER_BUILDER_INPUT_REGISTRY: &str = "container_builder.input_registry";
+    pub const CONTAINER_BUILDER_NEW_REGISTRY: &str = "container_builder.new_registry";
+    pub const CONTAINER_BUILDER_BUILD_SUMMARY: &str = "container_builder.build_summary";
+    pub const CONTAINER_BUILDER_CONFIRM_BUILD: &str = "container_builder.confirm_build";
+    pub const CONTAINER_BUILDER_BUILDING: &str = "container_builder.building";
+    pub const CONTAINER_BUILDER_OUTPUT: &str = "container_builder.output";
+    pub const CONTAINER_BUILDER_STDERR: &str = "container_builder.stderr";
+    pub const CONTAINER_BUILDER_BUILD_SUCCESS: &str = "container_builder.build_success";
+    pub const CONTAINER_BUILDER_BUILD_FAILED: &str = "container_builder.build_failed";
+    pub const CONTAINER_BUILDER_BUILD_ERROR: &str = "container_builder.build_error";
+    pub const CONTAINER_BUILDER_PUSHING: &str = "container_builder.pushing";
+    pub const CONTAINER_BUILDER_PUSH_SUCCESS: &str = "container_builder.push_success";
+    pub const CONTAINER_BUILDER_PUSH_FAILED: &str = "container_builder.push_failed";
+    pub const CONTAINER_BUILDER_PUSH_ERROR: &str = "container_builder.push_error";
 }
 
 #[cfg(test)]

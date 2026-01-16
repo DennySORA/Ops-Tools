@@ -88,6 +88,18 @@ Cloudflare MCP 會透過 OAuth 互動登入，安裝時請依 CLI 顯示的 URL 
 
 每個功能都會追蹤進度，支援 session 管理以便中斷後繼續執行。
 
+### 7. 容器映像建構器
+使用 Docker 或 Buildah 建構多架構容器映像：
+- **建構引擎**：Docker (buildx) 或 Buildah（無背景程序 OCI 建構器）
+- **多架構支援**：
+  - x86_64 / amd64（Intel/AMD 64 位元）
+  - arm64 / aarch64（Apple Silicon、AWS Graviton）
+  - armv7 / arm/v7（Raspberry Pi 2/3）
+  - Jetson Nano（NVIDIA Jetson Nano aarch64）
+- **Dockerfile 掃描**：自動偵測 Dockerfile、Containerfile 及其變體（Dockerfile.dev 等）
+- **Registry 推送**：可選擇推送至容器 Registry
+- **快速選取**：記住最近使用的映像名稱、標籤和 Registry，方便快速重複使用
+
 ## 安裝
 
 ### 透過安裝腳本 (推薦 - Linux/macOS)
@@ -135,7 +147,8 @@ cargo run
 5. 專案安全掃描（Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep）
 6. 管理 MCP 工具（Claude/Codex/Gemini）
 7. 提示生成器（LLM 4 步驟工作流程）
-8. 語言設定（英文/繁體中文/簡體中文/日文）
+8. 容器映像建構器（Docker/Buildah 多架構）
+9. 語言設定（英文/繁體中文/簡體中文/日文）
 
 啟動時會先提示選擇語言，之後也可以在選單中切換。
 語言偏好會儲存在 `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）或 `%APPDATA%\\ops-tools\\config.toml`（Windows）。

@@ -60,6 +60,11 @@ fn sortable_menu_items() -> Vec<MenuItem> {
             desc_key: keys::MENU_KUBECONFIG_MANAGER_DESC,
             handler: features::kubeconfig_manager::run,
         },
+        MenuItem {
+            name_key: keys::MENU_CONTAINER_BUILDER,
+            desc_key: keys::MENU_CONTAINER_BUILDER_DESC,
+            handler: features::container_builder::run,
+        },
     ]
 }
 
