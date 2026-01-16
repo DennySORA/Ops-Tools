@@ -6,6 +6,19 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 
 ![Screenshot](image/01.png)
 
+## 機能一覧
+
+| 機能 | 説明 |
+|------|------|
+| Terraform クリーンアップ | `.terraform`、`.terragrunt-cache` およびロックファイルを削除 |
+| AI アシスタントアップグレード | Claude Code、Codex、Gemini CLI を一括更新 |
+| パッケージ管理 | nvm、pnpm、Rust、Go、kubectl、k9s、tmux、vim などをインストール/更新 |
+| MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
+| セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
+| プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
+| コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
+| Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
+
 ## 機能
 
 ### 1. Terraform/Terragrunt キャッシュクリーナー

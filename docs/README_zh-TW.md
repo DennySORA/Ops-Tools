@@ -6,6 +6,19 @@
 
 ![Screenshot](image/01.png)
 
+## 功能總覽
+
+| 功能 | 說明 |
+|------|------|
+| Terraform 清理 | 移除 `.terraform`、`.terragrunt-cache` 及 lock 檔案 |
+| AI 助手升級 | 批次更新 Claude Code、Codex、Gemini CLI |
+| 套件管理 | 安裝/更新 nvm、pnpm、Rust、Go、kubectl、k9s、tmux、vim 等 |
+| MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 伺服器 |
+| 安全掃描 | 執行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
+| Prompt 生成 | 4 步驟 LLM 工作流程，支援進度追蹤 |
+| 容器建構 | Docker/Buildah 多架構建構（x86、arm64、armv7、Jetson） |
+| Kubeconfig 管理 | tmux 視窗隔離的 kubeconfig |
+
 ## 功能特色
 
 ### 1. Terraform/Terragrunt 快取清理
