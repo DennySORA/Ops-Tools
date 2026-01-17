@@ -83,17 +83,19 @@ pub fn run() {
     ));
 
     // Step 3: Select architecture
-    let architecture = match select_architecture(&prompts, &console) {
-        Some(arch) => arch,
-        None => {
-            console.warning(i18n::t(keys::CONTAINER_BUILDER_CANCELLED));
-            return;
-        }
-    };
+    let architectures = select_architecture(&prompts, &console);
+    if architectures.is_empty() {
+        console.warning(i18n::t(keys::CONTAINER_BUILDER_CANCELLED));
+        return;
+    }
 
+    let arch_names: Vec<String> = architectures
+        .iter()
+        .map(|a| a.display_name().to_string())
+        .collect();
     console.info(&crate::tr!(
         keys::CONTAINER_BUILDER_SELECTED_ARCH,
-        arch = architecture.display_name()
+        arch = arch_names.join(", ")
     ));
 
     // Step 4: Input image name/tag
@@ -120,7 +122,7 @@ pub fn run() {
         context_dir,
         image_name: image_name.clone(),
         tag: tag.clone(),
-        architecture: architecture.clone(),
+        architecture: architectures.clone(),
         push: push_config.is_some(),
         registry: push_config.clone(),
     };
@@ -130,7 +132,7 @@ pub fn run() {
     console.info(i18n::t(keys::CONTAINER_BUILDER_BUILD_SUMMARY));
     console.list_item("Engine:", engine.name());
     console.list_item("Dockerfile:", &dockerfile.display().to_string());
-    console.list_item("Architecture:", architecture.display_name());
+    console.list_item("Architectures:", &arch_names.join(", "));
     console.list_item("Image:", &format!("{}:{}", image_name, tag));
     if let Some(ref registry) = push_config {
         console.list_item("Push to:", registry);
@@ -228,17 +230,29 @@ fn select_dockerfile(
         .map(|idx| dockerfiles[idx].clone())
 }
 
-fn select_architecture(prompts: &Prompts, _console: &Console) -> Option<Architecture> {
+fn select_architecture(prompts: &Prompts, _console: &Console) -> Vec<Architecture> {
     let architectures = Architecture::all();
     let options: Vec<String> = architectures
         .iter()
         .map(|arch| format!("{} — {}", arch.display_name(), arch.description()))
         .collect();
-    let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
+    
+    // Pre-select Amd64 by default if available
+    let defaults: Vec<bool> = architectures
+        .iter()
+        .map(|arch| *arch == Architecture::Amd64)
+        .collect();
 
-    prompts
-        .select(i18n::t(keys::CONTAINER_BUILDER_SELECT_ARCH), &option_refs)
-        .map(|idx| architectures[idx].clone())
+    let selections = prompts.multi_select(
+        i18n::t(keys::CONTAINER_BUILDER_SELECT_ARCH),
+        &options,
+        &defaults,
+    );
+
+    selections
+        .iter()
+        .map(|&i| architectures[i].clone())
+        .collect()
 }
 
 fn input_image_info(

@@ -40,11 +40,17 @@ impl BuildEngine for DockerEngine {
     }
 
     fn build(&self, context: &BuildContext) -> Result<BuildResult> {
+        let platforms: Vec<String> = context
+            .architecture
+            .iter()
+            .map(|a| a.platform().to_string())
+            .collect();
+
         let mut args = vec![
             "buildx".to_string(),
             "build".to_string(),
             "--platform".to_string(),
-            context.architecture.platform().to_string(),
+            platforms.join(","),
             "-f".to_string(),
             context.dockerfile.display().to_string(),
             "-t".to_string(),
@@ -52,7 +58,7 @@ impl BuildEngine for DockerEngine {
         ];
 
         // For Jetson Nano, add specific build args if needed
-        if context.architecture.is_jetson() {
+        if context.architecture.iter().any(|a| a.is_jetson()) {
             args.push("--build-arg".to_string());
             args.push("TARGETPLATFORM=linux/arm64".to_string());
         }
@@ -105,22 +111,21 @@ impl BuildEngine for BuildahEngine {
     }
 
     fn build(&self, context: &BuildContext) -> Result<BuildResult> {
+        let platforms: Vec<String> = context
+            .architecture
+            .iter()
+            .map(|a| a.platform().to_string())
+            .collect();
+
         let mut args = vec![
             "build".to_string(),
-            "--arch".to_string(),
-            context.architecture.buildah_arch().to_string(),
+            "--platform".to_string(),
+            platforms.join(","),
+            "-f".to_string(),
+            context.dockerfile.display().to_string(),
+            "-t".to_string(),
+            context.local_image_ref(),
         ];
-
-        // Add variant for ARM v7
-        if let Some(variant) = context.architecture.buildah_variant() {
-            args.push("--variant".to_string());
-            args.push(variant.to_string());
-        }
-
-        args.push("-f".to_string());
-        args.push(context.dockerfile.display().to_string());
-        args.push("-t".to_string());
-        args.push(context.local_image_ref());
 
         // Do not remove intermediate containers
         args.push("--rm=false".to_string());
