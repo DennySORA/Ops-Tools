@@ -1,5 +1,8 @@
 use crate::core::Result;
+use crate::ui::Console;
+use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::thread;
 
 use super::types::{BuildContext, BuildResult};
 
@@ -139,25 +142,51 @@ impl BuildEngine for BuildahEngine {
     }
 }
 
-/// Execute a command and capture output
+/// Execute a command and stream output in real-time
 fn execute_command<S: AsRef<str>>(program: &str, args: &[S]) -> Result<BuildResult> {
     let args_str: Vec<&str> = args.iter().map(|s| s.as_ref()).collect();
+    let console = Console::new();
 
-    let output = Command::new(program)
+    let mut child = Command::new(program)
         .args(&args_str)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output()
+        .spawn()
+        .map_err(|err| crate::core::OperationError::Command {
+            command: program.to_string(),
+            message: err.to_string(),
+        })?;
+
+    let stdout = child.stdout.take().expect("Failed to open stdout");
+    let stderr = child.stderr.take().expect("Failed to open stderr");
+
+    let stdout_thread = thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        reader
+            .lines()
+            .for_each(|line| console.raw(&line.unwrap_or_default()));
+    });
+
+    let stderr_thread = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        reader
+            .lines()
+            .for_each(|line| console.raw(&line.unwrap_or_default()));
+    });
+
+    stdout_thread.join().expect("Stdout thread panicked");
+    stderr_thread.join().expect("Stderr thread panicked");
+
+    let status = child
+        .wait()
         .map_err(|err| crate::core::OperationError::Command {
             command: program.to_string(),
             message: err.to_string(),
         })?;
 
     Ok(BuildResult {
-        success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        exit_code: output.status.code(),
+        success: status.success(),
+        exit_code: status.code(),
     })
 }
 

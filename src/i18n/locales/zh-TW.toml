@@ -333,8 +333,6 @@
 "container_builder.build_summary" = "建構設定："
 "container_builder.confirm_build" = "使用這些設定開始建構？"
 "container_builder.building" = "正在建構容器映像..."
-"container_builder.output" = "建構輸出："
-"container_builder.stderr" = "建構錯誤/警告："
 "container_builder.build_success" = "建構完成！"
 "container_builder.build_failed" = "建構失敗，請查看上方輸出。"
 "container_builder.build_error" = "建構錯誤: {error}"

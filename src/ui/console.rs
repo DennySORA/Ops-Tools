@@ -3,6 +3,7 @@ use colored::Colorize;
 use std::path::PathBuf;
 
 /// 控制台輸出工具
+#[derive(Clone, Copy)]
 pub struct Console;
 
 impl Console {

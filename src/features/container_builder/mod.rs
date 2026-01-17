@@ -9,7 +9,7 @@ use config::{load_builder_config, save_builder_config, BuilderConfig};
 use engines::{BuildEngine, BuildahEngine, DockerEngine};
 use scanner::scan_dockerfiles;
 use std::path::PathBuf;
-use types::{Architecture, BuildContext, BuildResult, EngineType};
+use types::{Architecture, BuildContext, EngineType};
 
 /// Execute Container Builder
 pub fn run() {
@@ -148,7 +148,6 @@ pub fn run() {
 
     match engine.build(&build_context) {
         Ok(result) => {
-            display_build_result(&console, &result);
             if result.success {
                 console.success(i18n::t(keys::CONTAINER_BUILDER_BUILD_SUCCESS));
 
@@ -157,7 +156,6 @@ pub fn run() {
                     console.info(i18n::t(keys::CONTAINER_BUILDER_PUSHING));
                     match engine.push(&build_context) {
                         Ok(push_result) => {
-                            display_build_result(&console, &push_result);
                             if push_result.success {
                                 console.success(i18n::t(keys::CONTAINER_BUILDER_PUSH_SUCCESS));
                             } else {
@@ -366,19 +364,6 @@ fn ask_push_config(
     }
 
     Some(registry)
-}
-
-fn display_build_result(console: &Console, result: &BuildResult) {
-    if !result.stdout.is_empty() {
-        console.separator();
-        console.info(i18n::t(keys::CONTAINER_BUILDER_OUTPUT));
-        console.raw(&result.stdout);
-    }
-    if !result.stderr.is_empty() {
-        console.separator();
-        console.warning(i18n::t(keys::CONTAINER_BUILDER_STDERR));
-        console.raw(&result.stderr);
-    }
 }
 
 #[cfg(test)]
