@@ -121,6 +121,7 @@ impl BuildEngine for BuildahEngine {
             "build".to_string(),
             "--platform".to_string(),
             platforms.join(","),
+            "--layers".to_string(),
             "-f".to_string(),
             context.dockerfile.display().to_string(),
             "-t".to_string(),
