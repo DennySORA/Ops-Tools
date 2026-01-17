@@ -68,24 +68,6 @@ impl Architecture {
         }
     }
 
-    /// Architecture string for buildah
-    pub fn buildah_arch(&self) -> &'static str {
-        match self {
-            Architecture::Amd64 => "amd64",
-            Architecture::Arm64 => "arm64",
-            Architecture::ArmV7 => "arm",
-            Architecture::JetsonNano => "arm64",
-        }
-    }
-
-    /// Variant for ARM architectures (for buildah)
-    pub fn buildah_variant(&self) -> Option<&'static str> {
-        match self {
-            Architecture::ArmV7 => Some("v7"),
-            _ => None,
-        }
-    }
-
     /// Check if this is a Jetson-specific build
     pub fn is_jetson(&self) -> bool {
         matches!(self, Architecture::JetsonNano)
@@ -99,7 +81,7 @@ pub struct BuildContext {
     pub context_dir: PathBuf,
     pub image_name: String,
     pub tag: String,
-    pub architecture: Architecture,
+    pub architecture: Vec<Architecture>,
     pub push: bool,
     pub registry: Option<String>,
 }
@@ -140,21 +122,13 @@ mod tests {
     }
 
     #[test]
-    fn test_architecture_buildah() {
-        assert_eq!(Architecture::Amd64.buildah_arch(), "amd64");
-        assert_eq!(Architecture::ArmV7.buildah_arch(), "arm");
-        assert_eq!(Architecture::ArmV7.buildah_variant(), Some("v7"));
-        assert_eq!(Architecture::Arm64.buildah_variant(), None);
-    }
-
-    #[test]
     fn test_build_context_image_ref() {
         let context = BuildContext {
             dockerfile: PathBuf::from("Dockerfile"),
             context_dir: PathBuf::from("."),
             image_name: "myapp".to_string(),
             tag: "v1.0".to_string(),
-            architecture: Architecture::Amd64,
+            architecture: vec![Architecture::Amd64],
             push: false,
             registry: None,
         };
