@@ -1,5 +1,6 @@
 use crate::i18n::{self, keys};
 use colored::Colorize;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 /// 控制台輸出工具
@@ -35,6 +36,7 @@ impl Console {
 
     pub fn raw(&self, message: &str) {
         print!("{}", message);
+        io::stdout().flush().unwrap();
     }
 
     // === 結構化輸出 ===
