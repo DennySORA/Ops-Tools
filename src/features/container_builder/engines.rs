@@ -60,6 +60,9 @@ impl BuildEngine for DockerEngine {
         // Load the image to local docker (for single platform builds)
         args.push("--load".to_string());
 
+        // Do not remove intermediate containers
+        args.push("--rm=false".to_string());
+
         // Context directory
         args.push(context.context_dir.display().to_string());
 
@@ -118,6 +121,9 @@ impl BuildEngine for BuildahEngine {
         args.push(context.dockerfile.display().to_string());
         args.push("-t".to_string());
         args.push(context.local_image_ref());
+
+        // Do not remove intermediate containers
+        args.push("--rm=false".to_string());
 
         // Context directory
         args.push(context.context_dir.display().to_string());
