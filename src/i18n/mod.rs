@@ -495,8 +495,6 @@ pub mod keys {
     pub const CONTAINER_BUILDER_BUILD_SUMMARY: &str = "container_builder.build_summary";
     pub const CONTAINER_BUILDER_CONFIRM_BUILD: &str = "container_builder.confirm_build";
     pub const CONTAINER_BUILDER_BUILDING: &str = "container_builder.building";
-    pub const CONTAINER_BUILDER_OUTPUT: &str = "container_builder.output";
-    pub const CONTAINER_BUILDER_STDERR: &str = "container_builder.stderr";
     pub const CONTAINER_BUILDER_BUILD_SUCCESS: &str = "container_builder.build_success";
     pub const CONTAINER_BUILDER_BUILD_FAILED: &str = "container_builder.build_failed";
     pub const CONTAINER_BUILDER_BUILD_ERROR: &str = "container_builder.build_error";

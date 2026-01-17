@@ -123,8 +123,6 @@ impl BuildContext {
 #[derive(Debug)]
 pub struct BuildResult {
     pub success: bool,
-    pub stdout: String,
-    pub stderr: String,
     #[allow(dead_code)]
     pub exit_code: Option<i32>,
 }

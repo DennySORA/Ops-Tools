@@ -333,8 +333,6 @@
 "container_builder.build_summary" = "ビルド設定："
 "container_builder.confirm_build" = "これらの設定でビルドを開始しますか？"
 "container_builder.building" = "コンテナイメージをビルド中..."
-"container_builder.output" = "ビルド出力："
-"container_builder.stderr" = "ビルドエラー/警告："
 "container_builder.build_success" = "ビルドが完了しました！"
 "container_builder.build_failed" = "ビルドに失敗しました。上記の出力を確認してください。"
 "container_builder.build_error" = "ビルドエラー: {error}"

@@ -333,8 +333,6 @@
 "container_builder.build_summary" = "构建配置："
 "container_builder.confirm_build" = "使用这些设置开始构建？"
 "container_builder.building" = "正在构建容器镜像..."
-"container_builder.output" = "构建输出："
-"container_builder.stderr" = "构建错误/警告："
 "container_builder.build_success" = "构建完成！"
 "container_builder.build_failed" = "构建失败，请查看上方输出。"
 "container_builder.build_error" = "构建错误: {error}"

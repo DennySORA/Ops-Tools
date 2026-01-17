@@ -333,8 +333,6 @@
 "container_builder.build_summary" = "Build configuration:"
 "container_builder.confirm_build" = "Start build with these settings?"
 "container_builder.building" = "Building container image..."
-"container_builder.output" = "Build output:"
-"container_builder.stderr" = "Build errors/warnings:"
 "container_builder.build_success" = "Build completed successfully!"
 "container_builder.build_failed" = "Build failed. See output above."
 "container_builder.build_error" = "Build error: {error}"
