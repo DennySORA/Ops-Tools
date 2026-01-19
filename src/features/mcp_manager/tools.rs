@@ -291,7 +291,8 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
         }
     }
 
-    if let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) {
+    if let Some(token) = ENV_CONFIG.github_token {
+        let host = ENV_CONFIG.github_host.unwrap_or("github.com");
         tools.push(McpTool {
             name: "github",
             display_name_key: keys::MCP_TOOL_GITHUB,
