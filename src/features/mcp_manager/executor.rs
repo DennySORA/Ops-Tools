@@ -166,9 +166,10 @@ impl McpExecutor {
             return Ok(());
         }
 
-        let (Some(token), Some(host)) = (ENV_CONFIG.github_token, ENV_CONFIG.github_host) else {
+        let Some(token) = ENV_CONFIG.github_token else {
             return Ok(());
         };
+        let host = ENV_CONFIG.github_host.unwrap_or("github.com");
 
         let Some(path) = codex_config_path() else {
             return Ok(());
