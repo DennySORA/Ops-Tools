@@ -38,8 +38,9 @@ impl Prompts {
         Select::with_theme(&self.theme)
             .with_prompt(prompt)
             .items(items)
-            .interact()
+            .interact_opt()
             .ok()
+            .flatten()
     }
 
     /// 單選選單（帶預設值）
@@ -53,8 +54,9 @@ impl Prompts {
             .with_prompt(prompt)
             .items(items)
             .default(default)
-            .interact()
+            .interact_opt()
             .ok()
+            .flatten()
     }
 
     /// 多選選單
