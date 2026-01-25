@@ -16,6 +16,7 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 | MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
 | セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
 | プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
+| Rust ビルド | クロスプラットフォーム実行ファイル（cargo/cross、glibc/musl 選択可） |
 | コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
 | Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
 
@@ -101,6 +102,11 @@ LLM ワークフロー用の 4 ステッププロンプトを生成・実行し�
 
 各機能の進捗を追跡し、セッション管理により中断後の再開が可能です。
 
+**Rust Build ヒント**
+- `*-unknown-linux-gnu`（glibc）：主流ディストロ向け；動的リンクでバイナリは小さめだがシステム glibc に依存。
+- `*-unknown-linux-musl`（musl、多くは静的）：Alpine/最小イメージ向け；単一バイナリ配布に便利。
+- `i686-*` はレガシー 32bit x86、`powerpc64le-*` は OpenPOWER/IBM Cloud 向け、`wasm32-unknown-unknown` はブラウザ/wasm ランタイム向け（no std）。
+
 ### 7. コンテナイメージビルダー
 Docker または Buildah でマルチアーキテクチャコンテナイメージをビルドします：
 - **ビルドエンジン**：Docker (buildx) または Buildah（デーモンレス OCI ビルダー）
@@ -157,11 +163,13 @@ cargo run
 2. AI コードアシスタントツールのアップグレード
 3. システムパッケージのインストール/更新（macOS/Linux）
 4. Rust プロジェクトとツールチェーンのアップグレード
-5. セキュリティスキャン (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
-6. MCP ツールの管理 (Claude/Codex/Gemini)
-7. プロンプトジェネレーター（LLM 4 ステップワークフロー）
-8. コンテナイメージビルダー（Docker/Buildah マルチアーキ）
-9. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
+5. 複数プラットフォーム向けに Rust バイナリをビルド（glibc/musl、cargo/cross 選択可）
+6. セキュリティスキャン (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
+7. MCP ツールの管理 (Claude/Codex/Gemini)
+8. プロンプトジェネレーター（LLM 4 ステップワークフロー）
+9. コンテナイメージビルダー（Docker/Buildah マルチアーキ）
+10. Kubeconfig 管理（tmux ウィンドウ分離）
+11. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
 
 起動時に言語選択が表示され、後からメニューで切り替えできます。
 言語設定は `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）、`%APPDATA%\\ops-tools\\config.toml`（Windows）に保存されます。

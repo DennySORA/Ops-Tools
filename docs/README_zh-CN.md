@@ -16,6 +16,7 @@
 | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 服务器 |
 | 安全扫描 | 运行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
 | Prompt 生成 | 4 步骤 LLM 工作流程，支持进度追踪 |
+| Rust 编译 | 跨平台可执行文件构建（cargo/cross，glibc/musl 可选） |
 | 容器构建 | Docker/Buildah 多架构构建（x86、arm64、armv7、Jetson） |
 | Kubeconfig 管理 | tmux 窗口隔离的 kubeconfig |
 
@@ -101,6 +102,11 @@ Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 
 
 每个功能都会追踪进度，支持 session 管理以便中断后继续执行。
 
+**Rust Build 提示**
+- `*-unknown-linux-gnu`（glibc）：适合主流发行版；动态链接，体积小但依赖系统 glibc。
+- `*-unknown-linux-musl`（musl，多为静态）：适合 Alpine/极小镜像；单文件部署方便。
+- `i686-*` 传统 32 位 x86；`powerpc64le-*` OpenPOWER/IBM Cloud；`wasm32-unknown-unknown` 用于浏览器/wasm 运行时（无 std）。
+
 ### 7. 容器镜像构建器
 使用 Docker 或 Buildah 构建多架构容器镜像：
 - **构建引擎**：Docker (buildx) 或 Buildah（无守护进程 OCI 构建器）
@@ -157,11 +163,13 @@ cargo run
 2. 升级 AI 代码助手工具
 3. 安装/更新系统软件包（macOS/Linux）
 4. 升级 Rust 项目与工具链
-5. 项目安全扫描（Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep）
-6. 管理 MCP 工具（Claude/Codex/Gemini）
-7. 提示生成器（LLM 4 步骤工作流程）
-8. 容器镜像构建器（Docker/Buildah 多架构）
-9. 语言设置（英文/繁体中文/简体中文/日文）
+5. 为多个平台构建 Rust 可执行文件（可选 glibc 或 musl，cargo 或 cross）
+6. 项目安全扫描（Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep）
+7. 管理 MCP 工具（Claude/Codex/Gemini）
+8. 提示生成器（LLM 4 步骤工作流程）
+9. 容器镜像构建器（Docker/Buildah 多架构）
+10. Kubeconfig 管理（tmux 窗口隔离）
+11. 语言设置（英文/繁体中文/简体中文/日文）
 
 启动时会先提示选择语言，之后也可以在菜单中切换。
 语言偏好会保存在 `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）或 `%APPDATA%\\ops-tools\\config.toml`（Windows）。

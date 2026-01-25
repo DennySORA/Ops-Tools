@@ -16,6 +16,7 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 | MCP Manager | Manage MCP servers for Claude/Codex/Gemini |
 | Security Scanner | Run gitleaks, trufflehog, git-secrets, trivy, semgrep |
 | Prompt Generator | 4-step LLM workflow with progress tracking |
+| Rust Build | Build cross-platform binaries (cargo/cross) |
 | Container Builder | Docker/Buildah multi-arch builds (x86, arm64, armv7, Jetson) |
 | Kubeconfig Manager | tmux window-isolated kubeconfig |
 
@@ -165,11 +166,18 @@ Select a function from the menu:
 2. Upgrade AI code assistant tools
 3. Install/Update system packages (macOS/Linux)
 4. Upgrade Rust projects and toolchain
-5. Security scan (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
-6. Manage MCP tools (Claude/Codex/Gemini)
-7. LLM Prompt Generator (4-step workflow)
-8. Container Image Builder (Docker/Buildah multi-arch)
-9. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+5. Build Rust binaries for multiple platforms (glibc vs musl, cargo or cross)
+6. Security scan (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
+7. Manage MCP tools (Claude/Codex/Gemini)
+8. LLM Prompt Generator (4-step workflow)
+9. Container Image Builder (Docker/Buildah multi-arch)
+10. Kubeconfig Manager (tmux window-isolated)
+11. Language settings (English/Traditional Chinese/Simplified Chinese/Japanese)
+
+**Rust Build target hints**
+- `*-unknown-linux-gnu` (glibc): best for mainstream distros; dynamic linking, smaller binary but needs system glibc.
+- `*-unknown-linux-musl` (musl, mostly static): best for Alpine/scratch images; single-file style deployment.
+- `i686-*` legacy 32-bit x86; `powerpc64le-*` OpenPOWER/IBM Cloud; `wasm32-unknown-unknown` for browser/wasm runtimes (no std).
 
 You'll be prompted to choose a language at startup, and you can switch languages later from the menu.
 Language preference is saved to `~/.config/ops-tools/config.toml` (Linux), `~/Library/Application Support/ops-tools/config.toml` (macOS), or `%APPDATA%\\ops-tools\\config.toml` (Windows).
