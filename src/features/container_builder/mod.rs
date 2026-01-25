@@ -236,7 +236,7 @@ fn select_architecture(prompts: &Prompts, _console: &Console) -> Vec<Architectur
         .iter()
         .map(|arch| format!("{} — {}", arch.display_name(), arch.description()))
         .collect();
-    
+
     // Pre-select Amd64 by default if available
     let defaults: Vec<bool> = architectures
         .iter()
