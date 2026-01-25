@@ -11,6 +11,9 @@ pub struct AppConfig {
     /// Menu usage statistics for sorting by frequency
     #[serde(default)]
     pub menu_usage: HashMap<String, u32>,
+    /// How many common actions to show on the top menu
+    #[serde(default = "default_common_actions_limit")]
+    pub common_actions_limit: u32,
 }
 
 impl AppConfig {
@@ -23,6 +26,15 @@ impl AppConfig {
     pub fn get_usage(&self, key: &str) -> u32 {
         self.menu_usage.get(key).copied().unwrap_or(0)
     }
+
+    /// Number of common actions to display (at least 1)
+    pub fn common_actions_limit(&self) -> usize {
+        self.common_actions_limit.max(1) as usize
+    }
+}
+
+fn default_common_actions_limit() -> u32 {
+    3
 }
 
 pub fn config_path() -> Option<PathBuf> {

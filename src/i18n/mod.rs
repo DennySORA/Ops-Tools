@@ -161,6 +161,24 @@ pub mod keys {
     pub const MENU_PROMPT_GEN_DESC: &str = "menu.prompt_gen.desc";
     pub const MENU_KUBECONFIG_MANAGER: &str = "menu.kubeconfig_manager.name";
     pub const MENU_KUBECONFIG_MANAGER_DESC: &str = "menu.kubeconfig_manager.desc";
+    pub const MENU_RUST_BUILDER: &str = "menu.rust_builder.name";
+    pub const MENU_RUST_BUILDER_DESC: &str = "menu.rust_builder.desc";
+    pub const MENU_CATEGORY_BUILD: &str = "menu.category.build.name";
+    pub const MENU_CATEGORY_BUILD_DESC: &str = "menu.category.build.desc";
+    pub const MENU_CATEGORY_AI: &str = "menu.category.ai.name";
+    pub const MENU_CATEGORY_AI_DESC: &str = "menu.category.ai.desc";
+    pub const MENU_CATEGORY_UPGRADE: &str = "menu.category.upgrade.name";
+    pub const MENU_CATEGORY_UPGRADE_DESC: &str = "menu.category.upgrade.desc";
+    pub const MENU_CATEGORY_INFRA: &str = "menu.category.infra.name";
+    pub const MENU_CATEGORY_INFRA_DESC: &str = "menu.category.infra.desc";
+    pub const MENU_CATEGORY_SECURITY: &str = "menu.category.security.name";
+    pub const MENU_CATEGORY_SECURITY_DESC: &str = "menu.category.security.desc";
+    pub const MENU_COMMON: &str = "menu.common.name";
+    pub const MENU_CATEGORIES: &str = "menu.categories.name";
+    pub const MENU_BACK: &str = "menu.back";
+    pub const MENU_CATEGORY_PROMPT: &str = "menu.category.prompt";
+    pub const MENU_SETTINGS: &str = "menu.settings.name";
+    pub const MENU_SETTINGS_DESC: &str = "menu.settings.desc";
     pub const MENU_LANGUAGE: &str = "menu.language.name";
     pub const MENU_LANGUAGE_DESC: &str = "menu.language.desc";
     pub const MENU_EXIT: &str = "menu.exit";
@@ -271,6 +289,45 @@ pub mod keys {
     pub const RUST_UPGRADER_SUMMARY: &str = "rust_upgrader.summary";
     pub const RUST_UPGRADER_SKIPPED_COUNT: &str = "rust_upgrader.skipped_count";
     pub const RUST_UPGRADER_OUTPUT_MORE_LINES: &str = "rust_upgrader.output_more_lines";
+
+    pub const RUST_BUILDER_HEADER: &str = "rust_builder.header";
+    pub const RUST_BUILDER_NO_CARGO_TOML: &str = "rust_builder.no_cargo_toml";
+    pub const RUST_BUILDER_RUSTUP_MISSING: &str = "rust_builder.rustup_missing";
+    pub const RUST_BUILDER_SELECT_BUILDER: &str = "rust_builder.select_builder";
+    pub const RUST_BUILDER_BUILDER_CARGO: &str = "rust_builder.builder.cargo";
+    pub const RUST_BUILDER_BUILDER_CROSS: &str = "rust_builder.builder.cross";
+    pub const RUST_BUILDER_SELECT_PROFILE: &str = "rust_builder.select_profile";
+    pub const RUST_BUILDER_PROFILE_RELEASE: &str = "rust_builder.profile.release";
+    pub const RUST_BUILDER_PROFILE_DEBUG: &str = "rust_builder.profile.debug";
+    pub const RUST_BUILDER_SELECT_TARGETS: &str = "rust_builder.select_targets";
+    pub const RUST_BUILDER_NO_TARGET_SELECTED: &str = "rust_builder.no_target_selected";
+    pub const RUST_BUILDER_MISSING_TARGETS: &str = "rust_builder.missing_targets";
+    pub const RUST_BUILDER_CONFIRM_INSTALL_TARGETS: &str = "rust_builder.confirm_install_targets";
+    pub const RUST_BUILDER_INSTALLING_TARGET: &str = "rust_builder.installing_target";
+    pub const RUST_BUILDER_INSTALL_SUCCESS: &str = "rust_builder.install_success";
+    pub const RUST_BUILDER_INSTALL_FAILED: &str = "rust_builder.install_failed";
+    pub const RUST_BUILDER_SKIP_INSTALL: &str = "rust_builder.skip_install";
+    pub const RUST_BUILDER_BUILDING: &str = "rust_builder.building";
+    pub const RUST_BUILDER_BUILD_SUCCESS: &str = "rust_builder.build_success";
+    pub const RUST_BUILDER_BUILD_FAILED: &str = "rust_builder.build_failed";
+    pub const RUST_BUILDER_SUMMARY_TITLE: &str = "rust_builder.summary_title";
+    pub const RUST_BUILDER_CANCELLED: &str = "rust_builder.cancelled";
+
+    pub const RUST_BUILDER_TARGET_LINUX_X86_64_GNU: &str = "rust_builder.target.linux_x86_64_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_ARM64_GNU: &str = "rust_builder.target.linux_arm64_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_I686_GNU: &str = "rust_builder.target.linux_i686_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_ARMV7_GNU: &str = "rust_builder.target.linux_armv7_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_RISCV64_GNU: &str = "rust_builder.target.linux_riscv64_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_PPC64LE_GNU: &str = "rust_builder.target.linux_ppc64le_gnu";
+    pub const RUST_BUILDER_TARGET_LINUX_X86_64_MUSL: &str = "rust_builder.target.linux_x86_64_musl";
+    pub const RUST_BUILDER_TARGET_LINUX_ARM64_MUSL: &str = "rust_builder.target.linux_arm64_musl";
+    pub const RUST_BUILDER_TARGET_LINUX_I686_MUSL: &str = "rust_builder.target.linux_i686_musl";
+    pub const RUST_BUILDER_TARGET_LINUX_ARMV7_MUSL: &str = "rust_builder.target.linux_armv7_musl";
+    pub const RUST_BUILDER_TARGET_MACOS_X86_64: &str = "rust_builder.target.macos_x86_64";
+    pub const RUST_BUILDER_TARGET_MACOS_ARM64: &str = "rust_builder.target.macos_arm64";
+    pub const RUST_BUILDER_TARGET_WINDOWS_X86_64: &str = "rust_builder.target.windows_x86_64";
+    pub const RUST_BUILDER_TARGET_WINDOWS_ARM64: &str = "rust_builder.target.windows_arm64";
+    pub const RUST_BUILDER_TARGET_WASM32_UNKNOWN: &str = "rust_builder.target.wasm32_unknown";
     pub const RUST_UPGRADER_VALIDATION_MISSING_CARGO: &str =
         "rust_upgrader.validation_missing_cargo";
     pub const RUST_UPGRADER_RUST_MISSING_OR_UNAVAILABLE: &str =
@@ -497,6 +554,13 @@ pub mod keys {
     pub const CONTAINER_BUILDER_BUILDING: &str = "container_builder.building";
     pub const CONTAINER_BUILDER_BUILD_SUCCESS: &str = "container_builder.build_success";
     pub const CONTAINER_BUILDER_BUILD_FAILED: &str = "container_builder.build_failed";
+
+    // Settings
+    pub const SETTINGS_COMMON_COUNT_NAME: &str = "settings.common_count.name";
+    pub const SETTINGS_COMMON_COUNT_DESC: &str = "settings.common_count.desc";
+    pub const SETTINGS_COMMON_COUNT_PROMPT: &str = "settings.common_count.prompt";
+    pub const SETTINGS_COMMON_COUNT_SAVED: &str = "settings.common_count.saved";
+    pub const SETTINGS_MENU_PROMPT: &str = "settings.menu.prompt";
     pub const CONTAINER_BUILDER_BUILD_ERROR: &str = "container_builder.build_error";
     pub const CONTAINER_BUILDER_PUSHING: &str = "container_builder.pushing";
     pub const CONTAINER_BUILDER_PUSH_SUCCESS: &str = "container_builder.push_success";

@@ -11,14 +11,36 @@ use ui::{Console, Prompts};
 use unicode_width::UnicodeWidthStr;
 
 /// Menu item definition
+#[derive(Clone, Copy)]
 struct MenuItem {
     name_key: &'static str,
     desc_key: &'static str,
     handler: fn(),
 }
 
-/// Get sortable menu items (excludes language and exit)
-fn sortable_menu_items() -> Vec<MenuItem> {
+#[derive(Clone)]
+struct Category {
+    name_key: &'static str,
+    desc_key: &'static str,
+    items: Vec<MenuItem>,
+}
+
+enum TopLevelChoice {
+    Action(MenuItem),
+    Category(Category),
+    Settings,
+    Header,
+    Exit,
+}
+
+struct TopLevelOption {
+    label: String,
+    choice: TopLevelChoice,
+    selectable: bool,
+}
+
+/// Get all executable menu items (excludes language and exit)
+fn all_actions() -> Vec<MenuItem> {
     vec![
         MenuItem {
             name_key: keys::MENU_TERRAFORM_CLEANER,
@@ -61,6 +83,11 @@ fn sortable_menu_items() -> Vec<MenuItem> {
             handler: features::kubeconfig_manager::run,
         },
         MenuItem {
+            name_key: keys::MENU_RUST_BUILDER,
+            desc_key: keys::MENU_RUST_BUILDER_DESC,
+            handler: features::rust_builder::run,
+        },
+        MenuItem {
             name_key: keys::MENU_CONTAINER_BUILDER,
             desc_key: keys::MENU_CONTAINER_BUILDER_DESC,
             handler: features::container_builder::run,
@@ -77,39 +104,249 @@ fn sort_by_usage(items: &mut [MenuItem], config: &AppConfig) {
     });
 }
 
-/// Format menu options with aligned names and descriptions
-fn format_menu_options(items: &[MenuItem]) -> Vec<String> {
-    let language_name = i18n::t(keys::MENU_LANGUAGE);
-    let language_desc = i18n::t(keys::MENU_LANGUAGE_DESC);
+fn find_action(items: &[MenuItem], key: &str) -> MenuItem {
+    items
+        .iter()
+        .find(|item| item.name_key == key)
+        .copied()
+        .expect("Menu item missing from catalog")
+}
 
+fn build_categories(items: &[MenuItem]) -> Vec<Category> {
+    vec![
+        Category {
+            name_key: keys::MENU_CATEGORY_BUILD,
+            desc_key: keys::MENU_CATEGORY_BUILD_DESC,
+            items: vec![
+                find_action(items, keys::MENU_RUST_BUILDER),
+                find_action(items, keys::MENU_CONTAINER_BUILDER),
+            ],
+        },
+        Category {
+            name_key: keys::MENU_CATEGORY_AI,
+            desc_key: keys::MENU_CATEGORY_AI_DESC,
+            items: vec![
+                find_action(items, keys::MENU_MCP_MANAGER),
+                find_action(items, keys::MENU_PROMPT_GEN),
+            ],
+        },
+        Category {
+            name_key: keys::MENU_CATEGORY_UPGRADE,
+            desc_key: keys::MENU_CATEGORY_UPGRADE_DESC,
+            items: vec![
+                find_action(items, keys::MENU_TOOL_UPGRADER),
+                find_action(items, keys::MENU_RUST_UPGRADER),
+                find_action(items, keys::MENU_PACKAGE_MANAGER),
+            ],
+        },
+        Category {
+            name_key: keys::MENU_CATEGORY_INFRA,
+            desc_key: keys::MENU_CATEGORY_INFRA_DESC,
+            items: vec![
+                find_action(items, keys::MENU_TERRAFORM_CLEANER),
+                find_action(items, keys::MENU_KUBECONFIG_MANAGER),
+            ],
+        },
+        Category {
+            name_key: keys::MENU_CATEGORY_SECURITY,
+            desc_key: keys::MENU_CATEGORY_SECURITY_DESC,
+            items: vec![find_action(items, keys::MENU_SECURITY_SCANNER)],
+        },
+    ]
+}
+
+fn build_common_actions(mut items: Vec<MenuItem>, config: &AppConfig) -> Vec<MenuItem> {
+    sort_by_usage(&mut items, config);
+    let limit = config.common_actions_limit().min(items.len().max(1));
+    items.truncate(limit);
+    items
+}
+
+fn format_action_options(items: &[MenuItem]) -> Vec<String> {
     let max_name_width = items
         .iter()
         .map(|item| i18n::t(item.name_key).width())
-        .chain(std::iter::once(language_name.width()))
         .max()
         .unwrap_or(0);
 
-    let mut options: Vec<String> = items
+    items
         .iter()
         .map(|item| {
-            let name = i18n::t(item.name_key);
+            let name = format!("  {}", i18n::t(item.name_key));
             let desc = i18n::t(item.desc_key);
-            let padding = max_name_width - name.width();
+            let padding = max_name_width - name.trim_start().width();
             format!("{}{} — {}", name, " ".repeat(padding), desc)
         })
-        .collect();
+        .collect()
+}
 
-    let padding = max_name_width - language_name.width();
-    options.push(format!(
-        "{}{} — {}",
-        language_name,
-        " ".repeat(padding),
-        language_desc
-    ));
+fn format_top_level_options(
+    common_actions: &[MenuItem],
+    categories: &[Category],
+) -> Vec<TopLevelOption> {
+    let settings_name = i18n::t(keys::MENU_SETTINGS);
+    let settings_desc = i18n::t(keys::MENU_SETTINGS_DESC);
 
-    options.push(i18n::t(keys::MENU_EXIT).to_string());
+    let max_name_width = common_actions
+        .iter()
+        .map(|item| i18n::t(item.name_key).width())
+        .chain(categories.iter().map(|cat| i18n::t(cat.name_key).width()))
+        .max()
+        .unwrap_or(0);
+
+    let mut options = Vec::new();
+
+    // Common header
+    options.push(TopLevelOption {
+        label: i18n::t(keys::MENU_COMMON).to_string(),
+        choice: TopLevelChoice::Header,
+        selectable: false,
+    });
+
+    for item in common_actions {
+        let name = format!("  {}", i18n::t(item.name_key));
+        let desc = i18n::t(item.desc_key);
+        let padding = max_name_width.saturating_sub(name.trim_start().width());
+        options.push(TopLevelOption {
+            label: format!("{}{} — {}", name, " ".repeat(padding), desc),
+            choice: TopLevelChoice::Action(*item),
+            selectable: true,
+        });
+    }
+
+    // Categories header
+    options.push(TopLevelOption {
+        label: i18n::t(keys::MENU_CATEGORIES).to_string(),
+        choice: TopLevelChoice::Header,
+        selectable: false,
+    });
+
+    for category in categories {
+        let name = i18n::t(category.name_key);
+        let desc = i18n::t(category.desc_key);
+        let padding = max_name_width.saturating_sub(name.width());
+        options.push(TopLevelOption {
+            label: format!("  {}{} — {}", name, " ".repeat(padding), desc),
+            choice: TopLevelChoice::Category(category.clone()),
+            selectable: true,
+        });
+    }
+
+    let padding = max_name_width.saturating_sub(settings_name.width());
+    options.push(TopLevelOption {
+        label: format!(
+            "  {}{} — {}",
+            settings_name,
+            " ".repeat(padding),
+            settings_desc
+        ),
+        choice: TopLevelChoice::Settings,
+        selectable: true,
+    });
+
+    options.push(TopLevelOption {
+        label: i18n::t(keys::MENU_EXIT).to_string(),
+        choice: TopLevelChoice::Exit,
+        selectable: true,
+    });
 
     options
+}
+
+fn select_category_item(category: &Category, config: &AppConfig) -> Option<MenuItem> {
+    let mut items = category.items.clone();
+    sort_by_usage(&mut items, config);
+    let mut options = format_action_options(&items);
+    options.push(i18n::t(keys::MENU_BACK).to_string());
+
+    let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
+    let prompt = crate::tr!(
+        keys::MENU_CATEGORY_PROMPT,
+        category = i18n::t(category.name_key)
+    );
+
+    let selection_opt = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(prompt)
+        .items(&option_refs)
+        .default(0)
+        .interact_opt()
+        .unwrap();
+
+    match selection_opt {
+        Some(selection) if selection < items.len() => Some(items[selection]),
+        _ => None,
+    }
+}
+
+fn open_settings(prompts: &Prompts, console: &Console) {
+    let mut config = load_config().ok().flatten().unwrap_or_default();
+
+    loop {
+        let settings_items = vec![
+            (keys::MENU_LANGUAGE, keys::MENU_LANGUAGE_DESC),
+            (
+                keys::SETTINGS_COMMON_COUNT_NAME,
+                keys::SETTINGS_COMMON_COUNT_DESC,
+            ),
+        ];
+
+        let max_name_width = settings_items
+            .iter()
+            .map(|(name_key, _)| i18n::t(*name_key).width())
+            .max()
+            .unwrap_or(0);
+
+        let mut options: Vec<String> = settings_items
+            .iter()
+            .map(|(name_key, desc_key)| {
+                let name = i18n::t(*name_key);
+                let desc = i18n::t(*desc_key);
+                let padding = max_name_width - name.width();
+                format!("{}{} — {}", name, " ".repeat(padding), desc)
+            })
+            .collect();
+
+        options.push(i18n::t(keys::MENU_BACK).to_string());
+        let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
+
+        let selection_opt = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt(i18n::t(keys::SETTINGS_MENU_PROMPT))
+            .items(&option_refs)
+            .default(0)
+            .interact_opt()
+            .unwrap();
+
+        match selection_opt {
+            Some(0) => select_language(prompts, console),
+            Some(1) => configure_common_actions(prompts, console, &mut config),
+            _ => break,
+        }
+    }
+}
+
+fn configure_common_actions(prompts: &Prompts, console: &Console, config: &mut AppConfig) {
+    let options: Vec<String> = (1..=6).map(|n| n.to_string()).collect();
+    let default = config
+        .common_actions_limit()
+        .saturating_sub(1)
+        .min(options.len() - 1);
+    let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
+
+    if let Some(index) = prompts.select_with_default(
+        i18n::t(keys::SETTINGS_COMMON_COUNT_PROMPT),
+        &option_refs,
+        default,
+    ) {
+        let value = index + 1;
+        config.common_actions_limit = value as u32;
+        match save_config(config) {
+            Ok(_) => console.success(&crate::tr!(
+                keys::SETTINGS_COMMON_COUNT_SAVED,
+                count = value
+            )),
+            Err(err) => console.warning(&crate::tr!(keys::CONFIG_SAVE_FAILED, error = err)),
+        }
+    }
 }
 
 fn main() {
@@ -122,33 +359,52 @@ fn main() {
 
     loop {
         let config = load_config().ok().flatten().unwrap_or_default();
-        let mut menu_items = sortable_menu_items();
-        sort_by_usage(&mut menu_items, &config);
+        let actions = all_actions();
+        let categories = build_categories(&actions);
+        let common_actions = build_common_actions(actions.clone(), &config);
+        let options = format_top_level_options(&common_actions, &categories);
+        let option_refs: Vec<&str> = options.iter().map(|opt| opt.label.as_str()).collect();
 
-        let options = format_menu_options(&menu_items);
-        let option_refs: Vec<&str> = options.iter().map(|s| s.as_str()).collect();
+        let default_index = options.iter().position(|opt| opt.selectable).unwrap_or(0);
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let selection_opt = Select::with_theme(&ColorfulTheme::default())
             .with_prompt(i18n::t(keys::MENU_PROMPT))
             .items(&option_refs)
-            .default(0)
-            .interact()
+            .default(default_index)
+            .interact_opt()
             .unwrap();
 
-        let sortable_count = menu_items.len();
-
-        if selection < sortable_count {
-            let selected_item = &menu_items[selection];
-            record_usage(selected_item.name_key, &console);
-            (selected_item.handler)();
-        } else if selection == sortable_count {
-            select_language(&prompts, &console);
-        } else {
+        let Some(selection) = selection_opt else {
             println!("{}", i18n::t(keys::MENU_GOODBYE).green());
             break;
+        };
+
+        if !options[selection].selectable {
+            continue;
         }
 
-        println!("\n");
+        match &options[selection].choice {
+            TopLevelChoice::Action(item) => {
+                record_usage(item.name_key, &console);
+                (item.handler)();
+            }
+            TopLevelChoice::Category(category) => {
+                if let Some(item) = select_category_item(category, &config) {
+                    record_usage(item.name_key, &console);
+                    (item.handler)();
+                }
+            }
+            TopLevelChoice::Settings => {
+                open_settings(&prompts, &console);
+            }
+            TopLevelChoice::Header => {}
+            TopLevelChoice::Exit => {
+                println!("{}", i18n::t(keys::MENU_GOODBYE).green());
+                break;
+            }
+        }
+
+        println!();
     }
 }
 
