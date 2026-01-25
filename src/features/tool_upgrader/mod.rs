@@ -15,7 +15,7 @@ pub fn run() {
 
     console.info(i18n::t(keys::TOOL_UPGRADER_LIST_TITLE));
     for tool in AI_TOOLS {
-        console.list_item("📦", &format!("{} ({})", tool.name, tool.package));
+        console.list_item("📦", &format!("{} ({})", tool.name, tool.display));
     }
     console.separator();
 
@@ -37,7 +37,7 @@ pub fn run() {
             &crate::tr!(keys::TOOL_UPGRADER_PROGRESS, tool = tool.name),
         );
 
-        match upgrader.upgrade(tool.package) {
+        match upgrader.upgrade(tool) {
             Ok(output) => {
                 console.success_item(&crate::tr!(keys::TOOL_UPGRADER_SUCCESS, tool = tool.name));
                 if !output.trim().is_empty() {
