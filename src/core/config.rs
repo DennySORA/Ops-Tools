@@ -14,6 +14,9 @@ pub struct AppConfig {
     /// How many common actions to show on the top menu
     #[serde(default = "default_common_actions_limit")]
     pub common_actions_limit: u32,
+    /// Pinned menu items (shown at the top)
+    #[serde(default)]
+    pub pinned_items: Vec<String>,
 }
 
 impl AppConfig {
@@ -30,6 +33,23 @@ impl AppConfig {
     /// Number of common actions to display (at least 1)
     pub fn common_actions_limit(&self) -> usize {
         self.common_actions_limit.max(1) as usize
+    }
+
+    /// Check if an item is pinned
+    pub fn is_pinned(&self, key: &str) -> bool {
+        self.pinned_items.contains(&key.to_string())
+    }
+
+    /// Pin an item (add to the end of pinned list)
+    pub fn pin_item(&mut self, key: &str) {
+        if !self.is_pinned(key) {
+            self.pinned_items.push(key.to_string());
+        }
+    }
+
+    /// Get pinned items in order
+    pub fn pinned_items(&self) -> &[String] {
+        &self.pinned_items
     }
 }
 

@@ -183,6 +183,18 @@ pub mod keys {
     pub const MENU_LANGUAGE_DESC: &str = "menu.language.desc";
     pub const MENU_EXIT: &str = "menu.exit";
     pub const MENU_GOODBYE: &str = "menu.goodbye";
+    pub const MENU_PINNED: &str = "menu.pinned.name";
+    pub const MENU_PIN_MANAGE: &str = "menu.pin.manage.name";
+    pub const MENU_PIN_MANAGE_DESC: &str = "menu.pin.manage.desc";
+    pub const MENU_PIN_PROMPT: &str = "menu.pin.prompt";
+    pub const MENU_PIN_ICON: &str = "menu.pin.icon";
+    pub const MENU_PIN_COUNT: &str = "menu.pin.count";
+    pub const MENU_PIN_CLEARED: &str = "menu.pin.cleared";
+    pub const MENU_PIN_REORDER: &str = "menu.pin.reorder.name";
+    pub const MENU_PIN_REORDER_DESC: &str = "menu.pin.reorder.desc";
+    pub const MENU_PIN_REORDER_PROMPT: &str = "menu.pin.reorder.prompt";
+    pub const MENU_PIN_REORDER_DONE: &str = "menu.pin.reorder.done";
+    pub const MENU_PIN_REORDER_EMPTY: &str = "menu.pin.reorder.empty";
 
     pub const LANGUAGE_SELECT_PROMPT: &str = "language.select_prompt";
     pub const LANGUAGE_CHANGED: &str = "language.changed";
