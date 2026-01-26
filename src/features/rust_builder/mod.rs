@@ -183,7 +183,7 @@ fn select_builder(prompts: &Prompts) -> Option<Builder> {
 }
 
 fn select_profile(prompts: &Prompts) -> Option<bool> {
-    let options = vec![
+    let options = [
         i18n::t(keys::RUST_BUILDER_PROFILE_RELEASE).to_string(),
         i18n::t(keys::RUST_BUILDER_PROFILE_DEBUG).to_string(),
     ];

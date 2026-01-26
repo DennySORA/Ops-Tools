@@ -292,35 +292,96 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
     }
 
     if let Some(token) = ENV_CONFIG.github_token {
+        let mode = ENV_CONFIG.github_mcp_mode_value();
         let host = ENV_CONFIG.github_host.unwrap_or("github.com");
+
+        let install_args = if mode == "remote" {
+            // 遠端模式：使用 GitHub 託管的 MCP 伺服器（官方推薦）
+            // https://github.com/github/github-mcp-server#remote-server-recommended
+            match cli_type {
+                CliType::Claude => {
+                    let mut args = vec![
+                        "--transport".to_string(),
+                        "http".to_string(),
+                        "github".to_string(),
+                        "https://api.githubcopilot.com/mcp/".to_string(),
+                        "--header".to_string(),
+                        format!("Authorization: Bearer {}", token),
+                    ];
+                    // 如果不是預設的 github.com，加入 X-GitHub-Host header
+                    if host != "github.com" {
+                        args.push("--header".to_string());
+                        args.push(format!("X-GitHub-Host: {}", host));
+                    }
+                    args
+                }
+                CliType::Codex => vec![
+                    "github".to_string(),
+                    "--url".to_string(),
+                    "https://api.githubcopilot.com/mcp/".to_string(),
+                ],
+                CliType::Gemini => {
+                    let mut args = vec![
+                        "github".to_string(),
+                        "https://api.githubcopilot.com/mcp/".to_string(),
+                        "--transport".to_string(),
+                        "http".to_string(),
+                        "--header".to_string(),
+                        format!("Authorization: Bearer {}", token),
+                    ];
+                    if host != "github.com" {
+                        args.push("--header".to_string());
+                        args.push(format!("X-GitHub-Host: {}", host));
+                    }
+                    args
+                }
+            }
+        } else {
+            // Docker 本地模式
+            // https://github.com/github/github-mcp-server#local-server
+            let mut args = vec![
+                "github".to_string(),
+                "--env".to_string(),
+                format!("GITHUB_PERSONAL_ACCESS_TOKEN={}", token),
+            ];
+            // 加入 GITHUB_HOST（用於 GitHub Enterprise）
+            if host != "github.com" {
+                args.push("--env".to_string());
+                args.push(format!("GITHUB_HOST=https://{}", host));
+            }
+            // 加入 GITHUB_TOOLSETS（功能集）
+            if let Some(toolsets) = ENV_CONFIG.github_toolsets {
+                args.push("--env".to_string());
+                args.push(format!("GITHUB_TOOLSETS={}", toolsets));
+            }
+            if let Some(sep) = separator {
+                args.push(sep.to_string());
+            }
+            args.extend(vec![
+                "docker".to_string(),
+                "run".to_string(),
+                "-i".to_string(),
+                "--rm".to_string(),
+                "-e".to_string(),
+                "GITHUB_PERSONAL_ACCESS_TOKEN".to_string(),
+            ]);
+            if host != "github.com" {
+                args.push("-e".to_string());
+                args.push("GITHUB_HOST".to_string());
+            }
+            if ENV_CONFIG.github_toolsets.is_some() {
+                args.push("-e".to_string());
+                args.push("GITHUB_TOOLSETS".to_string());
+            }
+            args.push("ghcr.io/github/github-mcp-server".to_string());
+            args
+        };
+
         tools.push(McpTool {
             name: "github",
             display_name_key: keys::MCP_TOOL_GITHUB,
-            install_args: {
-                let mut args = vec![
-                    "github".to_string(),
-                    "--env".to_string(),
-                    format!("GITHUB_PERSONAL_ACCESS_TOKEN={}", token),
-                    "--env".to_string(),
-                    format!("GITHUB_HOST={}", host),
-                ];
-                if let Some(sep) = separator {
-                    args.push(sep.to_string());
-                }
-                args.extend(vec![
-                    "docker".to_string(),
-                    "run".to_string(),
-                    "-i".to_string(),
-                    "--rm".to_string(),
-                    "-e".to_string(),
-                    "GITHUB_PERSONAL_ACCESS_TOKEN".to_string(),
-                    "-e".to_string(),
-                    "GITHUB_HOST".to_string(),
-                    "ghcr.io/github/github-mcp-server".to_string(),
-                ]);
-                args
-            },
-            requires_interactive: false,
+            install_args,
+            requires_interactive: mode == "remote",
         });
     }
 

@@ -2,6 +2,8 @@
 pub struct EnvConfig {
     pub github_token: Option<&'static str>,
     pub github_host: Option<&'static str>,
+    pub github_toolsets: Option<&'static str>,
+    pub github_mcp_mode: Option<&'static str>,
     pub context7_api_key: Option<&'static str>,
     pub enable_cloudflare_mcp_raw: Option<&'static str>,
     pub arxiv_storage_path: Option<&'static str>,
@@ -12,12 +14,22 @@ impl EnvConfig {
         Self {
             github_token: option_env!("GITHUB_PERSONAL_ACCESS_TOKEN"),
             github_host: option_env!("GITHUB_HOST"),
+            github_toolsets: option_env!("GITHUB_TOOLSETS"),
+            github_mcp_mode: option_env!("GITHUB_MCP_MODE"),
             context7_api_key: option_env!("CONTEXT7_API_KEY"),
             enable_cloudflare_mcp_raw: first_env(
                 option_env!("enable_cloudflare_mcp"),
                 option_env!("ENABLE_CLOUDFLARE_MCP"),
             ),
             arxiv_storage_path: option_env!("ARXIV_STORAGE_PATH"),
+        }
+    }
+
+    /// 取得 GitHub MCP 模式（remote 或 docker）
+    pub fn github_mcp_mode_value(&self) -> &'static str {
+        match self.github_mcp_mode {
+            Some(mode) if mode.eq_ignore_ascii_case("docker") => "docker",
+            _ => "remote",
         }
     }
 

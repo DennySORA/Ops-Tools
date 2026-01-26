@@ -282,7 +282,7 @@ fn open_settings(prompts: &Prompts, console: &Console) {
     let mut config = load_config().ok().flatten().unwrap_or_default();
 
     loop {
-        let settings_items = vec![
+        let settings_items = [
             (keys::MENU_LANGUAGE, keys::MENU_LANGUAGE_DESC),
             (
                 keys::SETTINGS_COMMON_COUNT_NAME,
@@ -292,15 +292,15 @@ fn open_settings(prompts: &Prompts, console: &Console) {
 
         let max_name_width = settings_items
             .iter()
-            .map(|(name_key, _)| i18n::t(*name_key).width())
+            .map(|(name_key, _)| i18n::t(name_key).width())
             .max()
             .unwrap_or(0);
 
         let mut options: Vec<String> = settings_items
             .iter()
             .map(|(name_key, desc_key)| {
-                let name = i18n::t(*name_key);
-                let desc = i18n::t(*desc_key);
+                let name = i18n::t(name_key);
+                let desc = i18n::t(desc_key);
                 let padding = max_name_width - name.width();
                 format!("{}{} — {}", name, " ".repeat(padding), desc)
             })
