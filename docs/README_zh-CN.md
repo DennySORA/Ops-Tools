@@ -66,8 +66,10 @@
 | `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability 等） |
 
 **环境变量**（可选 - 仅 MCP 管理功能需要，编译时设定于 `.env`）：
-- `GITHUB_PERSONAL_ACCESS_TOKEN`
-- `GITHUB_HOST`
+- `GITHUB_PERSONAL_ACCESS_TOKEN`：GitHub 个人访问令牌（必需）
+- `GITHUB_MCP_MODE`：`docker`（默认，无需 Copilot 订阅）或 `remote`（需要 GitHub Copilot 订阅）
+- `GITHUB_HOST`：GitHub Enterprise 主机（可选，默认 `github.com`）
+- `GITHUB_TOOLSETS`：功能集（可选，如 `repos,issues,pull_requests,actions`）
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（设为 `true` 启用 Cloudflare MCP）
 - `ARXIV_STORAGE_PATH`（arXiv 论文存储路径，默认 `~/.arxiv-papers`）

@@ -66,8 +66,10 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 | `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability など） |
 
 **環境変数**（オプション - MCP管理機能を使用する場合のみ必要、ビルド時に `.env` で設定）：
-- `GITHUB_PERSONAL_ACCESS_TOKEN`
-- `GITHUB_HOST`
+- `GITHUB_PERSONAL_ACCESS_TOKEN`：GitHub パーソナルアクセストークン（必須）
+- `GITHUB_MCP_MODE`：`docker`（デフォルト、Copilot サブスクリプション不要）または `remote`（GitHub Copilot サブスクリプションが必要）
+- `GITHUB_HOST`：GitHub Enterprise ホスト（オプション、デフォルトは `github.com`）
+- `GITHUB_TOOLSETS`：ツールセット（オプション、例：`repos,issues,pull_requests,actions`）
 - `CONTEXT7_API_KEY`
 - `enable_cloudflare_mcp`（`true` で Cloudflare MCP を有効化）
 - `ARXIV_STORAGE_PATH`（arXiv 論文の保存パス、デフォルトは `~/.arxiv-papers`）

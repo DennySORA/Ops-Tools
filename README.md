@@ -74,7 +74,10 @@ How to enable:
 
 Available MCP options:
 - **Context7 MCP**: set `CONTEXT7_API_KEY` to enable the `context7` tool.
-- **GitHub MCP**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required) and `GITHUB_HOST` (optional, default `github.com`) to enable the `github` tool.
+- **GitHub MCP**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required) to enable the `github` tool.
+  - `GITHUB_MCP_MODE`: `docker` (default, works without Copilot subscription) or `remote` (requires GitHub Copilot subscription)
+  - `GITHUB_HOST`: optional, default `github.com` (for GitHub Enterprise)
+  - `GITHUB_TOOLSETS`: optional, comma-separated list of toolsets to enable (e.g., `repos,issues,pull_requests,actions`)
 - **Cloudflare MCP**: set `enable_cloudflare_mcp=true` to enable `cloudflare-*` tools (OAuth during install).
 - **arXiv MCP**: set `ARXIV_STORAGE_PATH` (optional, default `~/.arxiv-papers`) to configure paper storage location.
 
