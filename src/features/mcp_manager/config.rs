@@ -26,10 +26,11 @@ impl EnvConfig {
     }
 
     /// 取得 GitHub MCP 模式（remote 或 docker）
+    /// 預設為 docker，因為 remote 模式需要 GitHub Copilot 訂閱
     pub fn github_mcp_mode_value(&self) -> &'static str {
         match self.github_mcp_mode {
-            Some(mode) if mode.eq_ignore_ascii_case("docker") => "docker",
-            _ => "remote",
+            Some(mode) if mode.eq_ignore_ascii_case("remote") => "remote",
+            _ => "docker",
         }
     }
 
