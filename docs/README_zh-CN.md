@@ -16,6 +16,7 @@
 | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 服务器 |
 | 安全扫描 | 运行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
 | Prompt 生成 | 4 步骤 LLM 工作流程，支持进度追踪 |
+| 技能安装器 | 安装 AI CLI 扩展（Claude/Codex/Gemini） |
 | Rust 编译 | 跨平台可执行文件构建（cargo/cross，glibc/musl 可选） |
 | 容器构建 | Docker/Buildah 多架构构建（x86、arm64、armv7、Jetson） |
 | Kubeconfig 管理 | tmux 窗口隔离的 kubeconfig |
@@ -109,7 +110,29 @@ Cloudflare MCP 通过 OAuth 交互登录，安装时请根据 CLI 显示的 URL 
 - `*-unknown-linux-musl`（musl，多为静态）：适合 Alpine/极小镜像；单文件部署方便。
 - `i686-*` 传统 32 位 x86；`powerpc64le-*` OpenPOWER/IBM Cloud；`wasm32-unknown-unknown` 用于浏览器/wasm 运行时（无 std）。
 
-### 7. 容器镜像构建器
+### 7. 技能安装器
+安装与管理 AI CLI 工具的扩展：
+
+| CLI | 扩展格式 | 安装路径 |
+|-----|---------|---------|
+| Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
+| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
+
+**可用扩展：**
+- `ralph-wiggum` - AI 代理循环（Claude/Gemini）
+- `security-guidance` - 安全最佳实践（Claude/Gemini）
+- `frontend-design` - 前端界面设计（所有 CLI）
+- `code-review` - 代码审查助手（所有 CLI）
+- `pr-review-toolkit` - PR 审查工具（所有 CLI）
+- `commit-commands` - Git Commit 助手（所有 CLI）
+- `writing-rules` - 写作风格规则（所有 CLI）
+
+**注意：** Gemini 使用不同的扩展格式。安装器会自动将 Claude 插件转换为 Gemini 原生 TOML 格式，并注册到 `extension-enablement.json`。
+
+详见 [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 开发指南。
+
+### 8. 容器镜像构建器
 使用 Docker 或 Buildah 构建多架构容器镜像：
 - **构建引擎**：Docker (buildx) 或 Buildah（无守护进程 OCI 构建器）
 - **多架构支持**：

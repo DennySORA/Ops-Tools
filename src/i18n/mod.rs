@@ -566,6 +566,47 @@ pub mod keys {
     pub const CONTAINER_BUILDER_PUSH_SUCCESS: &str = "container_builder.push_success";
     pub const CONTAINER_BUILDER_PUSH_FAILED: &str = "container_builder.push_failed";
     pub const CONTAINER_BUILDER_PUSH_ERROR: &str = "container_builder.push_error";
+
+    // Skill Installer - Menu
+    pub const MENU_SKILL_INSTALLER: &str = "menu.skill_installer.name";
+    pub const MENU_SKILL_INSTALLER_DESC: &str = "menu.skill_installer.desc";
+
+    // Skill Installer - UI
+    pub const SKILL_INSTALLER_HEADER: &str = "skill_installer.header";
+    pub const SKILL_INSTALLER_SELECT_CLI: &str = "skill_installer.select_cli";
+    pub const SKILL_INSTALLER_CANCELLED: &str = "skill_installer.cancelled";
+    pub const SKILL_INSTALLER_USING_CLI: &str = "skill_installer.using_cli";
+    pub const SKILL_INSTALLER_SCANNING: &str = "skill_installer.scanning";
+    pub const SKILL_INSTALLER_NONE_INSTALLED: &str = "skill_installer.none_installed";
+    pub const SKILL_INSTALLER_FOUND_INSTALLED: &str = "skill_installer.found_installed";
+    pub const SKILL_INSTALLER_STATUS_INSTALLED: &str = "skill_installer.status_installed";
+    pub const SKILL_INSTALLER_STATUS_MISSING: &str = "skill_installer.status_missing";
+    pub const SKILL_INSTALLER_SELECT_PROMPT: &str = "skill_installer.select_prompt";
+    pub const SKILL_INSTALLER_SELECT_HELP: &str = "skill_installer.select_help";
+    pub const SKILL_INSTALLER_NO_CHANGES: &str = "skill_installer.no_changes";
+    pub const SKILL_INSTALLER_NO_EXTENSIONS: &str = "skill_installer.no_extensions";
+    pub const SKILL_INSTALLER_CHANGE_SUMMARY: &str = "skill_installer.change_summary";
+    pub const SKILL_INSTALLER_WILL_INSTALL: &str = "skill_installer.will_install";
+    pub const SKILL_INSTALLER_WILL_REMOVE: &str = "skill_installer.will_remove";
+    pub const SKILL_INSTALLER_CONFIRM_CHANGES: &str = "skill_installer.confirm_changes";
+    pub const SKILL_INSTALLER_DOWNLOADING: &str = "skill_installer.downloading";
+    pub const SKILL_INSTALLER_INSTALL_SUCCESS: &str = "skill_installer.install_success";
+    pub const SKILL_INSTALLER_INSTALL_FAILED: &str = "skill_installer.install_failed";
+    pub const SKILL_INSTALLER_REMOVING: &str = "skill_installer.removing";
+    pub const SKILL_INSTALLER_REMOVE_SUCCESS: &str = "skill_installer.remove_success";
+    pub const SKILL_INSTALLER_REMOVE_FAILED: &str = "skill_installer.remove_failed";
+    pub const SKILL_INSTALLER_SUMMARY: &str = "skill_installer.summary";
+    pub const SKILL_INSTALLER_DOWNLOAD_FAILED: &str = "skill_installer.download_failed";
+    pub const SKILL_INSTALLER_EXTRACT_FAILED: &str = "skill_installer.extract_failed";
+
+    // Extension names
+    pub const SKILL_RALPH_WIGGUM: &str = "skill.ralph_wiggum";
+    pub const SKILL_FRONTEND_DESIGN: &str = "skill.frontend_design";
+    pub const SKILL_CODE_REVIEW: &str = "skill.code_review";
+    pub const SKILL_PR_REVIEW_TOOLKIT: &str = "skill.pr_review_toolkit";
+    pub const SKILL_COMMIT_COMMANDS: &str = "skill.commit_commands";
+    pub const SKILL_SECURITY_GUIDANCE: &str = "skill.security_guidance";
+    pub const SKILL_WRITING_RULES: &str = "skill.writing_rules";
 }
 
 #[cfg(test)]

@@ -6,5 +6,6 @@ pub mod prompt_gen;
 pub mod rust_builder;
 pub mod rust_upgrader;
 pub mod security_scanner;
+pub mod skill_installer;
 pub mod terraform_cleaner;
 pub mod tool_upgrader;

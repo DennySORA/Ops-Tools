@@ -16,6 +16,7 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 | MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
 | セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
 | プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
+| スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex/Gemini） |
 | Rust ビルド | クロスプラットフォーム実行ファイル（cargo/cross、glibc/musl 選択可） |
 | コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
 | Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
@@ -109,7 +110,29 @@ LLM ワークフロー用の 4 ステッププロンプトを生成・実行し�
 - `*-unknown-linux-musl`（musl、多くは静的）：Alpine/最小イメージ向け；単一バイナリ配布に便利。
 - `i686-*` はレガシー 32bit x86、`powerpc64le-*` は OpenPOWER/IBM Cloud 向け、`wasm32-unknown-unknown` はブラウザ/wasm ランタイム向け（no std）。
 
-### 7. コンテナイメージビルダー
+### 7. スキルインストーラー
+AI CLI ツールの拡張機能をインストール・管理します：
+
+| CLI | 拡張形式 | インストールパス |
+|-----|---------|-----------------|
+| Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
+| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
+
+**利用可能な拡張機能：**
+- `ralph-wiggum` - AI エージェントループ（Claude/Gemini）
+- `security-guidance` - セキュリティベストプラクティス（Claude/Gemini）
+- `frontend-design` - フロントエンドインターフェースデザイン（全 CLI）
+- `code-review` - コードレビューアシスタント（全 CLI）
+- `pr-review-toolkit` - PR レビューツール（全 CLI）
+- `commit-commands` - Git Commit ヘルパー（全 CLI）
+- `writing-rules` - ライティングスタイルルール（全 CLI）
+
+**注意：** Gemini は異なる拡張形式を使用します。インストーラーは Claude プラグインを Gemini ネイティブの TOML 形式に自動変換し、`extension-enablement.json` に登録します。
+
+詳細は [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開発ガイドを参照してください。
+
+### 8. コンテナイメージビルダー
 Docker または Buildah でマルチアーキテクチャコンテナイメージをビルドします：
 - **ビルドエンジン**：Docker (buildx) または Buildah（デーモンレス OCI ビルダー）
 - **マルチアーキテクチャサポート**：

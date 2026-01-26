@@ -92,6 +92,11 @@ fn all_actions() -> Vec<MenuItem> {
             desc_key: keys::MENU_CONTAINER_BUILDER_DESC,
             handler: features::container_builder::run,
         },
+        MenuItem {
+            name_key: keys::MENU_SKILL_INSTALLER,
+            desc_key: keys::MENU_SKILL_INSTALLER_DESC,
+            handler: features::skill_installer::run,
+        },
     ]
 }
 
@@ -127,6 +132,7 @@ fn build_categories(items: &[MenuItem]) -> Vec<Category> {
             desc_key: keys::MENU_CATEGORY_AI_DESC,
             items: vec![
                 find_action(items, keys::MENU_MCP_MANAGER),
+                find_action(items, keys::MENU_SKILL_INSTALLER),
                 find_action(items, keys::MENU_PROMPT_GEN),
             ],
         },

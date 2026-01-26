@@ -75,3 +75,73 @@ The project follows a strict layered architecture:
 *   **Error Handling:**
     *   Unified `OperationError` enum for all error types.
     *   Errors must be traceable and categorized.
+
+## Skill Installer Development
+
+When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+
+### Extension Configuration
+
+Extensions are defined in `src/features/skill_installer/tools.rs`:
+
+```rust
+Extension {
+    name: "extension-name",
+    display_name_key: keys::SKILL_EXTENSION_NAME,
+    extension_type: ExtensionType::Plugin,
+    source_repo: "anthropics/claude-code",
+    source_path: "plugins/extension-name",
+    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
+    skill_subpath: Some("skills/skill-name"),  // For skills/ extraction
+    command_file: Some("commands/cmd.md"),      // For command conversion
+},
+```
+
+### Conversion Methods
+
+| Method | When to Use | Example |
+|--------|-------------|---------|
+| `skill_subpath` | Plugin has `skills/` subdirectory | `Some("skills/frontend-design")` |
+| `command_file` | Plugin has `commands/` only | `Some("commands/code-review.md")` |
+| Both `None` | Claude-only (hooks dependency) | `skill_subpath: None, command_file: None` |
+
+### Gemini Extension Format
+
+**Important:** Gemini uses a completely different extension format than Claude/Codex.
+
+Extensions are installed to `~/.gemini/extensions/<name>/` with this structure:
+
+```
+~/.gemini/extensions/<extension-name>/
+├── gemini-extension.json    # Required manifest
+├── GEMINI.md                # Context file
+└── commands/
+    └── <extension-name>/
+        └── invoke.toml      # Commands in TOML format
+```
+
+The installer automatically converts:
+- Claude SKILL.md → Gemini TOML commands
+- Claude command markdown → Gemini TOML format
+- Registers extensions in `extension-enablement.json`
+
+### Using Extensions
+
+Invoke commands with `/<extension>:<command>` syntax:
+
+```bash
+# In Gemini CLI
+> /frontend-design:invoke
+> /code-review:invoke
+```
+
+### Limitations
+
+Some Claude-specific features cannot be fully converted:
+- **allowed-tools** restrictions (Claude-specific security sandbox)
+- **Sub-agent orchestration** (agent launching is Claude-specific)
+- **Dynamic context** (syntax like `!git status` depends on CLI support)
+
+**Note:** Codex has NO hook support. Plugins with hooks are not available on Codex.
+
+See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for complete documentation.

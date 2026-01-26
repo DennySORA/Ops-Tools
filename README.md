@@ -16,6 +16,7 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 | MCP Manager | Manage MCP servers for Claude/Codex/Gemini |
 | Security Scanner | Run gitleaks, trufflehog, git-secrets, trivy, semgrep |
 | Prompt Generator | 4-step LLM workflow with progress tracking |
+| Skill Installer | Install AI CLI extensions (Claude/Codex/Gemini) |
 | Rust Build | Build cross-platform binaries (cargo/cross) |
 | Container Builder | Docker/Buildah multi-arch builds (x86, arm64, armv7, Jetson) |
 | Kubeconfig Manager | tmux window-isolated kubeconfig |
@@ -113,7 +114,29 @@ The 4-step workflow:
 
 Progress is tracked per feature with session management for resumable execution.
 
-### 7. Container Image Builder
+### 7. Skill Installer
+Install and manage extensions for AI CLI tools:
+
+| CLI | Extension Format | Install Path |
+|-----|-----------------|--------------|
+| Claude Code | Plugins + Skills | `~/.claude/plugins/`, `~/.claude/skills/` |
+| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
+
+**Available Extensions:**
+- `ralph-wiggum` - AI Agent Loop (Claude/Gemini)
+- `security-guidance` - Security Best Practices (Claude/Gemini)
+- `frontend-design` - Frontend Interface Design (All CLIs)
+- `code-review` - Code Review Assistant (All CLIs)
+- `pr-review-toolkit` - PR Review Tools (All CLIs)
+- `commit-commands` - Git Commit Helper (All CLIs)
+- `writing-rules` - Writing Style Rules (All CLIs)
+
+**Note:** Gemini uses a different extension format. The installer automatically converts Claude plugins to Gemini's native TOML format and registers them in `extension-enablement.json`.
+
+See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for development guide.
+
+### 8. Container Image Builder
 Build multi-architecture container images with Docker or Buildah:
 - **Build Engines**: Docker (buildx) or Buildah (daemonless OCI builder)
 - **Multi-Architecture Support**:

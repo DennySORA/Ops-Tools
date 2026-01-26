@@ -16,6 +16,7 @@
 | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 伺服器 |
 | 安全掃描 | 執行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
 | Prompt 生成 | 4 步驟 LLM 工作流程，支援進度追蹤 |
+| 技能安裝器 | 安裝 AI CLI 擴充套件（Claude/Codex/Gemini） |
 | Rust 編譯 | 跨平台可執行檔建置（cargo/cross，glibc/musl 可選） |
 | 容器建構 | Docker/Buildah 多架構建構（x86、arm64、armv7、Jetson） |
 | Kubeconfig 管理 | tmux 視窗隔離的 kubeconfig |
@@ -109,7 +110,29 @@ Cloudflare MCP 會透過 OAuth 互動登入，安裝時請依 CLI 顯示的 URL 
 - `*-unknown-linux-musl`（musl，多為靜態）：適合 Alpine/極小映像；單檔部署方便。
 - `i686-*` 傳統 32 位元 x86；`powerpc64le-*` OpenPOWER/IBM Cloud；`wasm32-unknown-unknown` 供瀏覽器/wasm 執行環境（無 std）。
 
-### 7. 容器映像建構器
+### 7. 技能安裝器
+安裝與管理 AI CLI 工具的擴充套件：
+
+| CLI | 擴充格式 | 安裝路徑 |
+|-----|---------|---------|
+| Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
+| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
+
+**可用擴充套件：**
+- `ralph-wiggum` - AI 代理迴圈（Claude/Gemini）
+- `security-guidance` - 安全最佳實踐（Claude/Gemini）
+- `frontend-design` - 前端介面設計（所有 CLI）
+- `code-review` - 程式碼審查助手（所有 CLI）
+- `pr-review-toolkit` - PR 審查工具（所有 CLI）
+- `commit-commands` - Git Commit 助手（所有 CLI）
+- `writing-rules` - 寫作風格規則（所有 CLI）
+
+**注意：** Gemini 使用不同的擴充格式。安裝器會自動將 Claude 外掛轉換為 Gemini 原生 TOML 格式，並註冊到 `extension-enablement.json`。
+
+詳見 [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開發指南。
+
+### 8. 容器映像建構器
 使用 Docker 或 Buildah 建構多架構容器映像：
 - **建構引擎**：Docker (buildx) 或 Buildah（無背景程序 OCI 建構器）
 - **多架構支援**：

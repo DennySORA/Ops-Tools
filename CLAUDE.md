@@ -72,3 +72,22 @@
 - 憑證/金鑰/Token **不得寫進程式碼或 repo**；使用 Secret Manager/環境變數/CI secrets。
 - 機敏資料在傳輸與儲存時需加密（TLS、DB encryption/at-rest）。
 - 日誌、追蹤、錯誤回報不得輸出機敏資料；必要時只保留 hash 或部分遮罩。
+
+## Skill Installer Development
+
+When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+
+### Key Requirements
+
+1. **Extension Definition**: Add entries to `src/features/skill_installer/tools.rs`
+2. **i18n Support**: Add keys to `src/i18n/mod.rs` and all locale files
+3. **CLI Compatibility**: Specify correct `cli_support` for each extension
+4. **Conversion Method**: Use `skill_subpath` for plugins with skills/, `command_file` for command-based conversion
+
+### Limitations
+
+- Plugins using **hooks** cannot be converted for Codex/Gemini (Claude-only)
+- `allowed-tools` restrictions are stripped during conversion
+- Dynamic context syntax (`!git status`) may not work in all CLIs
+
+See the full documentation for detailed instructions and examples.

@@ -30,3 +30,38 @@
 
 ## Agent Notes (Optional)
 - See `CLAUDE.md` and `GEMINI.md` for AI-specific development guidance.
+
+## Skill Installer Development
+
+When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+
+### Quick Reference
+
+| Plugin Structure | Claude | Codex | Gemini | Configuration |
+|-----------------|--------|-------|--------|---------------|
+| Has `skills/` subdirectory | Plugin | Skill (extract) | Extension (TOML) | `skill_subpath` |
+| Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
+| Has `hooks/` only | Plugin | **Not supported** | Extension (TOML) | `has_hooks: true` |
+| Has `hooks/` + `commands/` | Plugin | Skill (convert) | Extension (TOML) | `has_hooks: true` |
+
+### Gemini Extension Format
+
+**Important:** Gemini uses a different format than Claude/Codex:
+- Extensions installed to `~/.gemini/extensions/<name>/`
+- Commands are TOML files (not Markdown)
+- Requires `gemini-extension.json` manifest
+- Invoke with `/<extension>:<command>` syntax
+
+### Required Steps
+
+1. Add extension to `src/features/skill_installer/tools.rs`
+2. Add i18n keys to `src/i18n/mod.rs` and all locale files (en, zh-TW, zh-CN, ja)
+3. Set appropriate `cli_support`, `skill_subpath`, or `command_file`
+4. Run tests: `cargo test skill_installer`
+
+### Conversion Limitations
+
+- **Hooks** - Codex has no hook system; Gemini converts to native format
+- **allowed-tools** field is removed during conversion (Claude-specific)
+- **Gemini format** - Commands converted to TOML, registered in enablement file
+- **description** truncated to single line for Codex (auto-converted)
