@@ -36,6 +36,8 @@ Batch upgrades for popular AI code assistants:
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
+Codex upgrades use `bun install -g @openai/codex`.
+
 ### 3. Package Installer/Updater (macOS/Linux)
 Install, remove, and update common tools with an interactive checklist:
 - `nvm` (installs latest Node.js)

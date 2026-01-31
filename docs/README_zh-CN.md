@@ -36,6 +36,8 @@
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
+Codex 升级会使用 `bun install -g @openai/codex`。
+
 ### 3. 软件包安装/更新（macOS/Linux）
 通过交互勾选安装、移除与更新常用工具：
 - `nvm`（安装最新 Node.js）

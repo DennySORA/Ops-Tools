@@ -36,6 +36,8 @@ Terraform および Terragrunt によって生成されたキャッシュファ�
 - `OpenAI Codex` (@openai/codex)
 - `Google Gemini CLI` (@google/gemini-cli)
 
+Codex のアップグレードは `bun install -g @openai/codex` を使用します。
+
 ### 3. パッケージのインストール/更新（macOS/Linux）
 対話式のチェックリストでインストール・削除・更新を行います：
 - `nvm`（最新 Node.js をインストール）

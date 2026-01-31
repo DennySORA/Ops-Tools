@@ -60,7 +60,12 @@ impl AiTool {
 pub const AI_TOOLS: &[AiTool] = &[
     // Claude 官方建議使用內建安裝指令進行更新
     AiTool::with_custom_command("Claude Code", "claude install", "claude", &["install"]),
-    AiTool::from_package_with_manager("OpenAI Codex", "@openai/codex", "npm"),
+    AiTool::with_custom_command(
+        "OpenAI Codex",
+        "bun install -g @openai/codex",
+        "bun",
+        &["install", "-g", "@openai/codex"],
+    ),
     AiTool::from_package_with_manager("Google Gemini CLI", "@google/gemini-cli", "npm"),
 ];
 

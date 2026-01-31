@@ -77,20 +77,41 @@ mod tests {
     #[test]
     fn test_build_command_for_npm_package() {
         let upgrader = PackageUpgrader::new();
-        let codex = AI_TOOLS
+        let gemini = AI_TOOLS
             .iter()
             .find(|t| {
                 matches!(
                     t.command,
-                    UpgradeCommand::PackageManager { package, .. } if package == "@openai/codex"
+                    UpgradeCommand::PackageManager { manager, package }
+                        if manager == "npm" && package == "@google/gemini-cli"
                 )
             })
             .unwrap();
 
-        let (program, args) = upgrader.build_command(codex);
+        let (program, args) = upgrader.build_command(gemini);
         assert_eq!(program, "npm");
         assert!(args.contains(&"install".to_string()));
-        assert!(args.iter().any(|a| a.contains("@openai/codex@latest")));
+        assert!(args.iter().any(|a| a.contains("@google/gemini-cli@latest")));
+    }
+
+    #[test]
+    fn test_build_command_for_codex_bun() {
+        let upgrader = PackageUpgrader::new();
+        let codex = AI_TOOLS
+            .iter()
+            .find(|t| t.name == "OpenAI Codex")
+            .unwrap();
+
+        let (program, args) = upgrader.build_command(codex);
+        assert_eq!(program, "bun");
+        assert_eq!(
+            args,
+            vec![
+                "install".to_string(),
+                "-g".to_string(),
+                "@openai/codex".to_string(),
+            ]
+        );
     }
 
     #[test]
