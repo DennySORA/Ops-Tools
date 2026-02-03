@@ -123,6 +123,7 @@ impl PackageAction {
 pub enum PackageId {
     Nvm,
     Pnpm,
+    Bun,
     Rust,
     Go,
     Terraform,
@@ -153,6 +154,10 @@ pub fn package_definitions() -> Vec<PackageDefinition> {
         PackageDefinition {
             id: PackageId::Pnpm,
             name: "pnpm",
+        },
+        PackageDefinition {
+            id: PackageId::Bun,
+            name: "bun",
         },
         PackageDefinition {
             id: PackageId::Rust,

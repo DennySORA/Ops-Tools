@@ -7,6 +7,7 @@ pub const NVM_INSTALL_SCRIPT: &str =
 pub const PNPM_INSTALL_SCRIPT: &str = "https://get.pnpm.io/install.sh";
 pub const RUSTUP_INSTALL_SCRIPT: &str = "https://sh.rustup.rs";
 pub const UV_INSTALL_SCRIPT: &str = "https://astral.sh/uv/install.sh";
+pub const BUN_INSTALL_SCRIPT: &str = "https://bun.sh/install";
 
 pub const TMUX_CONF_CONTENT: &str = r#"# prefix setting
 set -g prefix C-a

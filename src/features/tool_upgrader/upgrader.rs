@@ -97,10 +97,7 @@ mod tests {
     #[test]
     fn test_build_command_for_codex_bun() {
         let upgrader = PackageUpgrader::new();
-        let codex = AI_TOOLS
-            .iter()
-            .find(|t| t.name == "OpenAI Codex")
-            .unwrap();
+        let codex = AI_TOOLS.iter().find(|t| t.name == "OpenAI Codex").unwrap();
 
         let (program, args) = upgrader.build_command(codex);
         assert_eq!(program, "bun");

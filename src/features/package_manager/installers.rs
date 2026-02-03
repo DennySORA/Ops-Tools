@@ -7,8 +7,8 @@ use crate::i18n::{self, keys};
 use std::fs;
 
 use super::config_content::{
-    FFMPEG_BUILD_SCRIPT, NVM_INSTALL_SCRIPT, PNPM_INSTALL_SCRIPT, RUSTUP_INSTALL_SCRIPT,
-    TMUX_CONF_CONTENT, UV_INSTALL_SCRIPT, VIMRC_CONTENT,
+    BUN_INSTALL_SCRIPT, FFMPEG_BUILD_SCRIPT, NVM_INSTALL_SCRIPT, PNPM_INSTALL_SCRIPT,
+    RUSTUP_INSTALL_SCRIPT, TMUX_CONF_CONTENT, UV_INSTALL_SCRIPT, VIMRC_CONTENT,
 };
 use super::shell::{
     create_symlink, create_temp_dir, download_file, ensure_hashicorp_repo, ensure_profile_line,
@@ -28,6 +28,7 @@ pub fn is_installed(package: PackageId, ctx: &ActionContext) -> bool {
     match package {
         PackageId::Nvm => nvm_dir(ctx).join("nvm.sh").is_file(),
         PackageId::Pnpm => is_command_available("pnpm").is_some(),
+        PackageId::Bun => is_command_available("bun").is_some(),
         PackageId::Rust => is_command_available("rustup").is_some(),
         PackageId::Go => is_command_available("go").is_some(),
         PackageId::Terraform => is_command_available("terraform").is_some(),
@@ -47,6 +48,7 @@ pub fn install_package(package: PackageId, ctx: &mut ActionContext) -> Result<()
     match package {
         PackageId::Nvm => install_nvm(ctx),
         PackageId::Pnpm => install_pnpm(ctx),
+        PackageId::Bun => install_bun(ctx),
         PackageId::Rust => install_rust(ctx),
         PackageId::Go => install_go(ctx),
         PackageId::Terraform => install_terraform(ctx),
@@ -66,6 +68,7 @@ pub fn update_package(package: PackageId, ctx: &mut ActionContext) -> Result<()>
     match package {
         PackageId::Nvm => update_nvm(ctx),
         PackageId::Pnpm => update_pnpm(ctx),
+        PackageId::Bun => update_bun(ctx),
         PackageId::Rust => update_rust(ctx),
         PackageId::Go => install_go(ctx),
         PackageId::Terraform => update_terraform(ctx),
@@ -85,6 +88,7 @@ pub fn remove_package(package: PackageId, ctx: &mut ActionContext) -> Result<()>
     match package {
         PackageId::Nvm => remove_nvm(ctx),
         PackageId::Pnpm => remove_pnpm(ctx),
+        PackageId::Bun => remove_bun(ctx),
         PackageId::Rust => remove_rust(ctx),
         PackageId::Go => remove_go(ctx),
         PackageId::Terraform => remove_terraform(ctx),
@@ -163,6 +167,42 @@ fn remove_pnpm(ctx: &mut ActionContext) -> Result<()> {
     }
     remove_home_binary(ctx, "pnpm")?;
     remove_home_binary(ctx, "pnpx")?;
+    Ok(())
+}
+
+// ============================================================================
+// Bun
+// ============================================================================
+
+fn install_bun(ctx: &mut ActionContext) -> Result<()> {
+    run_shell(
+        ctx,
+        &format!("curl -fsSL {BUN_INSTALL_SCRIPT} | bash"),
+        false,
+    )?;
+    Ok(())
+}
+
+fn update_bun(ctx: &mut ActionContext) -> Result<()> {
+    // Bun 有內建的升級命令
+    if is_command_available("bun").is_some() {
+        run_command(ctx, "bun", &["upgrade"], false)?;
+    } else {
+        install_bun(ctx)?;
+    }
+    Ok(())
+}
+
+fn remove_bun(ctx: &mut ActionContext) -> Result<()> {
+    let bun_dir = ctx.home_dir.join(".bun");
+    if bun_dir.exists() {
+        fs::remove_dir_all(&bun_dir).map_err(|err| OperationError::Io {
+            path: bun_dir.display().to_string(),
+            source: err,
+        })?;
+    }
+    remove_home_binary(ctx, "bun")?;
+    remove_home_binary(ctx, "bunx")?;
     Ok(())
 }
 
