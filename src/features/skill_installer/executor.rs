@@ -76,7 +76,7 @@ impl ExtensionExecutor {
                 }
             }
 
-            // For Claude, also scan plugins directory
+            // For Claude, also scan plugins directory and cache directory
             if self.cli == CliType::Claude {
                 let plugins_dir = self.install_dir(ExtensionType::Plugin);
                 if plugins_dir.exists() {
@@ -84,7 +84,39 @@ impl ExtensionExecutor {
                         for entry in entries.flatten() {
                             if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                                 let name = entry.file_name().to_string_lossy().to_string();
-                                installed.insert(name, ExtensionType::Plugin);
+                                // Skip cache and marketplaces directories
+                                if name != "cache" && name != "marketplaces" {
+                                    installed.insert(name, ExtensionType::Plugin);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Also scan cache directory for marketplace-based plugins
+                let cache_dir = plugins_dir.join("cache");
+                if cache_dir.exists() {
+                    // Structure: cache/<marketplace>/<plugin>/<version>/
+                    if let Ok(marketplaces) = fs::read_dir(&cache_dir) {
+                        for marketplace in marketplaces.flatten() {
+                            if marketplace.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                                if let Ok(plugins) = fs::read_dir(marketplace.path()) {
+                                    for plugin in plugins.flatten() {
+                                        if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                                            let plugin_name = plugin.file_name().to_string_lossy().to_string();
+                                            // Check if any version directory exists with plugin.json
+                                            if let Ok(versions) = fs::read_dir(plugin.path()) {
+                                                for version in versions.flatten() {
+                                                    let plugin_json = version.path().join(".claude-plugin/plugin.json");
+                                                    if plugin_json.exists() {
+                                                        installed.insert(plugin_name.clone(), ExtensionType::Plugin);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -100,6 +132,11 @@ impl ExtensionExecutor {
         // Gemini has completely different extension format
         if self.cli == CliType::Gemini {
             return self.install_for_gemini(ext);
+        }
+
+        // Check if this plugin requires full marketplace structure (Claude only)
+        if self.cli == CliType::Claude && ext.marketplace_name.is_some() {
+            return self.install_marketplace_plugin(ext);
         }
 
         // Claude/Codex installation logic
@@ -156,6 +193,192 @@ impl ExtensionExecutor {
                 self.convert_skill_for_cli(&dest)?;
             }
         }
+
+        Ok(())
+    }
+
+    /// Install a plugin that requires full marketplace structure (Claude only)
+    /// This handles plugins like claude-mem that have scripts referencing the marketplace root
+    fn install_marketplace_plugin(&self, ext: &Extension) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let marketplace_name = ext.marketplace_name.unwrap();
+        let plugin_path = ext.marketplace_plugin_path.unwrap_or(".");
+        let version = ext.version.unwrap_or("1.0.0");
+
+        // 1. Clone the full repo to marketplaces directory
+        let marketplaces_dir = home.join(".claude/plugins/marketplaces");
+        let marketplace_dir = marketplaces_dir.join(marketplace_name);
+
+        fs::create_dir_all(&marketplaces_dir).map_err(|err| OperationError::Io {
+            path: marketplaces_dir.display().to_string(),
+            source: err,
+        })?;
+
+        // Remove existing marketplace directory if it exists
+        if marketplace_dir.exists() {
+            fs::remove_dir_all(&marketplace_dir).map_err(|err| OperationError::Io {
+                path: marketplace_dir.display().to_string(),
+                source: err,
+            })?;
+        }
+
+        // Git clone the repository
+        let repo_url = format!("https://github.com/{}.git", ext.source_repo);
+        let status = Command::new("git")
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                &repo_url,
+                marketplace_dir.to_str().unwrap(),
+            ])
+            .status()
+            .map_err(|e| OperationError::Command {
+                command: "git".to_string(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+            })?;
+
+        if !status.success() {
+            return Err(OperationError::Command {
+                command: "git clone".to_string(),
+                message: crate::tr!(keys::SKILL_INSTALLER_DOWNLOAD_FAILED, error = "git clone failed"),
+            });
+        }
+
+        // 2. Create cache directory and symlink
+        let cache_dir = home
+            .join(".claude/plugins/cache")
+            .join(marketplace_name)
+            .join(ext.name);
+        fs::create_dir_all(&cache_dir).map_err(|err| OperationError::Io {
+            path: cache_dir.display().to_string(),
+            source: err,
+        })?;
+
+        let version_link = cache_dir.join(version);
+        let plugin_source = marketplace_dir.join(plugin_path);
+
+        // Remove existing symlink if it exists
+        if version_link.exists() || version_link.is_symlink() {
+            fs::remove_file(&version_link).or_else(|_| fs::remove_dir_all(&version_link)).ok();
+        }
+
+        // Create symlink
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&plugin_source, &version_link).map_err(|err| {
+            OperationError::Io {
+                path: version_link.display().to_string(),
+                source: err,
+            }
+        })?;
+
+        #[cfg(windows)]
+        std::os::windows::fs::symlink_dir(&plugin_source, &version_link).map_err(|err| {
+            OperationError::Io {
+                path: version_link.display().to_string(),
+                source: err,
+            }
+        })?;
+
+        // 3. Update known_marketplaces.json
+        self.update_known_marketplaces(marketplace_name, ext.source_repo, &marketplace_dir)?;
+
+        // 4. Update installed_plugins.json
+        self.update_installed_plugins(ext.name, marketplace_name, &version_link, version)?;
+
+        Ok(())
+    }
+
+    /// Update known_marketplaces.json for marketplace-based plugins
+    fn update_known_marketplaces(
+        &self,
+        marketplace_name: &str,
+        source_repo: &str,
+        install_location: &Path,
+    ) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let file_path = home.join(".claude/plugins/known_marketplaces.json");
+
+        // Read existing content or create new
+        let mut marketplaces: serde_json::Value = if file_path.exists() {
+            let content = fs::read_to_string(&file_path).map_err(|err| OperationError::Io {
+                path: file_path.display().to_string(),
+                source: err,
+            })?;
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+
+        // Add/update marketplace entry
+        let now = chrono::Utc::now().to_rfc3339();
+        marketplaces[marketplace_name] = serde_json::json!({
+            "source": {
+                "source": "github",
+                "repo": source_repo
+            },
+            "installLocation": install_location.display().to_string(),
+            "lastUpdated": now
+        });
+
+        // Write back
+        let content = serde_json::to_string_pretty(&marketplaces).unwrap_or_default();
+        fs::write(&file_path, content).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
+
+        Ok(())
+    }
+
+    /// Update installed_plugins.json for marketplace-based plugins
+    fn update_installed_plugins(
+        &self,
+        plugin_name: &str,
+        marketplace_name: &str,
+        install_path: &Path,
+        version: &str,
+    ) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let file_path = home.join(".claude/plugins/installed_plugins.json");
+
+        // Read existing content or create new
+        let mut installed: serde_json::Value = if file_path.exists() {
+            let content = fs::read_to_string(&file_path).map_err(|err| OperationError::Io {
+                path: file_path.display().to_string(),
+                source: err,
+            })?;
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({
+                "version": 2,
+                "plugins": {}
+            }))
+        } else {
+            serde_json::json!({
+                "version": 2,
+                "plugins": {}
+            })
+        };
+
+        // Create plugin key
+        let plugin_key = format!("{}@{}", plugin_name, marketplace_name);
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Add/update plugin entry
+        installed["plugins"][&plugin_key] = serde_json::json!([{
+            "scope": "user",
+            "installPath": install_path.display().to_string(),
+            "version": version,
+            "installedAt": now,
+            "lastUpdated": now,
+            "isLocal": true
+        }]);
+
+        // Write back
+        let content = serde_json::to_string_pretty(&installed).unwrap_or_default();
+        fs::write(&file_path, content).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
 
         Ok(())
     }
@@ -696,6 +919,11 @@ prompt = """
             return Ok(());
         }
 
+        // Check if this is a marketplace-based plugin (Claude only)
+        if self.cli == CliType::Claude && ext.marketplace_name.is_some() {
+            return self.remove_marketplace_plugin(ext);
+        }
+
         // Claude/Codex removal logic
         let installed_as_skill_from_subpath =
             self.cli == CliType::Codex && ext.skill_subpath.is_some();
@@ -725,6 +953,109 @@ prompt = """
                 source: err,
             })?;
         }
+
+        Ok(())
+    }
+
+    /// Remove a marketplace-based plugin
+    fn remove_marketplace_plugin(&self, ext: &Extension) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let marketplace_name = ext.marketplace_name.unwrap();
+
+        // 1. Remove from installed_plugins.json
+        self.remove_from_installed_plugins(ext.name, marketplace_name)?;
+
+        // 2. Remove cache directory (symlink and parent)
+        let cache_dir = home
+            .join(".claude/plugins/cache")
+            .join(marketplace_name)
+            .join(ext.name);
+        if cache_dir.exists() {
+            fs::remove_dir_all(&cache_dir).map_err(|err| OperationError::Io {
+                path: cache_dir.display().to_string(),
+                source: err,
+            })?;
+        }
+
+        // 3. Remove marketplace directory
+        let marketplace_dir = home.join(".claude/plugins/marketplaces").join(marketplace_name);
+        if marketplace_dir.exists() {
+            fs::remove_dir_all(&marketplace_dir).map_err(|err| OperationError::Io {
+                path: marketplace_dir.display().to_string(),
+                source: err,
+            })?;
+        }
+
+        // 4. Remove from known_marketplaces.json
+        self.remove_from_known_marketplaces(marketplace_name)?;
+
+        Ok(())
+    }
+
+    /// Remove plugin from installed_plugins.json
+    fn remove_from_installed_plugins(&self, plugin_name: &str, marketplace_name: &str) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let file_path = home.join(".claude/plugins/installed_plugins.json");
+
+        if !file_path.exists() {
+            return Ok(());
+        }
+
+        let content = fs::read_to_string(&file_path).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
+
+        let mut installed: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({
+                "version": 2,
+                "plugins": {}
+            }));
+
+        // Remove plugin entry
+        let plugin_key = format!("{}@{}", plugin_name, marketplace_name);
+        if let Some(plugins) = installed.get_mut("plugins").and_then(|p| p.as_object_mut()) {
+            plugins.remove(&plugin_key);
+        }
+
+        // Write back
+        let content = serde_json::to_string_pretty(&installed).unwrap_or_default();
+        fs::write(&file_path, content).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
+
+        Ok(())
+    }
+
+    /// Remove marketplace from known_marketplaces.json
+    fn remove_from_known_marketplaces(&self, marketplace_name: &str) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let file_path = home.join(".claude/plugins/known_marketplaces.json");
+
+        if !file_path.exists() {
+            return Ok(());
+        }
+
+        let content = fs::read_to_string(&file_path).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
+
+        let mut marketplaces: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+
+        // Remove marketplace entry
+        if let Some(obj) = marketplaces.as_object_mut() {
+            obj.remove(marketplace_name);
+        }
+
+        // Write back
+        let content = serde_json::to_string_pretty(&marketplaces).unwrap_or_default();
+        fs::write(&file_path, content).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
 
         Ok(())
     }

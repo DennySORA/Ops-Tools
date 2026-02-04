@@ -64,6 +64,17 @@ pub struct Extension {
     /// When true for Gemini: installs full plugin with hooks
     /// When true for Codex: falls back to command_file conversion or not supported
     pub has_hooks: bool,
+    /// Marketplace name for plugins that require full marketplace structure.
+    /// When set, the installer will:
+    /// 1. Git clone the full repo to ~/.claude/plugins/marketplaces/<marketplace_name>/
+    /// 2. Create symlink in cache/<marketplace_name>/<plugin_name>/<version>/
+    /// 3. Register in known_marketplaces.json and installed_plugins.json
+    pub marketplace_name: Option<&'static str>,
+    /// Plugin path within the marketplace repo (e.g., "plugin" for claude-mem)
+    /// Only used when marketplace_name is set
+    pub marketplace_plugin_path: Option<&'static str>,
+    /// Plugin version for marketplace-based installations
+    pub version: Option<&'static str>,
 }
 
 impl Extension {
@@ -83,10 +94,13 @@ const EXTENSIONS: &[Extension] = &[
         extension_type: ExtensionType::Plugin,
         source_repo: "anthropics/claude-code",
         source_path: "plugins/ralph-wiggum",
-        cli_support: &[CliType::Claude, CliType::Gemini], // Gemini supports hooks!
+        cli_support: &[CliType::Claude, CliType::Gemini],
         skill_subpath: None,
         command_file: None,
         has_hooks: true,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     Extension {
         name: "security-guidance",
@@ -94,10 +108,13 @@ const EXTENSIONS: &[Extension] = &[
         extension_type: ExtensionType::Plugin,
         source_repo: "anthropics/claude-code",
         source_path: "plugins/security-guidance",
-        cli_support: &[CliType::Claude, CliType::Gemini], // Gemini supports hooks!
+        cli_support: &[CliType::Claude, CliType::Gemini],
         skill_subpath: None,
         command_file: None,
         has_hooks: true,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     // Plugins with commands that can be converted to skills
     // For Claude: installs as plugin
@@ -112,6 +129,9 @@ const EXTENSIONS: &[Extension] = &[
         skill_subpath: None,
         command_file: Some("commands/code-review.md"),
         has_hooks: false,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     Extension {
         name: "pr-review-toolkit",
@@ -123,6 +143,9 @@ const EXTENSIONS: &[Extension] = &[
         skill_subpath: None,
         command_file: Some("commands/review-pr.md"),
         has_hooks: false,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     Extension {
         name: "commit-commands",
@@ -134,6 +157,9 @@ const EXTENSIONS: &[Extension] = &[
         skill_subpath: None,
         command_file: Some("commands/commit.md"),
         has_hooks: false,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     // Plugins with extractable skills (all CLIs supported)
     // For Claude: installs as plugin
@@ -148,6 +174,9 @@ const EXTENSIONS: &[Extension] = &[
         skill_subpath: Some("skills/frontend-design"),
         command_file: None,
         has_hooks: false,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
     Extension {
         name: "writing-rules",
@@ -159,11 +188,26 @@ const EXTENSIONS: &[Extension] = &[
         skill_subpath: Some("skills/writing-rules"),
         command_file: None,
         has_hooks: false,
+        marketplace_name: None,
+        marketplace_plugin_path: None,
+        version: None,
     },
-    // NOTE: claude-mem (thedotmack/claude-mem) requires full marketplace structure
-    // and cannot be installed via simple file copy. Use Claude's official plugin command:
-    //   /plugin marketplace add thedotmack/claude-mem
-    //   /plugin install claude-mem
+    // Third-party plugins requiring full marketplace structure
+    // These plugins have scripts that reference the marketplace root
+    Extension {
+        name: "claude-mem",
+        display_name_key: keys::SKILL_CLAUDE_MEM,
+        extension_type: ExtensionType::Plugin,
+        source_repo: "thedotmack/claude-mem",
+        source_path: "plugin", // Not used for marketplace installs
+        cli_support: &[CliType::Claude, CliType::Gemini],
+        skill_subpath: None,
+        command_file: None,
+        has_hooks: true,
+        marketplace_name: Some("thedotmack"),
+        marketplace_plugin_path: Some("plugin"),
+        version: Some("9.0.12"),
+    },
 ];
 
 /// Get available extensions for a specific CLI
