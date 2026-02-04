@@ -166,7 +166,7 @@ const EXTENSIONS: &[Extension] = &[
         display_name_key: keys::SKILL_CLAUDE_MEM,
         extension_type: ExtensionType::Plugin,
         source_repo: "thedotmack/claude-mem",
-        source_path: ".",
+        source_path: "plugin",  // Actual plugin is in plugin/ subdirectory
         cli_support: &[CliType::Claude, CliType::Gemini], // Uses hooks, Codex not supported
         skill_subpath: None,
         command_file: None,
