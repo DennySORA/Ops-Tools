@@ -243,9 +243,179 @@ Extension {
 - Claude: Full marketplace installation:
   1. Git clones repo to `~/.claude/plugins/marketplaces/<marketplace_name>/`
   2. Creates symlink: `cache/<marketplace>/<plugin>/<version>/` → `marketplaces/<marketplace>/<plugin_path>/`
-  3. Updates `known_marketplaces.json` and `installed_plugins.json`
-- Gemini: Standard hook migration (if `has_hooks: true`)
-- Codex: Not supported (marketplace plugins typically require Claude-specific features)
+  3. Runs `npm install` or `bun install` for dependencies
+  4. Updates `known_marketplaces.json` and `installed_plugins.json`
+  5. Updates `settings.json` with `enabledPlugins`
+- Gemini: Extended marketplace installation with variable conversion:
+  1. Git clones repo to temp directory
+  2. Copies plugin to `~/.gemini/extensions/<name>/`
+  3. Runs `npm install` or `bun install` for dependencies
+  4. **Converts `${CLAUDE_PLUGIN_ROOT}` to absolute path** (see Variable Conversion below)
+  5. Creates `gemini-extension.json` manifest
+  6. Converts hooks to native Gemini format
+  7. Registers in `extension-enablement.json`
+- Codex: Not supported (marketplace plugins require Claude-specific features or hooks)
+
+## Marketplace Plugin Architecture
+
+Marketplace-based plugins have a more complex installation structure because they contain scripts that reference the marketplace root directory. This section documents the technical details.
+
+### Directory Structure (Claude)
+
+```
+~/.claude/plugins/
+├── marketplaces/
+│   └── <marketplace_name>/           # Full git clone of the repo
+│       ├── package.json              # Root package.json (required by some scripts)
+│       ├── plugin/                   # Plugin directory
+│       │   ├── .claude-plugin/
+│       │   │   └── plugin.json
+│       │   ├── hooks/
+│       │   ├── commands/
+│       │   └── node_modules/
+│       └── ...other repo files
+├── cache/
+│   └── <marketplace_name>/
+│       └── <plugin_name>/
+│           └── <version>/            # Symlink → marketplaces/<marketplace>/<plugin_path>
+├── known_marketplaces.json           # Registry of marketplace sources
+└── installed_plugins.json            # Registry of installed plugins
+```
+
+### Directory Structure (Gemini)
+
+```
+~/.gemini/extensions/
+└── <plugin_name>/
+    ├── gemini-extension.json         # Required manifest
+    ├── GEMINI.md                     # Context file
+    ├── hooks/                        # Converted from Claude hooks
+    ├── commands/
+    │   └── <plugin_name>/
+    │       └── invoke.toml           # TOML commands
+    └── node_modules/                 # Dependencies (if needed)
+```
+
+### JSON Registries
+
+#### known_marketplaces.json
+
+Tracks marketplace sources and locations:
+
+```json
+{
+  "thedotmack": {
+    "source": {
+      "source": "github",
+      "repo": "thedotmack/claude-mem"
+    },
+    "installLocation": "/Users/username/.claude/plugins/marketplaces/thedotmack",
+    "lastUpdated": "2026-02-04T03:49:28.518199Z"
+  }
+}
+```
+
+#### installed_plugins.json
+
+Tracks installed plugins with version info:
+
+```json
+{
+  "version": 2,
+  "plugins": {
+    "claude-mem@thedotmack": [
+      {
+        "scope": "user",
+        "installPath": "/Users/username/.claude/plugins/cache/thedotmack/claude-mem/9.0.12",
+        "version": "9.0.12",
+        "installedAt": "2026-02-04T03:49:28.556745Z",
+        "lastUpdated": "2026-02-04T03:49:28.556745Z",
+        "isLocal": true
+      }
+    ]
+  }
+}
+```
+
+#### settings.json (enabledPlugins)
+
+Enables the plugin for use:
+
+```json
+{
+  "enabledPlugins": {
+    "claude-mem@thedotmack": true
+  }
+}
+```
+
+## Variable Conversion
+
+### `${CLAUDE_PLUGIN_ROOT}` Variable
+
+Claude plugins can use the `${CLAUDE_PLUGIN_ROOT}` variable in their scripts and configurations. This variable points to the plugin's installation directory.
+
+**Problem:** This variable is Claude-specific and won't work in Gemini or other CLIs.
+
+**Solution:** The installer automatically converts this variable to an absolute path when installing for Gemini:
+
+```javascript
+// Original (Claude hook script)
+const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '${CLAUDE_PLUGIN_ROOT}';
+
+// Converted (Gemini)
+const pluginRoot = '/Users/username/.gemini/extensions/claude-mem';
+```
+
+### Conversion Process
+
+The installer scans all files in the plugin directory for `${CLAUDE_PLUGIN_ROOT}` and replaces it with the absolute installation path:
+
+1. **JavaScript files** (`.js`): Replaces string occurrences
+2. **JSON files** (`.json`): Replaces in configuration values
+3. **Shell scripts** (`.sh`): Replaces variable references
+4. **Markdown files** (`.md`): Replaces in documentation
+
+**Files converted:**
+- Hook scripts (`hooks/*.js`)
+- Configuration files (`*.json`)
+- Any other text files referencing the variable
+
+### When Variable Conversion is Needed
+
+| Scenario | Needs Conversion |
+|----------|-----------------|
+| Plugin uses `${CLAUDE_PLUGIN_ROOT}` | ✅ Yes |
+| Plugin has hooks referencing plugin root | ✅ Yes |
+| Plugin with static paths only | ❌ No |
+| Standard skill/command plugin | ❌ No |
+
+## Dependency Installation
+
+### npm/bun Detection
+
+The installer automatically detects and uses the best available package manager:
+
+1. **bun** (preferred if available): Faster installation
+2. **npm** (fallback): Standard Node.js package manager
+
+### Installation Process
+
+```bash
+# Installer checks for bun first
+if command -v bun &> /dev/null; then
+    bun install --production
+else
+    npm install --production
+fi
+```
+
+### When Dependencies are Installed
+
+Dependencies are installed for:
+- Marketplace-based plugins with `package.json`
+- Plugins with hooks that require Node.js modules
+- Any plugin with a `package.json` in the installation directory
 
 ### Step 4: Add i18n Keys
 
@@ -404,6 +574,62 @@ Based on the above changes, create a commit...
 - `description` preserved (single line for Codex)
 - Body content preserved as-is
 
+## Hooks Conversion
+
+### Claude Hooks Overview
+
+Claude plugins can define hooks that trigger on specific events:
+
+| Hook Type | Trigger |
+|-----------|---------|
+| `PreToolUse` | Before a tool is executed |
+| `PostToolUse` | After a tool completes |
+| `Stop` | When the agent stops or completes |
+| `Notification` | On various events |
+
+### Gemini Hook Support
+
+Gemini CLI has native hook support that mirrors Claude's system. The installer converts Claude hooks to Gemini's format:
+
+**Claude hook structure:**
+```
+.claude-plugin/
+└── hooks/
+    ├── PreToolUse/
+    │   └── my-hook.js
+    └── Stop/
+        └── cleanup.js
+```
+
+**Converted Gemini structure:**
+```
+hooks/
+├── PreToolUse/
+│   └── my-hook.js      # Script converted with variable replacement
+└── Stop/
+    └── cleanup.js      # Script converted with variable replacement
+```
+
+### Hook Conversion Process
+
+1. Copy hook directory structure
+2. Convert `${CLAUDE_PLUGIN_ROOT}` to absolute path in all scripts
+3. Ensure Node.js dependencies are installed
+4. Register extension in `extension-enablement.json`
+
+### Codex Hook Limitation
+
+**Codex does not support hooks.** Plugins that rely on hooks cannot be installed on Codex:
+
+```rust
+// This plugin is NOT available on Codex
+Extension {
+    name: "ralph-wiggum",
+    cli_support: &[CliType::Claude, CliType::Gemini],  // No Codex
+    has_hooks: true,
+}
+```
+
 ## Limitations
 
 ### Codex Limitations
@@ -413,6 +639,21 @@ The following plugin features **cannot** be used with Codex:
 1. **Hooks** - Event-based triggers (PreToolUse, PostToolUse, Stop)
    - Codex has no hook system
    - Example: `ralph-wiggum` uses stop hooks - not available on Codex
+
+2. **Marketplace-based plugins** - Plugins requiring full repo structure
+   - Codex cannot handle complex marketplace installations
+   - Example: `claude-mem` requires marketplace structure - not available on Codex
+
+### Marketplace Plugin Limitations
+
+1. **Gemini variable conversion** - Not all Claude-specific features can be converted:
+   - `${CLAUDE_PLUGIN_ROOT}` is converted to absolute path
+   - Other Claude-specific environment variables may not work
+   - Plugin-specific APIs (e.g., Claude memory APIs) are not available
+
+2. **Full repo required** - Some plugins reference files outside the plugin directory:
+   - Scripts may look for `package.json` in parent directories
+   - Relative imports may reference marketplace root files
 
 ### Gemini Extension Format
 
@@ -454,19 +695,36 @@ The following features may have limited functionality:
 
 Before submitting a new extension:
 
+### Basic Requirements
+
 - [ ] Extension definition added to `EXTENSIONS` array
-- [ ] i18n keys added to `mod.rs` and all 4 locale files
+- [ ] i18n keys added to `mod.rs` and all 4 locale files (en, zh-TW, zh-CN, ja)
 - [ ] `cli_support` correctly specifies supported CLIs
 - [ ] Conversion method configured:
   - `skill_subpath` for plugins with skills/ subdirectory
   - `command_file` for command-based conversion
   - `has_hooks: true` for plugins with hooks (enables Gemini support)
-- [ ] Tests pass: `cargo test skill_installer`
-- [ ] Lint passes: `cargo clippy`
-- [ ] Format passes: `cargo fmt --check`
+
+### Marketplace Plugin Requirements
+
+- [ ] `marketplace_name` set if plugin requires full repo structure
+- [ ] `marketplace_plugin_path` specifies path to plugin within repo
+- [ ] `version` set for version tracking
+- [ ] Verified plugin scripts work with `${CLAUDE_PLUGIN_ROOT}` conversion
+- [ ] Dependencies install correctly with npm/bun
+
+### Testing
+
+- [ ] Unit tests pass: `cargo test skill_installer`
+- [ ] Lint passes: `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- [ ] Format passes: `cargo fmt --all -- --check`
 - [ ] Manual test: Install on all supported CLIs and verify functionality
+- [ ] Verify JSON registries are updated correctly (Claude)
+- [ ] Verify extension-enablement.json is updated (Gemini)
 
 ## File Locations
+
+### Source Code
 
 | File | Purpose |
 |------|---------|
@@ -475,6 +733,32 @@ Before submitting a new extension:
 | `src/features/skill_installer/mod.rs` | Main UI flow |
 | `src/i18n/mod.rs` | i18n keys |
 | `src/i18n/locales/*.toml` | Translations |
+
+### Claude Installation Files
+
+| File | Purpose |
+|------|---------|
+| `~/.claude/plugins/marketplaces/` | Git cloned marketplace repos |
+| `~/.claude/plugins/cache/` | Symlinks to installed plugins |
+| `~/.claude/plugins/known_marketplaces.json` | Marketplace source registry |
+| `~/.claude/plugins/installed_plugins.json` | Installed plugins registry |
+| `~/.claude/settings.json` | Plugin enablement config |
+
+### Gemini Installation Files
+
+| File | Purpose |
+|------|---------|
+| `~/.gemini/extensions/` | Installed extensions |
+| `~/.gemini/extensions/extension-enablement.json` | Extension enablement config |
+| `~/.gemini/extensions/<name>/gemini-extension.json` | Extension manifest |
+| `~/.gemini/extensions/<name>/GEMINI.md` | Extension context file |
+
+### Codex Installation Files
+
+| File | Purpose |
+|------|---------|
+| `~/.codex/skills/` | Installed skills |
+| `~/.codex/skills/<name>/SKILL.md` | Skill definition file |
 
 ## CLI Comparison Summary
 

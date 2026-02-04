@@ -76,72 +76,70 @@ The project follows a strict layered architecture:
     *   Unified `OperationError` enum for all error types.
     *   Errors must be traceable and categorized.
 
-## Skill Installer Development
+## Skill Installer Development（必須參考文件）
 
-When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+**⚠️ 重要：** 開發 Skill Installer 擴充功能前，**必須先閱讀並遵循** [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。
 
-### Extension Configuration
+該文件包含完整的技術細節，包括：
+- Extension 定義格式與所有欄位說明
+- Marketplace-based 插件安裝架構
+- `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制
+- Hooks 轉換流程
+- 依賴安裝流程
+- CLI 相容性與限制
 
-Extensions are defined in `src/features/skill_installer/tools.rs`:
+### Gemini 特有的轉換機制
 
-```rust
-Extension {
-    name: "extension-name",
-    display_name_key: keys::SKILL_EXTENSION_NAME,
-    extension_type: ExtensionType::Plugin,
-    source_repo: "anthropics/claude-code",
-    source_path: "plugins/extension-name",
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
-    skill_subpath: Some("skills/skill-name"),  // For skills/ extraction
-    command_file: Some("commands/cmd.md"),      // For command conversion
-},
+#### 變數轉換
+
+Gemini 安裝時會自動將 `${CLAUDE_PLUGIN_ROOT}` 轉換為絕對路徑：
+
+```javascript
+// Claude 原始格式
+const pluginRoot = '${CLAUDE_PLUGIN_ROOT}';
+
+// Gemini 轉換後
+const pluginRoot = '/Users/username/.gemini/extensions/plugin-name';
 ```
 
-### Conversion Methods
+#### Hooks 轉換
 
-| Method | When to Use | Example |
-|--------|-------------|---------|
-| `skill_subpath` | Plugin has `skills/` subdirectory | `Some("skills/frontend-design")` |
-| `command_file` | Plugin has `commands/` only | `Some("commands/code-review.md")` |
-| Both `None` | Claude-only (hooks dependency) | `skill_subpath: None, command_file: None` |
+Gemini 支援 hooks，安裝器會自動：
+1. 複製 hooks 目錄結構
+2. 轉換所有 `${CLAUDE_PLUGIN_ROOT}` 引用
+3. 安裝 Node.js 依賴
+4. 註冊至 `extension-enablement.json`
 
-### Gemini Extension Format
+#### Extension 格式
 
-**Important:** Gemini uses a completely different extension format than Claude/Codex.
-
-Extensions are installed to `~/.gemini/extensions/<name>/` with this structure:
+Gemini 使用與 Claude/Codex 不同的格式：
 
 ```
-~/.gemini/extensions/<extension-name>/
-├── gemini-extension.json    # Required manifest
-├── GEMINI.md                # Context file
+~/.gemini/extensions/<name>/
+├── gemini-extension.json    # 必要的 manifest
+├── GEMINI.md                # Context 檔案
+├── hooks/                   # 轉換後的 hooks（如有）
 └── commands/
-    └── <extension-name>/
-        └── invoke.toml      # Commands in TOML format
+    └── <name>/
+        └── invoke.toml      # TOML 格式的命令
 ```
 
-The installer automatically converts:
-- Claude SKILL.md → Gemini TOML commands
-- Claude command markdown → Gemini TOML format
-- Registers extensions in `extension-enablement.json`
-
-### Using Extensions
-
-Invoke commands with `/<extension>:<command>` syntax:
+### 使用擴充功能
 
 ```bash
-# In Gemini CLI
+# Gemini CLI 中使用
 > /frontend-design:invoke
 > /code-review:invoke
 ```
 
-### Limitations
+### 限制說明
 
-Some Claude-specific features cannot be fully converted:
-- **allowed-tools** restrictions (Claude-specific security sandbox)
-- **Sub-agent orchestration** (agent launching is Claude-specific)
-- **Dynamic context** (syntax like `!git status` depends on CLI support)
+| 功能 | Gemini 支援 |
+|-----|------------|
+| Hooks | ✅ 完整支援（轉換後） |
+| Marketplace plugins | ✅ 支援（變數轉換） |
+| `${CLAUDE_PLUGIN_ROOT}` | ⚠️ 轉為絕對路徑 |
+| `allowed-tools` | ❌ 移除（Gemini 無此功能） |
+| Sub-agent orchestration | ❌ Claude 專有 |
 
-**Note:** Codex has NO hook support. Plugins with hooks are not available on Codex.
-
-See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for complete documentation.
+詳細說明請參閱 [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。

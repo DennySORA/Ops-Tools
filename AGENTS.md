@@ -31,37 +31,56 @@
 ## Agent Notes (Optional)
 - See `CLAUDE.md` and `GEMINI.md` for AI-specific development guidance.
 
-## Skill Installer Development
+## Skill Installer Development（必須參考文件）
 
-When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+**⚠️ 重要：** 開發 Skill Installer 擴充功能前，**必須先閱讀並遵循** [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。
 
-### Quick Reference
+該文件是 Skill Installer 開發的完整參考，包含：
+- Extension 定義格式與所有欄位說明
+- Marketplace-based 插件安裝架構（git clone、symlink、JSON registries）
+- `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制（Claude → Gemini）
+- Hooks 轉換流程
+- npm/bun 依賴安裝流程
+- JSON registries（known_marketplaces.json、installed_plugins.json）
+- CLI 相容性矩陣與完整限制說明
+
+### CLI 相容性速查表
 
 | Plugin Structure | Claude | Codex | Gemini | Configuration |
 |-----------------|--------|-------|--------|---------------|
 | Has `skills/` subdirectory | Plugin | Skill (extract) | Extension (TOML) | `skill_subpath` |
 | Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
-| Has `hooks/` only | Plugin | **Not supported** | Extension (TOML) | `has_hooks: true` |
+| Has `hooks/` only | Plugin | ❌ Not supported | Extension (TOML) | `has_hooks: true` |
 | Has `hooks/` + `commands/` | Plugin | Skill (convert) | Extension (TOML) | `has_hooks: true` |
+| Requires marketplace root | Plugin (marketplace) | ❌ Not supported | Extension (variable conversion) | `marketplace_name` |
 
-### Gemini Extension Format
+### Marketplace 插件
 
-**Important:** Gemini uses a different format than Claude/Codex:
-- Extensions installed to `~/.gemini/extensions/<name>/`
-- Commands are TOML files (not Markdown)
-- Requires `gemini-extension.json` manifest
-- Invoke with `/<extension>:<command>` syntax
+第三方插件如果有 scripts 引用 marketplace root directory（例如 `smart-install.js` 尋找父層的 `package.json`），需要設定：
 
-### Required Steps
+```rust
+Extension {
+    name: "plugin-name",
+    marketplace_name: Some("marketplace-id"),      // Marketplace 識別碼
+    marketplace_plugin_path: Some("plugin"),       // Repo 內的插件路徑
+    version: Some("1.0.0"),                        // 版本號
+}
+```
 
-1. Add extension to `src/features/skill_installer/tools.rs`
-2. Add i18n keys to `src/i18n/mod.rs` and all locale files (en, zh-TW, zh-CN, ja)
-3. Set appropriate `cli_support`, `skill_subpath`, or `command_file`
-4. Run tests: `cargo test skill_installer`
+### 必要步驟
 
-### Conversion Limitations
+1. **閱讀文件**：先閱讀 `docs/SKILL_INSTALLER.md` 了解完整架構
+2. **Extension 定義**：在 `src/features/skill_installer/tools.rs` 新增
+3. **i18n 支援**：在 `src/i18n/mod.rs` 及所有 locale 檔案（en, zh-TW, zh-CN, ja）新增
+4. **測試驗證**：`cargo test skill_installer`
 
-- **Hooks** - Codex has no hook system; Gemini converts to native format
-- **allowed-tools** field is removed during conversion (Claude-specific)
-- **Gemini format** - Commands converted to TOML, registered in enablement file
-- **description** truncated to single line for Codex (auto-converted)
+### 轉換限制
+
+| 功能 | Claude | Codex | Gemini |
+|-----|--------|-------|--------|
+| Hooks | ✅ | ❌ | ✅（轉換後）|
+| Marketplace | ✅ | ❌ | ✅（變數轉換）|
+| `${CLAUDE_PLUGIN_ROOT}` | ✅ | ❌ | ⚠️ 轉為絕對路徑 |
+| `allowed-tools` | ✅ | ❌ 移除 | ❌ 移除 |
+
+詳細說明請參閱 [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。

@@ -99,17 +99,28 @@ impl ExtensionExecutor {
                     // Structure: cache/<marketplace>/<plugin>/<version>/
                     if let Ok(marketplaces) = fs::read_dir(&cache_dir) {
                         for marketplace in marketplaces.flatten() {
-                            if marketplace.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                            if marketplace
+                                .file_type()
+                                .map(|ft| ft.is_dir())
+                                .unwrap_or(false)
+                            {
                                 if let Ok(plugins) = fs::read_dir(marketplace.path()) {
                                     for plugin in plugins.flatten() {
-                                        if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                                            let plugin_name = plugin.file_name().to_string_lossy().to_string();
+                                        if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
+                                        {
+                                            let plugin_name =
+                                                plugin.file_name().to_string_lossy().to_string();
                                             // Check if any version directory exists with plugin.json
                                             if let Ok(versions) = fs::read_dir(plugin.path()) {
                                                 for version in versions.flatten() {
-                                                    let plugin_json = version.path().join(".claude-plugin/plugin.json");
+                                                    let plugin_json = version
+                                                        .path()
+                                                        .join(".claude-plugin/plugin.json");
                                                     if plugin_json.exists() {
-                                                        installed.insert(plugin_name.clone(), ExtensionType::Plugin);
+                                                        installed.insert(
+                                                            plugin_name.clone(),
+                                                            ExtensionType::Plugin,
+                                                        );
                                                         break;
                                                     }
                                                 }
@@ -241,7 +252,10 @@ impl ExtensionExecutor {
         if !status.success() {
             return Err(OperationError::Command {
                 command: "git clone".to_string(),
-                message: crate::tr!(keys::SKILL_INSTALLER_DOWNLOAD_FAILED, error = "git clone failed"),
+                message: crate::tr!(
+                    keys::SKILL_INSTALLER_DOWNLOAD_FAILED,
+                    error = "git clone failed"
+                ),
             });
         }
 
@@ -260,7 +274,9 @@ impl ExtensionExecutor {
 
         // Remove existing symlink if it exists
         if version_link.exists() || version_link.is_symlink() {
-            fs::remove_file(&version_link).or_else(|_| fs::remove_dir_all(&version_link)).ok();
+            fs::remove_file(&version_link)
+                .or_else(|_| fs::remove_dir_all(&version_link))
+                .ok();
         }
 
         // Create symlink
@@ -348,10 +364,12 @@ impl ExtensionExecutor {
                 path: file_path.display().to_string(),
                 source: err,
             })?;
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({
-                "version": 2,
-                "plugins": {}
-            }))
+            serde_json::from_str(&content).unwrap_or_else(|_| {
+                serde_json::json!({
+                    "version": 2,
+                    "plugins": {}
+                })
+            })
         } else {
             serde_json::json!({
                 "version": 2,
@@ -480,7 +498,13 @@ impl ExtensionExecutor {
 
         let repo_url = format!("https://github.com/{}.git", ext.source_repo);
         let status = Command::new("git")
-            .args(["clone", "--depth", "1", &repo_url, repo_dir.to_str().unwrap()])
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                &repo_url,
+                repo_dir.to_str().unwrap(),
+            ])
             .status()
             .map_err(|e| OperationError::Command {
                 command: "git".to_string(),
@@ -490,7 +514,10 @@ impl ExtensionExecutor {
         if !status.success() {
             return Err(OperationError::Command {
                 command: "git clone".to_string(),
-                message: crate::tr!(keys::SKILL_INSTALLER_DOWNLOAD_FAILED, error = "git clone failed"),
+                message: crate::tr!(
+                    keys::SKILL_INSTALLER_DOWNLOAD_FAILED,
+                    error = "git clone failed"
+                ),
             });
         }
 
@@ -539,10 +566,8 @@ impl ExtensionExecutor {
         let hooks_json = dest.join("hooks/hooks.json");
         if hooks_json.exists() {
             if let Ok(content) = fs::read_to_string(&hooks_json) {
-                let converted = content.replace(
-                    "${CLAUDE_PLUGIN_ROOT}",
-                    dest.to_str().unwrap_or(""),
-                );
+                let converted =
+                    content.replace("${CLAUDE_PLUGIN_ROOT}", dest.to_str().unwrap_or(""));
                 let _ = fs::write(&hooks_json, converted);
             }
         }
@@ -1107,7 +1132,9 @@ prompt = """
         }
 
         // 3. Remove marketplace directory
-        let marketplace_dir = home.join(".claude/plugins/marketplaces").join(marketplace_name);
+        let marketplace_dir = home
+            .join(".claude/plugins/marketplaces")
+            .join(marketplace_name);
         if marketplace_dir.exists() {
             fs::remove_dir_all(&marketplace_dir).map_err(|err| OperationError::Io {
                 path: marketplace_dir.display().to_string(),
@@ -1122,7 +1149,11 @@ prompt = """
     }
 
     /// Remove plugin from installed_plugins.json
-    fn remove_from_installed_plugins(&self, plugin_name: &str, marketplace_name: &str) -> Result<()> {
+    fn remove_from_installed_plugins(
+        &self,
+        plugin_name: &str,
+        marketplace_name: &str,
+    ) -> Result<()> {
         let home = dirs::home_dir().expect("Cannot find home directory");
         let file_path = home.join(".claude/plugins/installed_plugins.json");
 
@@ -1136,10 +1167,12 @@ prompt = """
         })?;
 
         let mut installed: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({
-                "version": 2,
-                "plugins": {}
-            }));
+            serde_json::from_str(&content).unwrap_or_else(|_| {
+                serde_json::json!({
+                    "version": 2,
+                    "plugins": {}
+                })
+            });
 
         // Remove plugin entry
         let plugin_key = format!("{}@{}", plugin_name, marketplace_name);

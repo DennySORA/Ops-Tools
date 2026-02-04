@@ -73,21 +73,41 @@
 - 機敏資料在傳輸與儲存時需加密（TLS、DB encryption/at-rest）。
 - 日誌、追蹤、錯誤回報不得輸出機敏資料；必要時只保留 hash 或部分遮罩。
 
-## Skill Installer Development
+## Skill Installer Development（必須參考文件）
 
-When adding new extensions to the Skill Installer feature, you **MUST** follow the guidelines in [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md).
+**⚠️ 重要：** 開發 Skill Installer 擴充功能前，**必須先閱讀並遵循** [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。
 
-### Key Requirements
+該文件包含：
+- 完整的 Extension 定義格式與欄位說明
+- Marketplace-based 插件安裝架構（git clone、symlink、JSON registries）
+- `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制
+- Hooks 轉換流程（Claude → Gemini）
+- 依賴安裝（npm/bun）流程
+- CLI 相容性矩陣與限制說明
 
-1. **Extension Definition**: Add entries to `src/features/skill_installer/tools.rs`
-2. **i18n Support**: Add keys to `src/i18n/mod.rs` and all locale files
-3. **CLI Compatibility**: Specify correct `cli_support` for each extension
-4. **Conversion Method**: Use `skill_subpath` for plugins with skills/, `command_file` for command-based conversion
+### 必要步驟
 
-### Limitations
+1. **讀取文件**：先閱讀 `docs/SKILL_INSTALLER.md` 了解完整架構
+2. **Extension 定義**：在 `src/features/skill_installer/tools.rs` 新增 Extension
+3. **i18n 支援**：在 `src/i18n/mod.rs` 及所有 locale 檔案新增翻譯
+4. **CLI 相容性**：正確設定 `cli_support`、`skill_subpath`、`command_file`、`has_hooks`
+5. **Marketplace 插件**：如需完整 repo 結構，設定 `marketplace_name`、`marketplace_plugin_path`、`version`
 
-- Plugins using **hooks** cannot be converted for Codex/Gemini (Claude-only)
-- `allowed-tools` restrictions are stripped during conversion
-- Dynamic context syntax (`!git status`) may not work in all CLIs
+### 重要限制
 
-See the full documentation for detailed instructions and examples.
+| 功能 | Claude | Codex | Gemini |
+|-----|--------|-------|--------|
+| Hooks | ✅ 完整支援 | ❌ 不支援 | ✅ 轉換支援 |
+| Marketplace plugins | ✅ 完整支援 | ❌ 不支援 | ✅ 變數轉換 |
+| `${CLAUDE_PLUGIN_ROOT}` | ✅ 原生支援 | ❌ 不支援 | ⚠️ 轉為絕對路徑 |
+| `allowed-tools` | ✅ 支援 | ❌ 移除 | ❌ 移除 |
+
+### 測試驗證
+
+```bash
+cargo test skill_installer
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo fmt --all -- --check
+```
+
+詳細說明請參閱 [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。
