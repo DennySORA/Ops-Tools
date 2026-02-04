@@ -619,6 +619,7 @@ pub mod keys {
     pub const SKILL_COMMIT_COMMANDS: &str = "skill.commit_commands";
     pub const SKILL_SECURITY_GUIDANCE: &str = "skill.security_guidance";
     pub const SKILL_WRITING_RULES: &str = "skill.writing_rules";
+    pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
 }
 
 #[cfg(test)]

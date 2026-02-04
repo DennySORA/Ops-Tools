@@ -160,6 +160,18 @@ const EXTENSIONS: &[Extension] = &[
         command_file: None,
         has_hooks: false,
     },
+    // Third-party plugins with hooks - Claude + Gemini only
+    Extension {
+        name: "claude-mem",
+        display_name_key: keys::SKILL_CLAUDE_MEM,
+        extension_type: ExtensionType::Plugin,
+        source_repo: "thedotmack/claude-mem",
+        source_path: ".",
+        cli_support: &[CliType::Claude, CliType::Gemini], // Uses hooks, Codex not supported
+        skill_subpath: None,
+        command_file: None,
+        has_hooks: true,
+    },
 ];
 
 /// Get available extensions for a specific CLI

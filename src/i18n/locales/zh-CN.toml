@@ -453,3 +453,4 @@
 "skill.commit_commands" = "Commit Commands (Git 提交辅助)"
 "skill.security_guidance" = "Security Guidance (安全指引)"
 "skill.writing_rules" = "Writing Rules (代码风格指南)"
+"skill.claude_mem" = "Claude Mem (会话记忆与上下文持久化)"

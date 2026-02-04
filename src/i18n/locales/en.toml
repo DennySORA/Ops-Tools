@@ -453,3 +453,4 @@
 "skill.commit_commands" = "Commit Commands (Git Commit Helpers)"
 "skill.security_guidance" = "Security Guidance (Security Best Practices)"
 "skill.writing_rules" = "Writing Rules (Code Style Guidelines)"
+"skill.claude_mem" = "Claude Mem (Session Memory & Context Persistence)"
