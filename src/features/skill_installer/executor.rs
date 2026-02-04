@@ -393,6 +393,11 @@ impl ExtensionExecutor {
             source: err,
         })?;
 
+        // Check if this is a marketplace-based plugin requiring special handling
+        if ext.marketplace_name.is_some() {
+            return self.install_marketplace_plugin_for_gemini(ext, &dest);
+        }
+
         // Determine what to download based on extension configuration
         if ext.has_hooks {
             // For plugins with hooks: download full plugin and convert to Gemini format
@@ -457,6 +462,130 @@ impl ExtensionExecutor {
         if commands_dir.exists() {
             self.convert_commands_to_toml(&commands_dir)?;
         }
+
+        Ok(())
+    }
+
+    /// Install a marketplace-based plugin for Gemini
+    /// This handles plugins like claude-mem that need full repo clone and dependency installation
+    fn install_marketplace_plugin_for_gemini(&self, ext: &Extension, dest: &Path) -> Result<()> {
+        let plugin_path = ext.marketplace_plugin_path.unwrap_or(".");
+
+        // 1. Git clone the full repo to a temp directory
+        let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
+            path: "tempdir".to_string(),
+            source: err,
+        })?;
+        let repo_dir = temp_dir.path().join("repo");
+
+        let repo_url = format!("https://github.com/{}.git", ext.source_repo);
+        let status = Command::new("git")
+            .args(["clone", "--depth", "1", &repo_url, repo_dir.to_str().unwrap()])
+            .status()
+            .map_err(|e| OperationError::Command {
+                command: "git".to_string(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+            })?;
+
+        if !status.success() {
+            return Err(OperationError::Command {
+                command: "git clone".to_string(),
+                message: crate::tr!(keys::SKILL_INSTALLER_DOWNLOAD_FAILED, error = "git clone failed"),
+            });
+        }
+
+        // 2. Copy the plugin directory to destination
+        let plugin_source = repo_dir.join(plugin_path);
+        self.copy_dir_recursive(&plugin_source, dest)?;
+
+        // 3. Run installation script if it exists (install dependencies)
+        let install_script = dest.join("scripts/smart-install.js");
+        if install_script.exists() {
+            // We need to also copy the root package.json for smart-install.js
+            let root_package_json = repo_dir.join("package.json");
+            if root_package_json.exists() {
+                // Create a parent directory structure for the install script
+                let parent_dir = dest.parent().unwrap().join(format!("{}-root", ext.name));
+                fs::create_dir_all(&parent_dir).ok();
+                fs::copy(&root_package_json, parent_dir.join("package.json")).ok();
+
+                // Run smart-install from the plugin directory
+                let _ = Command::new("node")
+                    .arg(&install_script)
+                    .current_dir(dest)
+                    .env("GEMINI_PLUGIN_ROOT", dest.to_str().unwrap())
+                    .status();
+            }
+        }
+
+        // 4. Install npm dependencies if package.json exists in plugin
+        let package_json = dest.join("package.json");
+        if package_json.exists() {
+            // Try bun first, fall back to npm
+            let bun_status = Command::new("bun")
+                .args(["install"])
+                .current_dir(dest)
+                .status();
+
+            if bun_status.is_err() || !bun_status.unwrap().success() {
+                let _ = Command::new("npm")
+                    .args(["install", "--silent"])
+                    .current_dir(dest)
+                    .status();
+            }
+        }
+
+        // 5. Convert hooks.json - replace ${CLAUDE_PLUGIN_ROOT} with actual path
+        let hooks_json = dest.join("hooks/hooks.json");
+        if hooks_json.exists() {
+            if let Ok(content) = fs::read_to_string(&hooks_json) {
+                let converted = content.replace(
+                    "${CLAUDE_PLUGIN_ROOT}",
+                    dest.to_str().unwrap_or(""),
+                );
+                let _ = fs::write(&hooks_json, converted);
+            }
+        }
+
+        // 6. Create gemini-extension.json manifest
+        let version = ext.version.unwrap_or("1.0.0");
+        let manifest = format!(
+            r#"{{
+  "name": "{}",
+  "version": "{}",
+  "contextFileName": "GEMINI.md"
+}}"#,
+            ext.name, version
+        );
+        let manifest_path = dest.join("gemini-extension.json");
+        fs::write(&manifest_path, manifest).map_err(|err| OperationError::Io {
+            path: manifest_path.display().to_string(),
+            source: err,
+        })?;
+
+        // 7. Create GEMINI.md from README or plugin description
+        let gemini_md_path = dest.join("GEMINI.md");
+        if !gemini_md_path.exists() {
+            let readme_path = dest.join("README.md");
+            let claude_md_path = dest.join("CLAUDE.md");
+            if readme_path.exists() {
+                fs::copy(&readme_path, &gemini_md_path).ok();
+            } else if claude_md_path.exists() {
+                fs::copy(&claude_md_path, &gemini_md_path).ok();
+            } else {
+                let content = format!("# {}\n\nExtension for Gemini CLI.", ext.name);
+                fs::write(&gemini_md_path, content).ok();
+            }
+        }
+
+        // 8. Convert commands/ to TOML format if they exist
+        let commands_dir = dest.join("commands");
+        if commands_dir.exists() {
+            self.convert_commands_to_toml(&commands_dir)?;
+        }
+
+        // Register in extension-enablement.json
+        self.register_gemini_extension(ext.name)?;
 
         Ok(())
     }

@@ -200,7 +200,7 @@ const EXTENSIONS: &[Extension] = &[
         extension_type: ExtensionType::Plugin,
         source_repo: "thedotmack/claude-mem",
         source_path: "plugin", // Not used for marketplace installs
-        cli_support: &[CliType::Claude, CliType::Gemini],
+        cli_support: &[CliType::Claude, CliType::Gemini], // Full marketplace support
         skill_subpath: None,
         command_file: None,
         has_hooks: true,
