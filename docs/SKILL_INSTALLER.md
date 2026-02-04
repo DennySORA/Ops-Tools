@@ -100,8 +100,11 @@ Before adding a new extension, evaluate its structure:
 | Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
 | Has `hooks/` only | Plugin | **Not supported** | Extension (TOML) | `has_hooks: true` |
 | Has `hooks/` + `commands/` | Plugin | Skill (convert) | Extension (TOML) | `has_hooks: true` |
+| Requires marketplace root | Plugin (marketplace) | **Not supported** | **Not supported** | `marketplace_name` |
 
 **Key insight:** Gemini uses a native extension format with TOML commands. The installer automatically converts Claude plugins to Gemini extensions.
+
+**Marketplace plugins:** Some third-party plugins (like `claude-mem`) have scripts that reference the marketplace root directory. These require full marketplace installation with git clone.
 
 ### Step 2: Add Extension Definition
 
@@ -118,6 +121,9 @@ Extension {
     skill_subpath: Some("skills/my-skill"),         // If has skills/ subdirectory
     command_file: None,                             // Or specify command file
     has_hooks: false,                               // Set true if plugin uses hooks
+    marketplace_name: None,                         // For marketplace-based plugins
+    marketplace_plugin_path: None,                  // Plugin path within marketplace repo
+    version: None,                                  // Plugin version for marketplace installs
 },
 ```
 
@@ -211,6 +217,35 @@ Extension {
 **Behavior:**
 - Claude: Installs full plugin
 - Codex/Gemini: Extension not available (filtered out)
+
+#### Option E: Marketplace-based Plugin (Third-party)
+
+Use when the plugin has scripts that reference the marketplace root directory (e.g., `smart-install.js` that looks for `package.json` in the parent directories):
+
+```rust
+Extension {
+    name: "claude-mem",
+    display_name_key: keys::SKILL_CLAUDE_MEM,
+    extension_type: ExtensionType::Plugin,
+    source_repo: "thedotmack/claude-mem",
+    source_path: "plugin",  // Not used for marketplace installs
+    cli_support: &[CliType::Claude, CliType::Gemini],
+    skill_subpath: None,
+    command_file: None,
+    has_hooks: true,
+    marketplace_name: Some("thedotmack"),      // Marketplace identifier
+    marketplace_plugin_path: Some("plugin"),   // Path to plugin within repo
+    version: Some("9.0.12"),                   // Plugin version
+},
+```
+
+**Behavior:**
+- Claude: Full marketplace installation:
+  1. Git clones repo to `~/.claude/plugins/marketplaces/<marketplace_name>/`
+  2. Creates symlink: `cache/<marketplace>/<plugin>/<version>/` → `marketplaces/<marketplace>/<plugin_path>/`
+  3. Updates `known_marketplaces.json` and `installed_plugins.json`
+- Gemini: Standard hook migration (if `has_hooks: true`)
+- Codex: Not supported (marketplace plugins typically require Claude-specific features)
 
 ### Step 4: Add i18n Keys
 
