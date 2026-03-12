@@ -423,6 +423,10 @@ pub mod keys {
     pub const MCP_MANAGER_WILL_INSTALL: &str = "mcp_manager.will_install";
     pub const MCP_MANAGER_WILL_REMOVE: &str = "mcp_manager.will_remove";
     pub const MCP_MANAGER_CONFIRM_CHANGES: &str = "mcp_manager.confirm_changes";
+    pub const MCP_MANAGER_CONFIGURE_TOOL: &str = "mcp_manager.configure_tool";
+    pub const MCP_MANAGER_CHROME_HEADLESS_PROMPT: &str = "mcp_manager.chrome_headless_prompt";
+    pub const MCP_MANAGER_CHROME_HEADLESS_YES: &str = "mcp_manager.chrome_headless_yes";
+    pub const MCP_MANAGER_CHROME_HEADLESS_NO: &str = "mcp_manager.chrome_headless_no";
     pub const MCP_MANAGER_OAUTH_HINT: &str = "mcp_manager.oauth_hint";
     pub const MCP_MANAGER_WSL_HINT: &str = "mcp_manager.wsl_hint";
     pub const MCP_MANAGER_INSTALLING: &str = "mcp_manager.installing";
@@ -620,6 +624,7 @@ pub mod keys {
     pub const SKILL_SECURITY_GUIDANCE: &str = "skill.security_guidance";
     pub const SKILL_WRITING_RULES: &str = "skill.writing_rules";
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
+    pub const SKILL_PUA: &str = "skill.pua";
 }
 
 #[cfg(test)]

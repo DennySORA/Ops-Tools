@@ -5,7 +5,8 @@ mod tools;
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use executor::McpExecutor;
-use tools::{get_available_tools, CliType, McpTool};
+use std::collections::HashMap;
+use tools::{get_available_tools, CliType, McpTool, McpToolOptions};
 
 /// 執行 MCP 管理功能
 pub fn run() {
@@ -130,6 +131,37 @@ pub fn run() {
 
     console.blank_line();
 
+    // 為有選項的工具收集配置
+    let mut tool_options: HashMap<&str, McpToolOptions> = HashMap::new();
+    for mcp in &to_install {
+        if mcp.has_options && mcp.name == "chrome-devtools" {
+            console.info(&crate::tr!(
+                keys::MCP_MANAGER_CONFIGURE_TOOL,
+                tool = mcp.display_name()
+            ));
+            let headless_options = [
+                i18n::t(keys::MCP_MANAGER_CHROME_HEADLESS_YES),
+                i18n::t(keys::MCP_MANAGER_CHROME_HEADLESS_NO),
+            ];
+            let selection = prompts.select(
+                i18n::t(keys::MCP_MANAGER_CHROME_HEADLESS_PROMPT),
+                &headless_options,
+            );
+            let headless = match selection {
+                Some(0) => true,
+                Some(1) => false,
+                _ => true, // 預設使用 headless
+            };
+            tool_options.insert(
+                mcp.name,
+                McpToolOptions {
+                    headless: Some(headless),
+                },
+            );
+            console.blank_line();
+        }
+    }
+
     if to_install.iter().any(|mcp| mcp.requires_interactive) {
         console.info(i18n::t(keys::MCP_MANAGER_OAUTH_HINT));
         console.info(i18n::t(keys::MCP_MANAGER_WSL_HINT));
@@ -148,7 +180,8 @@ pub fn run() {
             &crate::tr!(keys::MCP_MANAGER_INSTALLING, tool = mcp.display_name()),
         );
 
-        match executor.install(mcp) {
+        let options = tool_options.get(mcp.name).cloned().unwrap_or_default();
+        match executor.install(mcp, &options) {
             Ok(()) => {
                 console.success_item(&crate::tr!(
                     keys::MCP_MANAGER_INSTALL_SUCCESS,

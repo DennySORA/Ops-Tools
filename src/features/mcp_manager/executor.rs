@@ -1,5 +1,5 @@
 use super::config::ENV_CONFIG;
-use super::tools::{CliType, McpTool};
+use super::tools::{CliType, McpTool, McpToolOptions};
 use crate::core::{OperationError, Result};
 use crate::i18n::{self, keys};
 use serde_json::Value;
@@ -39,10 +39,11 @@ impl McpExecutor {
     }
 
     /// 安裝 MCP
-    pub fn install(&self, tool: &McpTool) -> Result<()> {
+    pub fn install(&self, tool: &McpTool, options: &McpToolOptions) -> Result<()> {
         self.maybe_migrate_cli_settings()?;
         let mut args: Vec<&str> = vec!["mcp", "add"];
-        let string_refs: Vec<&str> = tool.install_args.iter().map(|s| s.as_str()).collect();
+        let install_args = tool.get_install_args_with_options(options);
+        let string_refs: Vec<&str> = install_args.iter().map(|s| s.as_str()).collect();
         args.extend(string_refs);
 
         if tool.requires_interactive {

@@ -1,6 +1,13 @@
 use super::config::ENV_CONFIG;
 use crate::i18n::{self, keys};
 
+/// MCP 工具配置選項
+#[derive(Clone, Default)]
+pub struct McpToolOptions {
+    /// Chrome DevTools: 是否使用 headless 模式
+    pub headless: Option<bool>,
+}
+
 /// MCP 工具定義
 #[derive(Clone)]
 pub struct McpTool {
@@ -8,6 +15,25 @@ pub struct McpTool {
     pub display_name_key: &'static str,
     pub install_args: Vec<String>,
     pub requires_interactive: bool,
+    /// 工具是否有可配置選項（如 Chrome DevTools 的 headless 模式）
+    pub has_options: bool,
+}
+
+impl McpTool {
+    /// 根據選項取得最終的安裝參數
+    pub fn get_install_args_with_options(&self, options: &McpToolOptions) -> Vec<String> {
+        if self.name == "chrome-devtools" {
+            let headless = options.headless.unwrap_or(true);
+            let mut args = self.install_args.clone();
+            if !headless {
+                // 移除 --headless 參數
+                args.retain(|arg| arg != "--headless");
+            }
+            args
+        } else {
+            self.install_args.clone()
+        }
+    }
 }
 
 impl McpTool {
@@ -152,6 +178,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args
             },
             requires_interactive: false,
+            has_options: false,
         },
         McpTool {
             name: "chrome-devtools",
@@ -170,6 +197,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args
             },
             requires_interactive: false,
+            has_options: true,
         },
         McpTool {
             name: "kubernetes",
@@ -187,6 +215,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args
             },
             requires_interactive: false,
+            has_options: false,
         },
         McpTool {
             name: "tailwindcss",
@@ -204,6 +233,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args
             },
             requires_interactive: false,
+            has_options: false,
         },
         McpTool {
             name: "arxiv-mcp-server",
@@ -225,6 +255,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args
             },
             requires_interactive: false,
+            has_options: false,
         },
     ];
 
@@ -258,6 +289,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             display_name_key: keys::MCP_TOOL_CONTEXT7,
             install_args: context7_args,
             requires_interactive: false,
+            has_options: false,
         });
     }
 
@@ -287,6 +319,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 display_name_key: tool.display_name_key,
                 install_args: args,
                 requires_interactive: true,
+                has_options: false,
             });
         }
     }
@@ -382,6 +415,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             display_name_key: keys::MCP_TOOL_GITHUB,
             install_args,
             requires_interactive: mode == "remote",
+            has_options: false,
         });
     }
 
