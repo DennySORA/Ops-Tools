@@ -4,7 +4,7 @@ mod tools;
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use executor::ExtensionExecutor;
-use tools::{get_available_extensions, CliType, Extension};
+use tools::{CliType, Extension, get_available_extensions};
 
 /// Run the skill installer feature
 pub fn run() {
@@ -215,7 +215,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::tools::{get_available_extensions, CliType};
+    use super::tools::{CliType, get_available_extensions};
 
     #[test]
     fn test_extensions_available() {

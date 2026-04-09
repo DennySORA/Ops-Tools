@@ -278,10 +278,10 @@ pub fn read_state_status<P: AsRef<Path>>(state_file: P) -> Result<FeatureStatus>
     // 使用正則表達式匹配 STATUS: xxx 或 STATUS：xxx
     let re = Regex::new(r"STATUS[：:]\s*(\S+)")?;
 
-    if let Some(caps) = re.captures(&content) {
-        if let Some(status_match) = caps.get(1) {
-            return Ok(FeatureStatus::from_str(status_match.as_str()));
-        }
+    if let Some(caps) = re.captures(&content)
+        && let Some(status_match) = caps.get(1)
+    {
+        return Ok(FeatureStatus::from_str(status_match.as_str()));
     }
 
     Ok(FeatureStatus::Unknown)

@@ -425,7 +425,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::i18n::{self, keys, Language};
+    use crate::i18n::{self, Language, keys};
 
     #[test]
     fn test_cli_type_command() {

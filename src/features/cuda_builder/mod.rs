@@ -12,7 +12,7 @@ mod types;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
-use types::{BuildContext, CudaPackageId, ALL_PACKAGES};
+use types::{ALL_PACKAGES, BuildContext, CudaPackageId};
 
 pub fn run() {
     let console = Console::new();

@@ -598,21 +598,29 @@ mod tests {
 
     #[test]
     fn test_project_type_role_description() {
-        assert!(ProjectType::Frontend
-            .role_description()
-            .contains("frontend"));
+        assert!(
+            ProjectType::Frontend
+                .role_description()
+                .contains("frontend")
+        );
         assert!(ProjectType::Backend.role_description().contains("backend"));
         assert!(ProjectType::Cli.role_description().contains("CLI"));
         assert!(ProjectType::Library.role_description().contains("library"));
-        assert!(ProjectType::SystemLevel
-            .role_description()
-            .contains("systems"));
-        assert!(ProjectType::Algorithm
-            .role_description()
-            .contains("algorithms"));
-        assert!(ProjectType::Infra
-            .role_description()
-            .contains("infrastructure"));
+        assert!(
+            ProjectType::SystemLevel
+                .role_description()
+                .contains("systems")
+        );
+        assert!(
+            ProjectType::Algorithm
+                .role_description()
+                .contains("algorithms")
+        );
+        assert!(
+            ProjectType::Infra
+                .role_description()
+                .contains("infrastructure")
+        );
     }
 
     #[test]
@@ -620,64 +628,96 @@ mod tests {
         assert!(ProjectType::Frontend.e2e_instructions().contains("browser"));
         assert!(ProjectType::Backend.e2e_instructions().contains("HTTP"));
         assert!(ProjectType::Cli.e2e_instructions().contains("exit codes"));
-        assert!(ProjectType::Library
-            .e2e_instructions()
-            .contains("test suite"));
-        assert!(ProjectType::SystemLevel
-            .e2e_instructions()
-            .contains("memory safety"));
-        assert!(ProjectType::Algorithm
-            .e2e_instructions()
-            .contains("benchmark"));
+        assert!(
+            ProjectType::Library
+                .e2e_instructions()
+                .contains("test suite")
+        );
+        assert!(
+            ProjectType::SystemLevel
+                .e2e_instructions()
+                .contains("memory safety")
+        );
+        assert!(
+            ProjectType::Algorithm
+                .e2e_instructions()
+                .contains("benchmark")
+        );
         assert!(ProjectType::Infra.e2e_instructions().contains("terraform"));
     }
 
     #[test]
     fn test_project_type_specific_requirements() {
-        assert!(ProjectType::Frontend
-            .specific_requirements()
-            .contains("Chrome DevTools"));
-        assert!(ProjectType::Backend
-            .specific_requirements()
-            .contains("API contracts"));
-        assert!(ProjectType::Cli
-            .specific_requirements()
-            .contains("Exit codes"));
-        assert!(ProjectType::Library
-            .specific_requirements()
-            .contains("semantic versioning"));
-        assert!(ProjectType::SystemLevel
-            .specific_requirements()
-            .contains("Memory safety"));
-        assert!(ProjectType::Algorithm
-            .specific_requirements()
-            .contains("Time complexity"));
-        assert!(ProjectType::Infra
-            .specific_requirements()
-            .contains("idempotent"));
+        assert!(
+            ProjectType::Frontend
+                .specific_requirements()
+                .contains("Chrome DevTools")
+        );
+        assert!(
+            ProjectType::Backend
+                .specific_requirements()
+                .contains("API contracts")
+        );
+        assert!(
+            ProjectType::Cli
+                .specific_requirements()
+                .contains("Exit codes")
+        );
+        assert!(
+            ProjectType::Library
+                .specific_requirements()
+                .contains("semantic versioning")
+        );
+        assert!(
+            ProjectType::SystemLevel
+                .specific_requirements()
+                .contains("Memory safety")
+        );
+        assert!(
+            ProjectType::Algorithm
+                .specific_requirements()
+                .contains("Time complexity")
+        );
+        assert!(
+            ProjectType::Infra
+                .specific_requirements()
+                .contains("idempotent")
+        );
     }
 
     #[test]
     fn test_project_type_artifacts_description() {
-        assert!(ProjectType::Frontend
-            .artifacts_description()
-            .contains("E2E_PLAN"));
-        assert!(ProjectType::Backend
-            .artifacts_description()
-            .contains("API_SPEC"));
+        assert!(
+            ProjectType::Frontend
+                .artifacts_description()
+                .contains("E2E_PLAN")
+        );
+        assert!(
+            ProjectType::Backend
+                .artifacts_description()
+                .contains("API_SPEC")
+        );
         assert!(ProjectType::Cli.artifacts_description().contains("USAGE"));
-        assert!(ProjectType::Library
-            .artifacts_description()
-            .contains("PUBLISH_CHECKLIST"));
-        assert!(ProjectType::SystemLevel
-            .artifacts_description()
-            .contains("SAFETY_CHECKLIST"));
-        assert!(ProjectType::Algorithm
-            .artifacts_description()
-            .contains("BENCHMARK_PLAN"));
-        assert!(ProjectType::Infra
-            .artifacts_description()
-            .contains("DRIFT_DETECTION"));
+        assert!(
+            ProjectType::Library
+                .artifacts_description()
+                .contains("PUBLISH_CHECKLIST")
+        );
+        assert!(
+            ProjectType::SystemLevel
+                .artifacts_description()
+                .contains("SAFETY_CHECKLIST")
+        );
+        assert!(
+            ProjectType::Algorithm
+                .artifacts_description()
+                .contains("BENCHMARK_PLAN")
+        );
+        assert!(
+            ProjectType::Infra
+                .artifacts_description()
+                .contains("DRIFT_DETECTION")
+        );
     }
 
     #[test]

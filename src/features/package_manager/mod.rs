@@ -7,7 +7,7 @@ mod types;
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use operations::{
-    ensure_curl, package_definitions, update_curl, ActionContext, PackageAction, SupportedOs,
+    ActionContext, PackageAction, SupportedOs, ensure_curl, package_definitions, update_curl,
 };
 use std::collections::HashSet;
 

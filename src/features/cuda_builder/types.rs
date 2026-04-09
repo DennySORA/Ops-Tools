@@ -565,27 +565,25 @@ fn detect_available_memory_gb() -> f64 {
 
     // 優先使用 MemAvailable（含 reclaimable cache）
     for line in content.lines() {
-        if line.starts_with("MemAvailable:") {
-            if let Some(gb) = parse_meminfo_kb(line) {
-                return gb;
-            }
+        if line.starts_with("MemAvailable:")
+            && let Some(gb) = parse_meminfo_kb(line)
+        {
+            return gb;
         }
     }
 
     // Fallback: MemFree + Buffers + Cached
     let mut total_kb: u64 = 0;
     for line in content.lines() {
-        if line.starts_with("MemFree:")
+        if (line.starts_with("MemFree:")
             || line.starts_with("Buffers:")
-            || (line.starts_with("Cached:") && !line.starts_with("CachedSwap"))
-        {
-            if let Some(kb) = line
+            || (line.starts_with("Cached:") && !line.starts_with("CachedSwap")))
+            && let Some(kb) = line
                 .split_whitespace()
                 .nth(1)
                 .and_then(|s| s.parse::<u64>().ok())
-            {
-                total_kb += kb;
-            }
+        {
+            total_kb += kb;
         }
     }
 

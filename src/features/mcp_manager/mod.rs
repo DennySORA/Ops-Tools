@@ -6,7 +6,7 @@ use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use executor::McpExecutor;
 use std::collections::HashMap;
-use tools::{get_available_tools, CliType, McpTool, McpToolOptions};
+use tools::{CliType, McpTool, McpToolOptions, get_available_tools};
 
 /// 執行 MCP 管理功能
 pub fn run() {
@@ -233,7 +233,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::tools::{get_available_tools, CliType};
+    use super::tools::{CliType, get_available_tools};
 
     #[test]
     fn test_tools_available() {

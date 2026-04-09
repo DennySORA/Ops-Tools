@@ -8,5 +8,6 @@ pub mod rust_builder;
 pub mod rust_upgrader;
 pub mod security_scanner;
 pub mod skill_installer;
+pub mod system_updater;
 pub mod terraform_cleaner;
 pub mod tool_upgrader;

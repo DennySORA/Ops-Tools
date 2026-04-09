@@ -11,7 +11,7 @@ use super::types;
 
 // 重新匯出公開型別
 pub use types::{
-    package_definitions, ActionContext, PackageAction, PackageDefinition, PackageId, SupportedOs,
+    ActionContext, PackageAction, PackageDefinition, PackageId, SupportedOs, package_definitions,
 };
 
 // 重新匯出 shell 工具

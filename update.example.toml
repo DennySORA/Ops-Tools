@@ -1,0 +1,116 @@
+# Copy to `update.toml` in the repo root, or to
+# `~/.config/update/config.toml`, then adjust as needed.
+
+[report]
+dir = "~/.local/state/update/reports"
+diff_history_limit = 20
+
+[runtime]
+auto_reboot = true
+lock_path = "~/.local/state/update/update.lock"
+needrestart_reject = [
+  "nvidia-persistenced",
+  "nvidia-fabricmanager",
+  "dgx-dashboard",
+  "dgx-dashboard-admin",
+  "nv-docker",
+]
+
+[preflight]
+check_network = true
+min_root_free_gb = 5
+min_var_free_gb = 2
+
+[apt]
+maintenance_packages = ["fwupd", "needrestart"]
+protected_keywords = ["nvidia", "dgx", "cuda", "nccl"]
+hold_packages = []
+deny_remove_packages = []
+
+# Platform strategy:
+# - GB10 / DGX Spark: uses this section and GB10-specific tuning.
+# - Generic NVIDIA Linux: skips this section but keeps NVIDIA safety checks.
+# - Generic Linux: skips both GB10 tuning and NVIDIA-specific checks.
+[dgx]
+cuda_major = "13-0"
+cuda_arch = "121"
+kernel_meta = "linux-image-nvidia-hwe-24.04"
+headers_meta = "linux-headers-nvidia-hwe-24.04"
+driver_pkg = "nvidia-driver-580-open"
+modules_pkg = "linux-modules-nvidia-580-open-nvidia-hwe-24.04"
+
+[docker]
+compose_projects = []
+prune = true
+
+[tools.nvm]
+self_update = true
+installer_version = "v0.40.4"
+installer_sha256 = "4b7412c49960c7d31e8df72da90c1fb5b8cccb419ac99537b737028d497aba4f"
+
+[tools.bun]
+enabled = true
+
+[tools.deno]
+enabled = true
+
+[tools.pipx]
+enabled = true
+allow = []
+deny = []
+
+[tools.conda]
+enabled = true
+envs = ["base"]
+
+[tools.node]
+npm_allow = []
+npm_deny = []
+pnpm_allow = []
+pnpm_deny = []
+
+[tools.rust]
+cargo_allow = []
+cargo_deny = []
+
+[tools.uv]
+enabled = true
+tool_allow = []
+tool_deny = []
+
+[cleanup]
+strategy = "normal"
+flatpak_unused = true
+uv_cache = true
+pip_cache = true
+conda_cache = true
+bun_cache = true
+deno_cache = true
+journal_max_days = 14
+journal_max_size_mb = 512
+crash_reports = true
+docker_system_prune = true
+docker_builder_prune = false
+docker_volume_prune = false
+
+[notifications]
+# Uncomment to run shell hooks after completion.
+# on_success_command = "notify-send 'update ok'"
+# on_warning_command = "notify-send 'update warning'"
+# on_failure_command = "notify-send 'update failed'"
+
+[scheduling]
+on_calendar = "daily"
+persistent = true
+randomized_delay_minutes = 30
+
+[profiles.safe]
+description = "Conservative maintenance without auto reboot"
+auto_reboot = false
+cleanup_strategy = "conservative"
+disable_nvm_self_update = true
+disable_docker_prune = true
+
+[profiles.aggressive]
+description = "Aggressive cleanup and maintenance"
+cleanup_strategy = "aggressive"

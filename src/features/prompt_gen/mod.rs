@@ -19,7 +19,7 @@ use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use anyhow::{Context, Result};
 use console::style;
-use dialoguer::{theme::ColorfulTheme, Input, Select};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use std::path::PathBuf;
 
 use executor::{CliType, ExecutorConfig};
@@ -293,10 +293,10 @@ fn cmd_status(console: &Console, _prompts: &Prompts) -> Result<()> {
                 continue;
             }
             let feature_dir = features_path.join(feature_key);
-            if feature_dir.exists() {
-                if let Ok(info) = FeatureInfo::load_from_dir(&feature_dir, feature_key) {
-                    features.push(info);
-                }
+            if feature_dir.exists()
+                && let Ok(info) = FeatureInfo::load_from_dir(&feature_dir, feature_key)
+            {
+                features.push(info);
             }
         }
     } else {
@@ -309,10 +309,10 @@ fn cmd_status(console: &Console, _prompts: &Prompts) -> Result<()> {
             }
             let feature_key = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             let prompt_file = path.join("01_requirements_and_delivery.md");
-            if prompt_file.exists() {
-                if let Ok(info) = FeatureInfo::load_from_dir(&path, feature_key) {
-                    features.push(info);
-                }
+            if prompt_file.exists()
+                && let Ok(info) = FeatureInfo::load_from_dir(&path, feature_key)
+            {
+                features.push(info);
             }
         }
         features.sort_by(|a, b| a.feature_key.cmp(&b.feature_key));

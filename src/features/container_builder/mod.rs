@@ -5,7 +5,7 @@ mod types;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
-use config::{load_builder_config, save_builder_config, BuilderConfig};
+use config::{BuilderConfig, load_builder_config, save_builder_config};
 use engines::{BuildEngine, BuildahEngine, DockerEngine};
 use scanner::scan_dockerfiles;
 use std::path::PathBuf;
@@ -260,7 +260,7 @@ fn input_image_info(
     _console: &Console,
     config: &mut BuilderConfig,
 ) -> Option<(String, String)> {
-    use dialoguer::{theme::ColorfulTheme, Input};
+    use dialoguer::{Input, theme::ColorfulTheme};
 
     // Image name
     let image_name: String = if config.recent_images.is_empty() {
@@ -338,7 +338,7 @@ fn ask_push_config(
     _console: &Console,
     config: &mut BuilderConfig,
 ) -> Option<String> {
-    use dialoguer::{theme::ColorfulTheme, Input};
+    use dialoguer::{Input, theme::ColorfulTheme};
 
     if !prompts.confirm(i18n::t(keys::CONTAINER_BUILDER_ASK_PUSH)) {
         return None;

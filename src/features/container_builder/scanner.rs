@@ -54,10 +54,10 @@ fn should_skip_path(path: &Path) -> bool {
     ];
 
     for ancestor in path.ancestors() {
-        if let Some(name) = ancestor.file_name().and_then(|n| n.to_str()) {
-            if skip_dirs.contains(&name) {
-                return true;
-            }
+        if let Some(name) = ancestor.file_name().and_then(|n| n.to_str())
+            && skip_dirs.contains(&name)
+        {
+            return true;
         }
     }
 

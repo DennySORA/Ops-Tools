@@ -217,9 +217,11 @@ mod tests {
         let extensions = get_available_extensions(CliType::Claude);
         assert!(!extensions.is_empty());
         // Claude should have access to plugins
-        assert!(extensions
-            .iter()
-            .any(|ext| ext.extension_type == ExtensionType::Plugin));
+        assert!(
+            extensions
+                .iter()
+                .any(|ext| ext.extension_type == ExtensionType::Plugin)
+        );
     }
 
     #[test]
@@ -237,9 +239,11 @@ mod tests {
     fn test_get_available_extensions_codex_includes_hook_plugins() {
         let extensions = get_available_extensions(CliType::Codex);
         // Codex now supports hooks (experimental) - verify hook plugins are available
-        assert!(extensions
-            .iter()
-            .any(|ext| ext.has_hooks && !ext.is_embedded));
+        assert!(
+            extensions
+                .iter()
+                .any(|ext| ext.has_hooks && !ext.is_embedded)
+        );
     }
 
     #[test]

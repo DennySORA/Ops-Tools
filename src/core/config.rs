@@ -148,18 +148,18 @@ mod tests {
     }
 
     fn set_env(key: &str, value: &std::path::Path) {
-        env::set_var(key, value);
+        unsafe { env::set_var(key, value) };
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     fn remove_env(key: &str) {
-        env::remove_var(key);
+        unsafe { env::remove_var(key) };
     }
 
     fn restore_env(key: &str, value: Option<std::ffi::OsString>) {
         match value {
-            Some(value) => env::set_var(key, value),
-            None => env::remove_var(key),
+            Some(value) => unsafe { env::set_var(key, value) },
+            None => unsafe { env::remove_var(key) },
         }
     }
 
@@ -208,9 +208,10 @@ mod tests {
 
         let path = config_path().expect("Expected config path");
         assert!(path.starts_with(temp.path()));
-        assert!(path
-            .to_string_lossy()
-            .contains("Library/Application Support/ops-tools/config.toml"));
+        assert!(
+            path.to_string_lossy()
+                .contains("Library/Application Support/ops-tools/config.toml")
+        );
 
         restore_env("HOME", old_home);
     }

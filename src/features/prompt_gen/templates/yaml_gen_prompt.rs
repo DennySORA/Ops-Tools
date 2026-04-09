@@ -285,7 +285,9 @@ pub fn get_yaml_template(
     has_verification_env: bool,
     needs_deployment: bool,
 ) -> String {
-    let mut template = String::from("```\nfeatures:\n  - feature_key: <kebab-case-unique-key>\n    feature_name: \"<Prefix:> <Concise but specific title>\"\n    project_type: ");
+    let mut template = String::from(
+        "```\nfeatures:\n  - feature_key: <kebab-case-unique-key>\n    feature_name: \"<Prefix:> <Concise but specific title>\"\n    project_type: ",
+    );
     template.push_str(&project_type.to_string());
     template.push_str("\n    options:\n      needs_local_validation: true\n");
 

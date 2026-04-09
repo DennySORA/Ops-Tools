@@ -1,7 +1,7 @@
 [package]
 name = "tools"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["DennySORA"]
 description = "A robust Rust-based CLI toolset designed for efficient DevOps workflows, including Terraform cache cleaning, AI tool upgrading, and MCP management."
 homepage = "https://github.com/DennySORA/Ops-Tools"
@@ -27,5 +27,7 @@ console = "0.16"
 dirs = "6.0"
 unicode-width = "0.2"
 tempfile = "3.24"
+sha2 = "0.10"
+wait-timeout = "0.2"
 
 [dev-dependencies]

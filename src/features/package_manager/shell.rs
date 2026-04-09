@@ -257,10 +257,10 @@ pub fn set_executable(path: &Path) -> Result<()> {
 pub fn ensure_profile_line(ctx: &ActionContext, line: &str) -> Result<()> {
     let profile = ctx.home_dir.join(".profile");
     let mut needs_write = true;
-    if let Ok(existing) = fs::read_to_string(&profile) {
-        if existing.contains(line) {
-            needs_write = false;
-        }
+    if let Ok(existing) = fs::read_to_string(&profile)
+        && existing.contains(line)
+    {
+        needs_write = false;
     }
 
     if needs_write {

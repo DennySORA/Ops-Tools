@@ -3,7 +3,7 @@
 //! 負責將生成的提示寫入檔案系統
 
 use super::models::FeaturePrompts;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::PathBuf;
 
 // ============================================================================

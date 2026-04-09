@@ -3,7 +3,7 @@ mod upgrader;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
-use tools::{UpgradeCommand, AI_TOOLS};
+use tools::{AI_TOOLS, UpgradeCommand};
 use upgrader::{PackageUpgrader, SourceBuildExecutor};
 
 /// 執行 AI 工具升級功能

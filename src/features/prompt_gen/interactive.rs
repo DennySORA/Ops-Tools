@@ -9,15 +9,15 @@
 //! - `q` - 離開
 //! - `a` - 執行所有功能
 
-use anyhow::{bail, Context, Result};
-use console::{style, Term};
-use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Input, MultiSelect, Select};
+use anyhow::{Context, Result, bail};
+use console::{Term, style};
+use dialoguer::{Confirm, FuzzySelect, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::path::{Path, PathBuf};
 
 use super::executor::{CliType, Executor, ExecutorConfig};
 use super::progress::{
-    expected_status_for_step, read_state_status, update_state_status, FeatureInfo, FeatureStatus,
-    Step,
+    FeatureInfo, FeatureStatus, Step, expected_status_for_step, read_state_status,
+    update_state_status,
 };
 
 // ============================================================================
@@ -875,10 +875,10 @@ impl InteractiveRunner {
                         }
                         MainMenuChoice::SelectFeatures => {
                             let selections = self.select_features()?;
-                            if !selections.is_empty() {
-                                if let Err(e) = self.run_features(&selections) {
-                                    println!("{} {}", style("[錯誤]").red().bold(), e);
-                                }
+                            if !selections.is_empty()
+                                && let Err(e) = self.run_features(&selections)
+                            {
+                                println!("{} {}", style("[錯誤]").red().bold(), e);
                             }
                         }
                         MainMenuChoice::ViewDetails => {

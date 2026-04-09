@@ -2,7 +2,7 @@
 //!
 //! 負責呼叫 Claude/Codex/Gemini CLI 並處理輸出
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::Local;
 use console::style;
 use std::io::{BufRead, BufReader, Write};
@@ -318,24 +318,24 @@ impl Executor {
     /// 從 JSON 輸出中提取並顯示文字內容
     fn display_json_content(&self, json: &serde_json::Value) {
         // 處理 delta 格式
-        if let Some(delta) = json.get("delta") {
-            if let Some(text) = delta.get("text").and_then(|v| v.as_str()) {
-                print!("{}", text);
-                let _ = std::io::stdout().flush();
-                return;
-            }
+        if let Some(delta) = json.get("delta")
+            && let Some(text) = delta.get("text").and_then(|v| v.as_str())
+        {
+            print!("{}", text);
+            let _ = std::io::stdout().flush();
+            return;
         }
 
         // 處理 message 格式
-        if let Some(message) = json.get("message") {
-            if let Some(content) = message.get("content").and_then(|v| v.as_array()) {
-                for item in content {
-                    if item.get("type").and_then(|v| v.as_str()) == Some("text") {
-                        if let Some(text) = item.get("text").and_then(|v| v.as_str()) {
-                            print!("{}", text);
-                            let _ = std::io::stdout().flush();
-                        }
-                    }
+        if let Some(message) = json.get("message")
+            && let Some(content) = message.get("content").and_then(|v| v.as_array())
+        {
+            for item in content {
+                if item.get("type").and_then(|v| v.as_str()) == Some("text")
+                    && let Some(text) = item.get("text").and_then(|v| v.as_str())
+                {
+                    print!("{}", text);
+                    let _ = std::io::stdout().flush();
                 }
             }
         }
@@ -343,10 +343,10 @@ impl Executor {
         // 處理 result 類型（包含最終 session_id）
         if json.get("type").and_then(|v| v.as_str()) == Some("result") {
             println!();
-            if let Some(stats) = json.get("stats") {
-                if let Some(tokens) = stats.get("total_tokens").and_then(|v| v.as_i64()) {
-                    println!("{} Total tokens: {}", style("[統計]").blue(), tokens);
-                }
+            if let Some(stats) = json.get("stats")
+                && let Some(tokens) = stats.get("total_tokens").and_then(|v| v.as_i64())
+            {
+                println!("{} Total tokens: {}", style("[統計]").blue(), tokens);
             }
         }
     }

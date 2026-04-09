@@ -671,6 +671,27 @@ pub mod keys {
     pub const CUDA_BUILDER_CACHE_EMPTY: &str = "cuda_builder.cache_empty";
     pub const CUDA_BUILDER_CONFIRM_CLEAN: &str = "cuda_builder.confirm_clean";
     pub const CUDA_BUILDER_CLEAN_SUCCESS: &str = "cuda_builder.clean_success";
+
+    // System Updater - Menu
+    pub const MENU_SYSTEM_UPDATER: &str = "menu.system_updater.name";
+    pub const MENU_SYSTEM_UPDATER_DESC: &str = "menu.system_updater.desc";
+
+    // System Updater - UI
+    pub const SYSTEM_UPDATER_HEADER: &str = "system_updater.header";
+    pub const SYSTEM_UPDATER_SELECT_MODE: &str = "system_updater.select_mode";
+    pub const SYSTEM_UPDATER_MODE_RUN: &str = "system_updater.mode_run";
+    pub const SYSTEM_UPDATER_MODE_SCAN: &str = "system_updater.mode_scan";
+    pub const SYSTEM_UPDATER_MODE_CLEANUP: &str = "system_updater.mode_cleanup";
+    pub const SYSTEM_UPDATER_MODE_VERIFY: &str = "system_updater.mode_verify";
+    pub const SYSTEM_UPDATER_MODE_BACKUP: &str = "system_updater.mode_backup";
+    pub const SYSTEM_UPDATER_DRY_RUN_PROMPT: &str = "system_updater.dry_run_prompt";
+    pub const SYSTEM_UPDATER_EXECUTE: &str = "system_updater.execute";
+    pub const SYSTEM_UPDATER_DRY_RUN: &str = "system_updater.dry_run";
+    pub const SYSTEM_UPDATER_SELECT_PROFILE: &str = "system_updater.select_profile";
+    pub const SYSTEM_UPDATER_PROFILE_DEFAULT: &str = "system_updater.profile_default";
+    pub const SYSTEM_UPDATER_PROFILE_SAFE: &str = "system_updater.profile_safe";
+    pub const SYSTEM_UPDATER_PROFILE_AGGRESSIVE: &str = "system_updater.profile_aggressive";
+    pub const SYSTEM_UPDATER_CANCELLED: &str = "system_updater.cancelled";
 }
 
 #[cfg(test)]

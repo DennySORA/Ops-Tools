@@ -1,5 +1,5 @@
 use super::tools::{AiTool, UpgradeCommand};
-use crate::core::{load_config, OperationError, Result};
+use crate::core::{OperationError, Result, load_config};
 use crate::i18n::{self, keys};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -228,7 +228,7 @@ fn run_command_in_dir(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::features::tool_upgrader::tools::{AiTool, UpgradeCommand, AI_TOOLS};
+    use crate::features::tool_upgrader::tools::{AI_TOOLS, AiTool, UpgradeCommand};
 
     #[test]
     fn test_build_command_for_npm_package() {
@@ -317,7 +317,7 @@ mod tests {
 
         let temp = tempfile::tempdir().unwrap();
         let old_xdg = env::var_os("XDG_CONFIG_HOME");
-        env::set_var("XDG_CONFIG_HOME", temp.path());
+        unsafe { env::set_var("XDG_CONFIG_HOME", temp.path()) };
 
         // Write config with a non-existent source path
         let config = crate::core::AppConfig {
@@ -333,8 +333,8 @@ mod tests {
 
         // Restore env
         match old_xdg {
-            Some(val) => env::set_var("XDG_CONFIG_HOME", val),
-            None => env::remove_var("XDG_CONFIG_HOME"),
+            Some(val) => unsafe { env::set_var("XDG_CONFIG_HOME", val) },
+            None => unsafe { env::remove_var("XDG_CONFIG_HOME") },
         }
     }
 }

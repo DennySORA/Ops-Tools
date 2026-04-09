@@ -3,10 +3,10 @@ mod features;
 mod i18n;
 mod ui;
 
-use crate::core::{load_config, save_config, AppConfig};
+use crate::core::{AppConfig, load_config, save_config};
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Select};
-use i18n::{keys, Language};
+use dialoguer::{Select, theme::ColorfulTheme};
+use i18n::{Language, keys};
 use ui::{Console, Prompts};
 use unicode_width::UnicodeWidthStr;
 
@@ -102,6 +102,11 @@ fn all_actions() -> Vec<MenuItem> {
             desc_key: keys::MENU_CUDA_BUILDER_DESC,
             handler: features::cuda_builder::run,
         },
+        MenuItem {
+            name_key: keys::MENU_SYSTEM_UPDATER,
+            desc_key: keys::MENU_SYSTEM_UPDATER_DESC,
+            handler: features::system_updater::run,
+        },
     ]
 }
 
@@ -146,6 +151,7 @@ fn build_categories(items: &[MenuItem]) -> Vec<Category> {
             name_key: keys::MENU_CATEGORY_UPGRADE,
             desc_key: keys::MENU_CATEGORY_UPGRADE_DESC,
             items: vec![
+                find_action(items, keys::MENU_SYSTEM_UPDATER),
                 find_action(items, keys::MENU_TOOL_UPGRADER),
                 find_action(items, keys::MENU_RUST_UPGRADER),
                 find_action(items, keys::MENU_PACKAGE_MANAGER),
@@ -603,11 +609,10 @@ fn select_language_on_start(prompts: &Prompts, console: &Console) {
     let prompt = "Select language / 選擇語言 / 选择语言 / 言語を選択";
     if let Some(index) =
         prompts.select_with_default(prompt, &options, i18n::current_language().index())
+        && let Some(language) = Language::from_index(index)
     {
-        if let Some(language) = Language::from_index(index) {
-            i18n::set_language(language);
-            persist_language(console);
-        }
+        i18n::set_language(language);
+        persist_language(console);
     }
 }
 
@@ -619,15 +624,14 @@ fn select_language(prompts: &Prompts, console: &Console) {
     let default = i18n::current_language().index();
     if let Some(index) =
         prompts.select_with_default(i18n::t(keys::LANGUAGE_SELECT_PROMPT), &options, default)
+        && let Some(language) = Language::from_index(index)
     {
-        if let Some(language) = Language::from_index(index) {
-            i18n::set_language(language);
-            console.success(&crate::tr!(
-                keys::LANGUAGE_CHANGED,
-                language = language.display_name()
-            ));
-            persist_language(console);
-        }
+        i18n::set_language(language);
+        console.success(&crate::tr!(
+            keys::LANGUAGE_CHANGED,
+            language = language.display_name()
+        ));
+        persist_language(console);
     }
 }
 

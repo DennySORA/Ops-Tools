@@ -452,21 +452,21 @@ impl ExtensionExecutor {
         if self.cli == CliType::Gemini {
             // Gemini: scan extensions directory for directories with gemini-extension.json
             let extensions_dir = self.install_dir(ExtensionType::Skill); // returns ~/.gemini/extensions/
-            if extensions_dir.exists() {
-                if let Ok(entries) = fs::read_dir(&extensions_dir) {
-                    for entry in entries.flatten() {
-                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            // Check if it has gemini-extension.json (our installed extensions)
-                            let manifest = entry.path().join("gemini-extension.json");
-                            if manifest.exists() {
-                                // Check if it has hooks/ directory -> Plugin, otherwise Skill
-                                let hooks_dir = entry.path().join("hooks");
-                                if hooks_dir.exists() {
-                                    installed.insert(name, ExtensionType::Plugin);
-                                } else {
-                                    installed.insert(name, ExtensionType::Skill);
-                                }
+            if extensions_dir.exists()
+                && let Ok(entries) = fs::read_dir(&extensions_dir)
+            {
+                for entry in entries.flatten() {
+                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        // Check if it has gemini-extension.json (our installed extensions)
+                        let manifest = entry.path().join("gemini-extension.json");
+                        if manifest.exists() {
+                            // Check if it has hooks/ directory -> Plugin, otherwise Skill
+                            let hooks_dir = entry.path().join("hooks");
+                            if hooks_dir.exists() {
+                                installed.insert(name, ExtensionType::Plugin);
+                            } else {
+                                installed.insert(name, ExtensionType::Skill);
                             }
                         }
                     }
@@ -475,13 +475,13 @@ impl ExtensionExecutor {
         } else {
             // Claude/Codex: scan skills directory
             let skills_dir = self.install_dir(ExtensionType::Skill);
-            if skills_dir.exists() {
-                if let Ok(entries) = fs::read_dir(&skills_dir) {
-                    for entry in entries.flatten() {
-                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            installed.insert(name, ExtensionType::Skill);
-                        }
+            if skills_dir.exists()
+                && let Ok(entries) = fs::read_dir(&skills_dir)
+            {
+                for entry in entries.flatten() {
+                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        installed.insert(name, ExtensionType::Skill);
                     }
                 }
             }
@@ -489,16 +489,16 @@ impl ExtensionExecutor {
             // For Codex, also scan plugins directory (hook-based plugins)
             if self.cli == CliType::Codex {
                 let plugins_dir = self.codex_plugins_dir();
-                if plugins_dir.exists() {
-                    if let Ok(entries) = fs::read_dir(&plugins_dir) {
-                        for entry in entries.flatten() {
-                            if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                                let name = entry.file_name().to_string_lossy().to_string();
-                                // Check if it has a hooks/ subdirectory
-                                let hooks_dir = entry.path().join("hooks");
-                                if hooks_dir.exists() {
-                                    installed.insert(name, ExtensionType::Plugin);
-                                }
+                if plugins_dir.exists()
+                    && let Ok(entries) = fs::read_dir(&plugins_dir)
+                {
+                    for entry in entries.flatten() {
+                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            // Check if it has a hooks/ subdirectory
+                            let hooks_dir = entry.path().join("hooks");
+                            if hooks_dir.exists() {
+                                installed.insert(name, ExtensionType::Plugin);
                             }
                         }
                     }
@@ -508,15 +508,15 @@ impl ExtensionExecutor {
             // For Claude, also scan plugins directory and cache directory
             if self.cli == CliType::Claude {
                 let plugins_dir = self.install_dir(ExtensionType::Plugin);
-                if plugins_dir.exists() {
-                    if let Ok(entries) = fs::read_dir(&plugins_dir) {
-                        for entry in entries.flatten() {
-                            if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                                let name = entry.file_name().to_string_lossy().to_string();
-                                // Skip cache and marketplaces directories
-                                if name != "cache" && name != "marketplaces" {
-                                    installed.insert(name, ExtensionType::Plugin);
-                                }
+                if plugins_dir.exists()
+                    && let Ok(entries) = fs::read_dir(&plugins_dir)
+                {
+                    for entry in entries.flatten() {
+                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            // Skip cache and marketplaces directories
+                            if name != "cache" && name != "marketplaces" {
+                                installed.insert(name, ExtensionType::Plugin);
                             }
                         }
                     }
@@ -532,26 +532,24 @@ impl ExtensionExecutor {
                                 .file_type()
                                 .map(|ft| ft.is_dir())
                                 .unwrap_or(false)
+                                && let Ok(plugins) = fs::read_dir(marketplace.path())
                             {
-                                if let Ok(plugins) = fs::read_dir(marketplace.path()) {
-                                    for plugin in plugins.flatten() {
-                                        if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
-                                        {
-                                            let plugin_name =
-                                                plugin.file_name().to_string_lossy().to_string();
-                                            // Check if any version directory exists with plugin.json
-                                            if let Ok(versions) = fs::read_dir(plugin.path()) {
-                                                for version in versions.flatten() {
-                                                    let plugin_json = version
-                                                        .path()
-                                                        .join(".claude-plugin/plugin.json");
-                                                    if plugin_json.exists() {
-                                                        installed.insert(
-                                                            plugin_name.clone(),
-                                                            ExtensionType::Plugin,
-                                                        );
-                                                        break;
-                                                    }
+                                for plugin in plugins.flatten() {
+                                    if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                                        let plugin_name =
+                                            plugin.file_name().to_string_lossy().to_string();
+                                        // Check if any version directory exists with plugin.json
+                                        if let Ok(versions) = fs::read_dir(plugin.path()) {
+                                            for version in versions.flatten() {
+                                                let plugin_json = version
+                                                    .path()
+                                                    .join(".claude-plugin/plugin.json");
+                                                if plugin_json.exists() {
+                                                    installed.insert(
+                                                        plugin_name.clone(),
+                                                        ExtensionType::Plugin,
+                                                    );
+                                                    break;
                                                 }
                                             }
                                         }
@@ -846,14 +844,12 @@ impl ExtensionExecutor {
                     self.replace_plugin_root_variable(&path, plugin_dir)?;
                 } else if let Some(ext) = path.extension() {
                     let ext_str = ext.to_string_lossy();
-                    if matches!(ext_str.as_ref(), "js" | "json" | "sh" | "md" | "toml") {
-                        if let Ok(content) = fs::read_to_string(&path) {
-                            if content.contains("${CLAUDE_PLUGIN_ROOT}") {
-                                let converted =
-                                    content.replace("${CLAUDE_PLUGIN_ROOT}", &plugin_path_str);
-                                let _ = fs::write(&path, converted);
-                            }
-                        }
+                    if matches!(ext_str.as_ref(), "js" | "json" | "sh" | "md" | "toml")
+                        && let Ok(content) = fs::read_to_string(&path)
+                        && content.contains("${CLAUDE_PLUGIN_ROOT}")
+                    {
+                        let converted = content.replace("${CLAUDE_PLUGIN_ROOT}", &plugin_path_str);
+                        let _ = fs::write(&path, converted);
                     }
                 }
             }
@@ -1310,12 +1306,11 @@ impl ExtensionExecutor {
 
         // 5. Convert hooks.json - replace ${CLAUDE_PLUGIN_ROOT} with actual path
         let hooks_json = dest.join("hooks/hooks.json");
-        if hooks_json.exists() {
-            if let Ok(content) = fs::read_to_string(&hooks_json) {
-                let converted =
-                    content.replace("${CLAUDE_PLUGIN_ROOT}", dest.to_str().unwrap_or(""));
-                let _ = fs::write(&hooks_json, converted);
-            }
+        if hooks_json.exists()
+            && let Ok(content) = fs::read_to_string(&hooks_json)
+        {
+            let converted = content.replace("${CLAUDE_PLUGIN_ROOT}", dest.to_str().unwrap_or(""));
+            let _ = fs::write(&hooks_json, converted);
         }
 
         // 6. Create gemini-extension.json manifest
@@ -2107,12 +2102,11 @@ prompt = """
                     if let Ok(entries) = fs::read_dir(&loops_dir) {
                         for entry in entries.flatten() {
                             let path = entry.path();
-                            if path.extension().map(|e| e == "pid").unwrap_or(false) {
-                                if let Ok(pid_str) = fs::read_to_string(&path) {
-                                    if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                                        let _ = Command::new("kill").arg(pid.to_string()).status();
-                                    }
-                                }
+                            if path.extension().map(|e| e == "pid").unwrap_or(false)
+                                && let Ok(pid_str) = fs::read_to_string(&path)
+                                && let Ok(pid) = pid_str.trim().parse::<i32>()
+                            {
+                                let _ = Command::new("kill").arg(pid.to_string()).status();
                             }
                         }
                     }

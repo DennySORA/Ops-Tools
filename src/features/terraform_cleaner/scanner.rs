@@ -1,5 +1,5 @@
-use crate::core::path_utils;
 use crate::core::FileScanner;
+use crate::core::path_utils;
 use crate::i18n::{self, keys};
 use crate::ui::Progress;
 use std::path::{Path, PathBuf};

@@ -630,10 +630,10 @@ fn find_go_binary(binary: &str) -> Option<PathBuf> {
 }
 
 fn go_bin_dir() -> Option<PathBuf> {
-    if let Ok(gobin) = env::var("GOBIN") {
-        if !gobin.trim().is_empty() {
-            return Some(PathBuf::from(gobin));
-        }
+    if let Ok(gobin) = env::var("GOBIN")
+        && !gobin.trim().is_empty()
+    {
+        return Some(PathBuf::from(gobin));
     }
 
     is_command_available("go")?;
@@ -657,9 +657,5 @@ fn run_go_env(key: &str) -> Option<String> {
         return None;
     }
     let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if value.is_empty() {
-        None
-    } else {
-        Some(value)
-    }
+    if value.is_empty() { None } else { Some(value) }
 }

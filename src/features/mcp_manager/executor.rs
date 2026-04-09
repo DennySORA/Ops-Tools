@@ -487,11 +487,11 @@ fn migrate_gemini_mcp_servers(root: &mut Value) -> bool {
         };
 
         if transport == "http" {
-            if server_obj.get("httpUrl").is_none() {
-                if let Some(url_value) = server_obj.remove("url") {
-                    server_obj.insert("httpUrl".to_string(), url_value);
-                    changed = true;
-                }
+            if server_obj.get("httpUrl").is_none()
+                && let Some(url_value) = server_obj.remove("url")
+            {
+                server_obj.insert("httpUrl".to_string(), url_value);
+                changed = true;
             }
             if server_obj.get("httpUrl").is_some() {
                 server_obj.remove("url");
