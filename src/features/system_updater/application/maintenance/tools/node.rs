@@ -211,7 +211,11 @@ where
         .into());
     }
     if let Some(expected_hash) = &context.config.tools.nvm.installer_sha256 {
-        let actual_hash = format!("{:x}", Sha256::digest(content.as_bytes()));
+        let digest = Sha256::digest(content.as_bytes());
+        let actual_hash = digest
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
         if &actual_hash != expected_hash {
             return Err(DomainError::safety(
                 "DOMAIN_NVM_INSTALLER_HASH",

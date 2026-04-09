@@ -135,6 +135,10 @@ fn execute_runtime_command(options: CliOptions) -> AppResult<()> {
     let executor = ShellCommandExecutor::new(options.dry_run, reporter.clone());
     let platform = platform::detect(&host);
 
+    if platform.supports_gb10_tuning() || platform.expects_nvidia_tooling() {
+        super::dgx_detect::detect_and_merge(&host, &scan_executor, &mut loaded.config.dgx);
+    }
+
     if let Err(err) = print_runtime_banner(
         &reporter,
         &loaded.source,

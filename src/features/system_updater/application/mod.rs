@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod dgx_detect;
 pub mod maintenance;
 pub mod platform;
 pub mod preflight;

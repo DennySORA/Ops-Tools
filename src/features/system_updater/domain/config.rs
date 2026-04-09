@@ -158,7 +158,7 @@ impl Default for AptConfig {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(default)]
 pub struct DgxConfig {
     pub cuda_major: String,
@@ -167,19 +167,6 @@ pub struct DgxConfig {
     pub headers_meta: String,
     pub driver_pkg: String,
     pub modules_pkg: String,
-}
-
-impl Default for DgxConfig {
-    fn default() -> Self {
-        Self {
-            cuda_major: "13-0".into(),
-            cuda_arch: "121".into(),
-            kernel_meta: "linux-image-nvidia-hwe-24.04".into(),
-            headers_meta: "linux-headers-nvidia-hwe-24.04".into(),
-            driver_pkg: "nvidia-driver-580-open".into(),
-            modules_pkg: "linux-modules-nvidia-580-open-nvidia-hwe-24.04".into(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

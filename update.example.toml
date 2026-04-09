@@ -31,13 +31,16 @@ deny_remove_packages = []
 # - GB10 / DGX Spark: uses this section and GB10-specific tuning.
 # - Generic NVIDIA Linux: skips this section but keeps NVIDIA safety checks.
 # - Generic Linux: skips both GB10 tuning and NVIDIA-specific checks.
+#
+# All fields are auto-detected from the running system (nvcc, nvidia-smi, dpkg).
+# Only set values here to override auto-detection.
 [dgx]
-cuda_major = "13-0"
-cuda_arch = "121"
-kernel_meta = "linux-image-nvidia-hwe-24.04"
-headers_meta = "linux-headers-nvidia-hwe-24.04"
-driver_pkg = "nvidia-driver-580-open"
-modules_pkg = "linux-modules-nvidia-580-open-nvidia-hwe-24.04"
+# cuda_major = "13-0"
+# cuda_arch = "121"
+# kernel_meta = "linux-image-nvidia-hwe-24.04"
+# headers_meta = "linux-headers-nvidia-hwe-24.04"
+# driver_pkg = "nvidia-driver-580-open"
+# modules_pkg = "linux-modules-nvidia-580-open-nvidia-hwe-24.04"
 
 [docker]
 compose_projects = []
