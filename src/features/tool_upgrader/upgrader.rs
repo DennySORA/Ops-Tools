@@ -37,28 +37,22 @@ impl PackageUpgrader {
     /// 升級指定工具到最新版本
     pub fn upgrade(&self, tool: &AiTool) -> Result<String> {
         let (program, args) = self.build_command(tool);
-        let output =
-            Command::new(&program)
-                .args(&args)
-                .output()
-                .map_err(|e| OperationError::Command {
-                    command: program.clone(),
-                    message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-                })?;
+        let status = Command::new(&program)
+            .args(&args)
+            .stdin(std::process::Stdio::null())
+            .status()
+            .map_err(|e| OperationError::Command {
+                command: program.clone(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+            })?;
 
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-            Ok(stdout)
+        if status.success() {
+            Ok(format!("{program} completed"))
         } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             let command_display = format!("{program} {}", args.join(" "));
             Err(OperationError::Command {
                 command: command_display,
-                message: stderr
-                    .lines()
-                    .next()
-                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
-                    .to_string(),
+                message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
             })
         }
     }
@@ -233,33 +227,29 @@ fn find_binary_path(binary_name: &str) -> Result<PathBuf> {
     }
 }
 
-/// 在指定目錄中執行外部指令並回傳 stdout
+/// 在指定目錄中執行外部指令（即時輸出）
 fn run_command_in_dir(
     program: &str,
     args: &[&str],
     working_dir: &Path,
     display_label: &str,
 ) -> Result<String> {
-    let output = Command::new(program)
+    let status = Command::new(program)
         .args(args)
         .current_dir(working_dir)
-        .output()
+        .stdin(std::process::Stdio::null())
+        .status()
         .map_err(|e| OperationError::Command {
             command: display_label.to_string(),
             message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
         })?;
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    if status.success() {
+        Ok(format!("{display_label} completed"))
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         Err(OperationError::Command {
             command: display_label.to_string(),
-            message: stderr
-                .lines()
-                .next()
-                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
-                .to_string(),
+            message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
         })
     }
 }

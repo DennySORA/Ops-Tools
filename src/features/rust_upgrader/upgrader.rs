@@ -76,25 +76,21 @@ impl RustUpgrader {
 
     /// 安裝 cargo 工具
     pub fn install_tool(&self, tool: &CargoTool) -> Result<String> {
-        let output = Command::new("cargo")
+        let status = Command::new("cargo")
             .args(["install", tool.crate_name])
-            .output()
+            .stdin(std::process::Stdio::null())
+            .status()
             .map_err(|e| OperationError::Command {
                 command: "cargo install".to_string(),
                 message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
             })?;
 
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        if status.success() {
+            Ok(format!("{} installed", tool.crate_name))
         } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
             Err(OperationError::Command {
                 command: format!("cargo install {}", tool.crate_name),
-                message: stderr
-                    .lines()
-                    .next()
-                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
-                    .to_string(),
+                message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
             })
         }
     }
@@ -112,29 +108,20 @@ impl RustUpgrader {
             command.current_dir(path);
         }
 
-        let output = command.output().map_err(|e| OperationError::Command {
-            command: step.command.to_string(),
-            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-        })?;
+        let status = command
+            .stdin(std::process::Stdio::null())
+            .status()
+            .map_err(|e| OperationError::Command {
+                command: step.command.to_string(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+            })?;
 
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-        if output.status.success() {
-            let combined = if stderr.is_empty() {
-                stdout
-            } else {
-                format!("{}\n{}", stdout, stderr)
-            };
-            Ok(combined)
+        if status.success() {
+            Ok(format!("{} completed", step.command))
         } else {
             Err(OperationError::Command {
                 command: format!("{} {}", step.command, step.args.join(" ")),
-                message: stderr
-                    .lines()
-                    .next()
-                    .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
-                    .to_string(),
+                message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
             })
         }
     }

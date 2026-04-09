@@ -129,26 +129,21 @@ fn run_install_strategy(strategy: &InstallStrategy) -> Result<()> {
         args = sudo_args;
     }
 
-    let output =
-        Command::new(&program)
-            .args(&args)
-            .output()
-            .map_err(|err| OperationError::Command {
-                command: program.clone(),
-                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
-            })?;
+    let status = Command::new(&program)
+        .args(&args)
+        .stdin(std::process::Stdio::null())
+        .status()
+        .map_err(|err| OperationError::Command {
+            command: program.clone(),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
+        })?;
 
-    if output.status.success() {
+    if status.success() {
         Ok(())
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         Err(OperationError::Command {
             command: format!("{} {}", program, args.join(" ")),
-            message: stderr
-                .lines()
-                .next()
-                .unwrap_or(i18n::t(keys::ERROR_UNKNOWN))
-                .to_string(),
+            message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
         })
     }
 }

@@ -17,8 +17,42 @@ use super::types::{ActionContext, PackageManager, SupportedOs};
 // 指令執行
 // ============================================================================
 
-/// 執行外部指令
+/// 執行外部指令（即時輸出到終端）
 pub fn run_command(
+    ctx: &ActionContext,
+    program: &str,
+    args: &[&str],
+    use_sudo: bool,
+) -> Result<String> {
+    let mut args_vec: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
+    let mut program = program.to_string();
+
+    if use_sudo && ctx.sudo_available {
+        args_vec.insert(0, program.clone());
+        program = "sudo".to_string();
+    }
+
+    let status = Command::new(&program)
+        .args(&args_vec)
+        .stdin(std::process::Stdio::null())
+        .status()
+        .map_err(|err| OperationError::Command {
+            command: program.clone(),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
+        })?;
+
+    if status.success() {
+        Ok(format!("{program} completed"))
+    } else {
+        Err(OperationError::Command {
+            command: format!("{} {}", program, args_vec.join(" ")),
+            message: i18n::t(keys::ERROR_UNKNOWN).to_string(),
+        })
+    }
+}
+
+/// 執行外部指令並擷取 stdout（用於需要讀取輸出的場景）
+pub fn capture_command(
     ctx: &ActionContext,
     program: &str,
     args: &[&str],
@@ -140,7 +174,7 @@ pub fn fetch_text(ctx: &ActionContext, url: &str, extra_args: &[&str]) -> Result
     let mut args = vec!["-sSfL"];
     args.extend_from_slice(extra_args);
     args.push(url);
-    run_command(ctx, "curl", &args, false)
+    capture_command(ctx, "curl", &args, false)
 }
 
 // ============================================================================
@@ -484,7 +518,7 @@ pub fn detect_apt_codename(ctx: &ActionContext) -> Result<String> {
     }
 
     if is_command_available("lsb_release").is_some() {
-        let output = run_command(ctx, "lsb_release", &["-cs"], false)?;
+        let output = capture_command(ctx, "lsb_release", &["-cs"], false)?;
         let code = output.trim();
         if !code.is_empty() {
             return Ok(code.to_string());
