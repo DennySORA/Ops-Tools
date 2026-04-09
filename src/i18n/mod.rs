@@ -621,6 +621,50 @@ pub mod keys {
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
     pub const SKILL_PUA: &str = "skill.pua";
     pub const SKILL_LOOP_RUNNER: &str = "skill.loop_runner";
+
+    // CUDA Builder - Menu
+    pub const MENU_CUDA_BUILDER: &str = "menu.cuda_builder.name";
+    pub const MENU_CUDA_BUILDER_DESC: &str = "menu.cuda_builder.desc";
+
+    // CUDA Builder - UI
+    pub const CUDA_BUILDER_HEADER: &str = "cuda_builder.header";
+    pub const CUDA_BUILDER_DETECTING: &str = "cuda_builder.detecting";
+    pub const CUDA_BUILDER_CUDA_FOUND: &str = "cuda_builder.cuda_found";
+    pub const CUDA_BUILDER_CUDA_NOT_FOUND: &str = "cuda_builder.cuda_not_found";
+    pub const CUDA_BUILDER_CACHE_DIR: &str = "cuda_builder.cache_dir";
+    pub const CUDA_BUILDER_GPU_ARCH: &str = "cuda_builder.gpu_arch";
+    pub const CUDA_BUILDER_SYSTEM_INFO: &str = "cuda_builder.system_info";
+    pub const CUDA_BUILDER_OPTIMIZATIONS: &str = "cuda_builder.optimizations";
+    pub const CUDA_BUILDER_SELECT_MODE: &str = "cuda_builder.select_mode";
+    pub const CUDA_BUILDER_MODE_BUILD: &str = "cuda_builder.mode_build";
+    pub const CUDA_BUILDER_MODE_INSTALL: &str = "cuda_builder.mode_install";
+    pub const CUDA_BUILDER_MODE_STATUS: &str = "cuda_builder.mode_status";
+    pub const CUDA_BUILDER_MODE_CLEAN: &str = "cuda_builder.mode_clean";
+    pub const CUDA_BUILDER_CANCELLED: &str = "cuda_builder.cancelled";
+    pub const CUDA_BUILDER_SELECT_PACKAGES: &str = "cuda_builder.select_packages";
+    pub const CUDA_BUILDER_NO_SELECTION: &str = "cuda_builder.no_selection";
+    pub const CUDA_BUILDER_CREATING_VENV: &str = "cuda_builder.creating_venv";
+    pub const CUDA_BUILDER_VENV_READY: &str = "cuda_builder.venv_ready";
+    pub const CUDA_BUILDER_VENV_FAILED: &str = "cuda_builder.venv_failed";
+    #[allow(dead_code)]
+    pub const CUDA_BUILDER_PIP_MISSING: &str = "cuda_builder.pip_missing";
+    pub const CUDA_BUILDER_ENSURING_BUILD_TOOLS: &str = "cuda_builder.ensuring_build_tools";
+    pub const CUDA_BUILDER_INSTALLING_TORCH_DEP: &str = "cuda_builder.installing_torch_dep";
+    pub const CUDA_BUILDER_BUILDING_PACKAGE: &str = "cuda_builder.building_package";
+    pub const CUDA_BUILDER_BUILD_SUCCESS: &str = "cuda_builder.build_success";
+    pub const CUDA_BUILDER_BUILD_FAILED: &str = "cuda_builder.build_failed";
+    pub const CUDA_BUILDER_SUMMARY: &str = "cuda_builder.summary";
+    pub const CUDA_BUILDER_SELECT_INSTALL: &str = "cuda_builder.select_install";
+    pub const CUDA_BUILDER_NO_CACHED: &str = "cuda_builder.no_cached";
+    pub const CUDA_BUILDER_INSTALLING: &str = "cuda_builder.installing";
+    pub const CUDA_BUILDER_INSTALL_SUCCESS: &str = "cuda_builder.install_success";
+    pub const CUDA_BUILDER_INSTALL_FAILED: &str = "cuda_builder.install_failed";
+    pub const CUDA_BUILDER_CACHE_STATUS: &str = "cuda_builder.cache_status";
+    pub const CUDA_BUILDER_STATUS_CACHED: &str = "cuda_builder.status_cached";
+    pub const CUDA_BUILDER_STATUS_NOT_CACHED: &str = "cuda_builder.status_not_cached";
+    pub const CUDA_BUILDER_CACHE_EMPTY: &str = "cuda_builder.cache_empty";
+    pub const CUDA_BUILDER_CONFIRM_CLEAN: &str = "cuda_builder.confirm_clean";
+    pub const CUDA_BUILDER_CLEAN_SUCCESS: &str = "cuda_builder.clean_success";
 }
 
 #[cfg(test)]

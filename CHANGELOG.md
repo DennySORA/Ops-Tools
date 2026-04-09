@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prompt generator templates now use verification-environment wording and status tokens (`P1_DONE_DEPLOYED`, `P3_REFACTORED_DEPLOYED`) while still accepting legacy INT tokens.
 - Renamed Claude Code prompt generator UI to LLM prompt generator in menus and docs.
 - Codex upgrades now use `bun install -g @openai/codex`.
+- CUDA ML builder now rebuilds selected packages from source, clears stale package artifacts before rebuilds, and reuses locally built torch wheels for dependent builds.
+- CUDA ML builder now auto-enables detected build accelerators such as ccache, Ninja, clang, and mold/lld.
+- CUDA ML builder install mode now prefers user-site installs without sudo, resolves missing dependencies online, and pins PyTorch runtime installs to the detected CUDA backend.
+- CUDA ML builder install mode now installs cached wheel files by local path instead of package name, so cached artifacts are always reused and pip does not replace them from indexes.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.

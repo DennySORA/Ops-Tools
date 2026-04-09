@@ -97,3 +97,6 @@ $RECYCLE.BIN/
 
 # Claude Code local files
 .claude/
+
+# ML build cache
+unsloth_compiled_cache/

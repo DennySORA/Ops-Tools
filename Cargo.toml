@@ -7,6 +7,7 @@ description = "A robust Rust-based CLI toolset designed for efficient DevOps wor
 homepage = "https://github.com/DennySORA/Ops-Tools"
 repository = "https://github.com/DennySORA/Ops-Tools"
 license = "MIT"
+default-run = "tools"
 keywords = ["devops", "cli", "terraform", "mcp", "ai-tools"]
 
 [dependencies]
