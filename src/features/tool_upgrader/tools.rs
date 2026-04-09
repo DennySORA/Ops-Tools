@@ -11,6 +11,13 @@ pub enum UpgradeCommand {
         program: &'static str,
         args: &'static [&'static str],
     },
+    /// 從本地原始碼目錄編譯安裝
+    SourceBuild {
+        /// 要編譯的 Cargo 套件名稱
+        cargo_package: &'static str,
+        /// 編譯後的二進位檔名稱（位於 target/release/ 下）
+        binary_name: &'static str,
+    },
 }
 
 /// AI 程式碼助手工具定義
@@ -54,6 +61,22 @@ impl AiTool {
             command: UpgradeCommand::Custom { program, args },
         }
     }
+
+    pub const fn from_source_build(
+        name: &'static str,
+        display: &'static str,
+        cargo_package: &'static str,
+        binary_name: &'static str,
+    ) -> Self {
+        Self {
+            name,
+            display,
+            command: UpgradeCommand::SourceBuild {
+                cargo_package,
+                binary_name,
+            },
+        }
+    }
 }
 
 /// 預設的 AI 工具清單
@@ -65,6 +88,12 @@ pub const AI_TOOLS: &[AiTool] = &[
         "bun install -g @openai/codex",
         "bun",
         &["install", "-g", "@openai/codex"],
+    ),
+    AiTool::from_source_build(
+        "OpenAI Codex (Source Build)",
+        "cargo build from local source",
+        "codex-cli",
+        "codex",
     ),
     AiTool::from_package_with_manager("Google Gemini CLI", "@google/gemini-cli", "npm"),
 ];
@@ -96,5 +125,19 @@ mod tests {
             .expect("Claude tool should exist");
 
         assert!(matches!(claude.command, UpgradeCommand::Custom { .. }));
+    }
+
+    #[test]
+    fn test_codex_source_build_uses_source_build_command() {
+        let codex_source = AI_TOOLS
+            .iter()
+            .find(|t| t.name == "OpenAI Codex (Source Build)")
+            .expect("Codex Source Build entry should exist");
+
+        assert!(matches!(
+            codex_source.command,
+            UpgradeCommand::SourceBuild { .. }
+        ));
+        assert_eq!(codex_source.display, "cargo build from local source");
     }
 }

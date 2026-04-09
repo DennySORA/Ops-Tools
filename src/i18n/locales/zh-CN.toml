@@ -108,6 +108,12 @@
 "tool_upgrader.failed" = "{tool} 升级失败"
 "tool_upgrader.summary" = "升级完成"
 
+"source_build.path_not_set" = "尚未在 config.toml 设置 codex_source_path"
+"source_build.dir_not_found" = "源码目录不存在：{path}"
+"source_build.binary_not_found" = "找不到已安装的可执行文件：{name}"
+"source_build.artifact_not_found" = "找不到编译产物：{path}"
+"source_build.installed" = "已复制 {source} -> {target}"
+
 "package_manager.header" = "安装与更新软件包"
 "package_manager.unsupported_os" = "此功能仅支持 macOS 与 Linux。"
 "package_manager.mode_prompt" = "选择软件包操作"

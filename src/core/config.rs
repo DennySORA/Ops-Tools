@@ -17,6 +17,9 @@ pub struct AppConfig {
     /// Pinned menu items (shown at the top)
     #[serde(default)]
     pub pinned_items: Vec<String>,
+    /// Local source directory for building Codex from source
+    #[serde(default)]
+    pub codex_source_path: Option<String>,
 }
 
 impl AppConfig {

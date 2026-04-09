@@ -3,8 +3,8 @@ mod upgrader;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
-use tools::AI_TOOLS;
-use upgrader::PackageUpgrader;
+use tools::{UpgradeCommand, AI_TOOLS};
+use upgrader::{PackageUpgrader, SourceBuildExecutor};
 
 /// 執行 AI 工具升級功能
 pub fn run() {
@@ -26,7 +26,8 @@ pub fn run() {
 
     console.blank_line();
 
-    let upgrader = PackageUpgrader::new();
+    let package_upgrader = PackageUpgrader::new();
+    let source_builder = SourceBuildExecutor::new();
     let mut success_count = 0;
     let mut failed_count = 0;
 
@@ -37,7 +38,12 @@ pub fn run() {
             &crate::tr!(keys::TOOL_UPGRADER_PROGRESS, tool = tool.name),
         );
 
-        match upgrader.upgrade(tool) {
+        let result = match tool.command {
+            UpgradeCommand::SourceBuild { .. } => source_builder.execute(tool),
+            _ => package_upgrader.upgrade(tool),
+        };
+
+        match result {
             Ok(output) => {
                 console.success_item(&crate::tr!(keys::TOOL_UPGRADER_SUCCESS, tool = tool.name));
                 if !output.trim().is_empty() {

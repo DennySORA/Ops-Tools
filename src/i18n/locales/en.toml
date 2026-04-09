@@ -108,6 +108,12 @@
 "tool_upgrader.failed" = "{tool} upgrade failed"
 "tool_upgrader.summary" = "Upgrade complete"
 
+"source_build.path_not_set" = "codex_source_path is not configured in config.toml"
+"source_build.dir_not_found" = "Source directory not found: {path}"
+"source_build.binary_not_found" = "Installed binary not found: {name}"
+"source_build.artifact_not_found" = "Build artifact not found: {path}"
+"source_build.installed" = "Copied {source} -> {target}"
+
 "package_manager.header" = "Install and update packages"
 "package_manager.unsupported_os" = "This feature is only available on macOS and Linux."
 "package_manager.mode_prompt" = "Choose a package operation"

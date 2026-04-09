@@ -108,6 +108,12 @@
 "tool_upgrader.failed" = "{tool} のアップグレードに失敗しました"
 "tool_upgrader.summary" = "アップグレード完了"
 
+"source_build.path_not_set" = "config.toml に codex_source_path が設定されていません"
+"source_build.dir_not_found" = "ソースディレクトリが見つかりません：{path}"
+"source_build.binary_not_found" = "インストール済みバイナリが見つかりません：{name}"
+"source_build.artifact_not_found" = "ビルド成果物が見つかりません：{path}"
+"source_build.installed" = "コピー完了 {source} -> {target}"
+
 "package_manager.header" = "パッケージのインストールと更新"
 "package_manager.unsupported_os" = "この機能は macOS と Linux のみ対応しています。"
 "package_manager.mode_prompt" = "パッケージ操作を選択"
