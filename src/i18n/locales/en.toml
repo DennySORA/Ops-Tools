@@ -459,3 +459,4 @@
 "skill.writing_rules" = "Writing Rules (Code Style Guidelines)"
 "skill.claude_mem" = "Claude Mem (Session Memory & Context Persistence)"
 "skill.pua" = "PUA (Debugging Motivator & Systematic Debugging)"
+"skill.loop_runner" = "Loop Runner (Periodic Task Scheduler)"

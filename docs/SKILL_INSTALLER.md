@@ -8,9 +8,9 @@ The Skill Installer manages extensions (skills and plugins) for three AI CLI pla
 
 | CLI | Config Directory | Extension Format | Hook Support |
 |-----|-----------------|------------------|--------------|
-| Claude Code | `~/.claude/` | Plugins (`plugins/`), Skills (`skills/`) | ✅ Full |
-| OpenAI Codex | `~/.codex/` | Skills (`skills/`) with `SKILL.md` | ❌ None |
-| Google Gemini | `~/.gemini/` | Extensions (`extensions/`) with TOML commands | ✅ Full |
+| Claude Code | `~/.claude/` | Plugins (`plugins/`), Skills (`skills/`) | ✅ Full (25+ events) |
+| OpenAI Codex | `~/.codex/` | Skills (`skills/`), Plugins (`plugins/`) | ⚠️ Experimental (5 events, Bash-only) |
+| Google Gemini | `~/.gemini/` | Extensions (`extensions/`) with TOML commands | ✅ Full (native) |
 
 ### Gemini Extension Format
 
@@ -98,9 +98,10 @@ Before adding a new extension, evaluate its structure:
 |-----------------|--------|-------|--------|---------------|
 | Has `skills/` subdirectory | Plugin | Skill (extract) | Extension (TOML) | `skill_subpath` |
 | Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
-| Has `hooks/` only | Plugin | **Not supported** | Extension (TOML) | `has_hooks: true` |
-| Has `hooks/` + `commands/` | Plugin | Skill (convert) | Extension (TOML) | `has_hooks: true` |
-| Requires marketplace root | Plugin (marketplace) | **Not supported** | **Not supported** | `marketplace_name` |
+| Has `hooks/` only | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
+| Has `hooks/` + `commands/` | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
+| Requires marketplace root | Plugin (marketplace) | **Not supported** | Extension (convert) | `marketplace_name` |
+| Embedded (custom content) | Skill | Skill + hooks | Extension (TOML) | `is_embedded: true` |
 
 **Key insight:** Gemini uses a native extension format with TOML commands. The installer automatically converts Claude plugins to Gemini extensions.
 
@@ -173,9 +174,9 @@ Extension {
 - Codex: Converts command to `~/.codex/skills/code-review/SKILL.md`
 - Gemini: Creates extension at `~/.gemini/extensions/code-review/` with TOML commands
 
-#### Option C: Plugin with Hooks (Claude + Gemini)
+#### Option C: Plugin with Hooks (All CLIs)
 
-Use when the plugin uses hooks. Gemini converts hooks to its native extension format:
+Use when the plugin uses hooks. All three CLIs support hooks:
 
 ```rust
 Extension {
@@ -184,17 +185,18 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "anthropics/claude-code",
     source_path: "plugins/ralph-wiggum",
-    cli_support: &[CliType::Claude, CliType::Gemini],  // Both support hooks!
+    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],  // All support hooks
     skill_subpath: None,
     command_file: None,
-    has_hooks: true,  // Important: enables Gemini hook migration
+    has_hooks: true,  // Enables hook conversion for Codex/Gemini
+    is_embedded: false,
 },
 ```
 
 **Behavior:**
 - Claude: Installs full plugin to `~/.claude/plugins/ralph-wiggum/`
+- Codex: Copies hooks to `~/.codex/plugins/ralph-wiggum/hooks/`, generates `hooks.json` entries, enables `codex_hooks` feature
 - Gemini: Creates extension at `~/.gemini/extensions/ralph-wiggum/` with hooks converted to native format
-- Codex: Extension not available (no hook support)
 
 #### Option D: Claude-only Plugin
 
@@ -235,7 +237,7 @@ Extension {
     has_hooks: true,
     marketplace_name: Some("thedotmack"),      // Marketplace identifier
     marketplace_plugin_path: Some("plugin"),   // Path to plugin within repo
-    version: Some("9.0.12"),                   // Plugin version
+    version: Some("10.1.0"),                   // Plugin version
 },
 ```
 
@@ -326,8 +328,8 @@ Tracks installed plugins with version info:
     "claude-mem@thedotmack": [
       {
         "scope": "user",
-        "installPath": "/Users/username/.claude/plugins/cache/thedotmack/claude-mem/9.0.12",
-        "version": "9.0.12",
+        "installPath": "/Users/username/.claude/plugins/cache/thedotmack/claude-mem/10.1.0",
+        "version": "10.1.0",
         "installedAt": "2026-02-04T03:49:28.556745Z",
         "lastUpdated": "2026-02-04T03:49:28.556745Z",
         "isLocal": true
@@ -610,35 +612,127 @@ hooks/
     └── cleanup.js      # Script converted with variable replacement
 ```
 
-### Hook Conversion Process
+### Gemini Hook Conversion Process
 
 1. Copy hook directory structure
 2. Convert `${CLAUDE_PLUGIN_ROOT}` to absolute path in all scripts
 3. Ensure Node.js dependencies are installed
 4. Register extension in `extension-enablement.json`
 
-### Codex Hook Limitation
+### Codex Hook Support (Experimental)
 
-**Codex does not support hooks.** Plugins that rely on hooks cannot be installed on Codex:
+Codex CLI now supports hooks via a `hooks.json` configuration file. The feature is **experimental** and requires opt-in.
 
-```rust
-// This plugin is NOT available on Codex
-Extension {
-    name: "ralph-wiggum",
-    cli_support: &[CliType::Claude, CliType::Gemini],  // No Codex
-    has_hooks: true,
+**Supported events:** `SessionStart`, `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Stop`
+
+**Important limitations:**
+- `PreToolUse`/`PostToolUse` only fire for the `Bash` tool (not Edit, Write, Read, MCP, etc.)
+- Only `command` hook type is supported (no http, prompt, or agent hooks)
+- The feature must be enabled in `~/.codex/config.toml`
+
+**Codex hooks.json format:**
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/script.js",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
+
+### Codex Hook Conversion Process
+
+The installer converts Claude plugin hooks to Codex's `hooks.json` format:
+
+1. Download the full plugin from GitHub
+2. Copy hook scripts to `~/.codex/plugins/<name>/hooks/`
+3. Replace `${CLAUDE_PLUGIN_ROOT}` with the actual plugin path
+4. Generate entries in `~/.codex/hooks.json` for each event type
+5. Merge with existing hooks.json entries (preserving other plugins' hooks)
+6. Enable `codex_hooks = true` in `~/.codex/config.toml`
+
+**Resulting directory structure:**
+```
+~/.codex/
+├── config.toml            # [features] codex_hooks = true
+├── hooks.json             # Centralized hook registry
+├── plugins/               # Hook-based plugin scripts
+│   └── ralph-wiggum/
+│       └── hooks/
+│           ├── PreToolUse/
+│           │   └── hook-script.js
+│           └── Stop/
+│               └── cleanup.js
+└── skills/                # Skill-based extensions
+    └── ...
+```
+
+### Hook Compatibility Matrix
+
+| Feature | Claude | Codex | Gemini |
+|---------|--------|-------|--------|
+| Hook events | 25+ | 5 (experimental) | Mirrors Claude |
+| Tool coverage | All tools | Bash only | Via conversion |
+| Hook types | command, http, prompt, agent | command only | command |
+| Config format | settings.json | hooks.json | Extension format |
+| Scope levels | User, project, plugin | User, project | Extension-level |
+
+## Embedded Extensions
+
+Embedded extensions have their content generated by the executor rather than being downloaded from a GitHub repository. They are useful for custom skills created by this project.
+
+### Configuration
+
+```rust
+Extension {
+    name: "loop-runner",
+    display_name_key: keys::SKILL_LOOP_RUNNER,
+    extension_type: ExtensionType::Skill,
+    source_repo: "",           // Not used
+    source_path: "",           // Not used
+    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
+    is_embedded: true,         // Content generated by executor
+    // ... other fields
+}
+```
+
+### Loop Runner Extension
+
+The `loop-runner` extension provides periodic task scheduling:
+
+**For Claude:** Uses built-in CronCreate/CronList/CronDelete tools to schedule recurring tasks.
+
+**For Codex:** Uses background shell processes (`nohup` + `sleep` loop) to execute tasks periodically. Also installs a `SessionStart` hook that displays active loops when a new session starts. Loop scripts and logs are stored in `~/.codex/loops/`.
+
+**For Gemini:** Uses background shell processes similar to Codex. Loop scripts and logs are stored in `~/.gemini/loops/`.
+
+### Behavior
+
+| CLI | Installation | Loop Management |
+|-----|-------------|-----------------|
+| Claude | `~/.claude/skills/loop-runner/SKILL.md` | Built-in cron tools |
+| Codex | `~/.codex/skills/loop-runner/SKILL.md` + SessionStart hook | Background processes + PID tracking |
+| Gemini | `~/.gemini/extensions/loop-runner/` (TOML) | Background processes + PID tracking |
 
 ## Limitations
 
 ### Codex Limitations
 
-The following plugin features **cannot** be used with Codex:
-
-1. **Hooks** - Event-based triggers (PreToolUse, PostToolUse, Stop)
-   - Codex has no hook system
-   - Example: `ralph-wiggum` uses stop hooks - not available on Codex
+1. **Hooks (experimental)** - Codex hooks are limited compared to Claude:
+   - Only 5 events supported (vs 25+ in Claude)
+   - `PreToolUse`/`PostToolUse` only fire for Bash tool calls
+   - Only `command` hook type supported
+   - Requires `codex_hooks = true` in `config.toml` (installer enables this automatically)
 
 2. **Marketplace-based plugins** - Plugins requiring full repo structure
    - Codex cannot handle complex marketplace installations
@@ -759,6 +853,11 @@ Before submitting a new extension:
 |------|---------|
 | `~/.codex/skills/` | Installed skills |
 | `~/.codex/skills/<name>/SKILL.md` | Skill definition file |
+| `~/.codex/plugins/` | Hook-based plugin scripts |
+| `~/.codex/plugins/<name>/hooks/` | Converted hook scripts |
+| `~/.codex/hooks.json` | Centralized hook registry |
+| `~/.codex/config.toml` | Feature flags (`codex_hooks`) |
+| `~/.codex/loops/` | Loop runner scripts, PIDs, and logs |
 
 ## CLI Comparison Summary
 
@@ -767,7 +866,7 @@ Before submitting a new extension:
 | CLI | Skills/Extensions Path | Plugins Path |
 |-----|----------------------|--------------|
 | Claude | `~/.claude/skills/` | `~/.claude/plugins/` |
-| Codex | `~/.codex/skills/` | N/A |
+| Codex | `~/.codex/skills/` | `~/.codex/plugins/` |
 | Gemini | `~/.gemini/extensions/` | N/A |
 
 ### Format Comparison
@@ -775,10 +874,11 @@ Before submitting a new extension:
 | Feature | Claude | Codex | Gemini |
 |---------|--------|-------|--------|
 | Skill format | `SKILL.md` (YAML frontmatter) | `SKILL.md` (simplified) | `invoke.toml` |
-| Plugin support | ✅ Full | ❌ None | ❌ None (uses extensions) |
-| Hook support | ✅ Full | ❌ None | ✅ Native |
+| Plugin support | ✅ Full | ⚠️ Hooks only | ❌ None (uses extensions) |
+| Hook support | ✅ Full (25+ events) | ⚠️ Experimental (5 events) | ✅ Native |
+| Hook config | `settings.json` | `hooks.json` | Extension format |
 | Command invocation | `/skill-name` | `/skill-name` | `/extension:command` |
-| Registration | Automatic | Automatic | `extension-enablement.json` |
+| Registration | Automatic | Automatic + hooks.json | `extension-enablement.json` |
 
 ### Usage Examples
 

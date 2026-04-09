@@ -459,3 +459,4 @@
 "skill.writing_rules" = "Writing Rules (コードスタイルガイドライン)"
 "skill.claude_mem" = "Claude Mem (セッションメモリとコンテキスト永続化)"
 "skill.pua" = "PUA (デバッグモチベーターと体系的デバッグ)"
+"skill.loop_runner" = "Loop Runner (定期タスクスケジューラー)"

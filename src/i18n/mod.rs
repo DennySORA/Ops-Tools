@@ -625,6 +625,7 @@ pub mod keys {
     pub const SKILL_WRITING_RULES: &str = "skill.writing_rules";
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
     pub const SKILL_PUA: &str = "skill.pua";
+    pub const SKILL_LOOP_RUNNER: &str = "skill.loop_runner";
 }
 
 #[cfg(test)]

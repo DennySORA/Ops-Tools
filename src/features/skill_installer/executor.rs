@@ -6,6 +6,268 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Loop Runner SKILL.md content for Claude Code
+/// Claude has built-in /loop support via CronCreate/CronList/CronDelete tools.
+/// This skill provides a consistent interface.
+const LOOP_RUNNER_CLAUDE: &str = r#"---
+name: loop-runner
+description: Schedule periodic task execution with customizable intervals
+---
+
+# Loop Runner
+
+Schedule recurring tasks to run at specified intervals.
+
+## Usage
+
+When the user requests periodic execution (e.g., "every 5 minutes check if tests pass"),
+parse their request and use the built-in cron tools.
+
+## Commands
+- `loop <interval> <task>` - Start a new periodic task
+- `loop list` - List all active loops
+- `loop cancel <id>` - Cancel a specific loop
+- `loop results <id>` - Check results of a loop
+
+## Interval Parsing
+
+Convert the user's interval to a cron expression:
+- `Ns` or `N seconds` → Round up to 1 minute minimum: `*/1 * * * *`
+- `Nm` or `N minutes` → `*/N * * * *`
+- `Nh` or `N hours` → `0 */N * * *`
+- `Nd` or `N days` → `0 0 */N * *`
+
+## Implementation
+
+1. **Start a loop**: Parse interval and task, call CronCreate with the cron expression and the task as the prompt. Set recurring to true.
+2. **List loops**: Call CronList to show all active scheduled tasks.
+3. **Cancel a loop**: Call CronDelete with the task ID.
+4. **Check results**: The cron system handles execution automatically. Results appear in the conversation.
+
+## Examples
+- "loop every 5m to check build status" → CronCreate with `*/5 * * * *`
+- "loop hourly to run tests" → CronCreate with `0 * * * *`
+- "loop daily to check dependencies" → CronCreate with `0 0 * * *`
+"#;
+
+/// Loop Runner SKILL.md content for Codex CLI
+/// Codex does not have built-in cron tools, so we use background shell processes.
+const LOOP_RUNNER_CODEX: &str = r#"---
+name: loop-runner
+description: Schedule periodic task execution with customizable intervals
+---
+
+# Loop Runner
+
+Schedule recurring tasks to run at specified intervals using background processes.
+
+## Usage
+
+When the user requests periodic execution (e.g., "every 5 minutes check if tests pass"),
+parse their request and manage background loop processes.
+
+## Commands
+- `loop <interval> <task>` - Start a new periodic task
+- `loop list` - List all active loops
+- `loop cancel <id>` - Cancel a specific loop
+- `loop results <id>` - Show recent results from a loop
+
+## Creating a Loop
+
+1. Generate a unique 8-character ID: `date +%s%N | md5sum | head -c 8`
+2. Convert interval to seconds (e.g., 5m → 300, 1h → 3600)
+3. Create directory: `mkdir -p ~/.codex/loops`
+4. Write the loop script at `~/.codex/loops/<id>.sh`:
+
+```bash
+#!/bin/bash
+# Loop ID: <id>
+# Task: <task description>
+# Interval: <seconds>s
+# Created: <ISO timestamp>
+
+INTERVAL=<seconds>
+LOG="$HOME/.codex/loops/<id>.log"
+
+while true; do
+    echo "=== $(date -Iseconds) ===" >> "$LOG"
+    ( <task_commands> ) >> "$LOG" 2>&1
+    echo "--- exit: $? ---" >> "$LOG"
+    echo "" >> "$LOG"
+    sleep "$INTERVAL"
+done
+```
+
+5. Make executable: `chmod +x ~/.codex/loops/<id>.sh`
+6. Start in background: `nohup bash ~/.codex/loops/<id>.sh > /dev/null 2>&1 & echo $!`
+7. Save PID: `echo <pid> > ~/.codex/loops/<id>.pid`
+8. Report to user: "Loop `<id>` started: <task> every <interval>"
+
+## Listing Loops
+
+For each `.pid` file in `~/.codex/loops/`:
+1. Read PID from file
+2. Check if alive: `kill -0 <pid> 2>/dev/null`
+3. Read the header comments from the corresponding `.sh` file for task/interval info
+4. Display: `[<id>] <task> (every <interval>) - <status>`
+5. Clean up dead entries (remove .pid file if process is gone)
+
+## Cancelling a Loop
+
+1. Read PID: `cat ~/.codex/loops/<id>.pid`
+2. Kill process: `kill <pid> 2>/dev/null`
+3. Remove files: `rm -f ~/.codex/loops/<id>.pid ~/.codex/loops/<id>.sh`
+4. Keep log: `~/.codex/loops/<id>.log` remains for review
+5. Report: "Loop `<id>` cancelled"
+
+## Checking Results
+
+Display the last 50 lines: `tail -50 ~/.codex/loops/<id>.log`
+
+## Interval Parsing
+
+- `Ns` or `N seconds` → N seconds (minimum 60)
+- `Nm` or `N minutes` → N * 60 seconds
+- `Nh` or `N hours` → N * 3600 seconds
+- `Nd` or `N days` → N * 86400 seconds
+- Default (no unit specified): treat as minutes
+"#;
+
+/// Loop Runner content for Gemini CLI
+const LOOP_RUNNER_GEMINI: &str = r#"# Loop Runner
+
+Schedule recurring tasks to run at specified intervals using background processes.
+
+## Usage
+
+When the user requests periodic execution, parse their request and manage background loop processes.
+
+## Commands
+- `loop <interval> <task>` - Start a new periodic task
+- `loop list` - List all active loops
+- `loop cancel <id>` - Cancel a specific loop
+- `loop results <id>` - Show recent results from a loop
+
+## Creating a Loop
+
+1. Generate a unique 8-character ID: `date +%s%N | md5sum | head -c 8`
+2. Convert interval to seconds (e.g., 5m = 300, 1h = 3600)
+3. Create directory: `mkdir -p ~/.gemini/loops`
+4. Write the loop script at `~/.gemini/loops/<id>.sh`:
+
+```bash
+#!/bin/bash
+# Loop ID: <id>
+# Task: <task description>
+# Interval: <seconds>s
+# Created: <ISO timestamp>
+
+INTERVAL=<seconds>
+LOG="$HOME/.gemini/loops/<id>.log"
+
+while true; do
+    echo "=== $(date -Iseconds) ===" >> "$LOG"
+    ( <task_commands> ) >> "$LOG" 2>&1
+    echo "--- exit: $? ---" >> "$LOG"
+    echo "" >> "$LOG"
+    sleep "$INTERVAL"
+done
+```
+
+5. Make executable and start: `chmod +x ~/.gemini/loops/<id>.sh && nohup bash ~/.gemini/loops/<id>.sh > /dev/null 2>&1 & echo $!`
+6. Save PID: `echo <pid> > ~/.gemini/loops/<id>.pid`
+
+## Listing Loops
+
+Check each `.pid` file in `~/.gemini/loops/`, verify process is alive with `kill -0`, read task info from `.sh` header comments.
+
+## Cancelling a Loop
+
+Read PID, kill process, remove `.pid` and `.sh` files. Keep `.log` for review.
+
+## Checking Results
+
+Display with: `tail -50 ~/.gemini/loops/<id>.log`
+
+## Interval Parsing
+
+- `Ns` = N seconds (min 60), `Nm` = N*60s, `Nh` = N*3600s, `Nd` = N*86400s
+- Default: treat as minutes
+"#;
+
+/// SessionStart hook script for Codex loop-runner
+/// Displays active loops when a new Codex session starts
+const LOOP_RUNNER_HOOK_SCRIPT: &str = r#"#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+
+const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
+
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (d) => { input += d; });
+process.stdin.on('end', () => {
+  const activeLoops = [];
+
+  try {
+    if (fs.existsSync(loopsDir)) {
+      const files = fs.readdirSync(loopsDir);
+      for (const file of files) {
+        if (!file.endsWith('.pid')) continue;
+        const id = file.replace('.pid', '');
+        const pidFile = path.join(loopsDir, file);
+        const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
+
+        try {
+          process.kill(pid, 0); // Check if alive
+          const shFile = path.join(loopsDir, id + '.sh');
+          if (fs.existsSync(shFile)) {
+            const script = fs.readFileSync(shFile, 'utf8');
+            const taskMatch = script.match(/^# Task: (.+)$/m);
+            const intervalMatch = script.match(/^# Interval: (.+)$/m);
+            activeLoops.push({
+              id,
+              task: taskMatch ? taskMatch[1] : 'unknown',
+              interval: intervalMatch ? intervalMatch[1] : 'unknown'
+            });
+          }
+        } catch (e) {
+          // Process dead, clean up stale PID file
+          try { fs.unlinkSync(pidFile); } catch (_) {}
+        }
+      }
+    }
+  } catch (e) { /* ignore errors */ }
+
+  const output = { continue: true };
+  if (activeLoops.length > 0) {
+    const lines = activeLoops.map(
+      (l) => `  [${l.id}] ${l.task} (every ${l.interval})`
+    );
+    output.systemMessage = 'Active loops:\\n' + lines.join('\\n') +
+      '\\n\\nUse /loop-runner to manage loops.';
+  }
+
+  process.stdout.write(JSON.stringify(output) + '\n');
+});
+"#;
+
+/// Check if a hooks.json entry contains a hook command matching the given path prefix
+fn entry_contains_plugin_path(entry: &serde_json::Value, path_prefix: &str) -> bool {
+    entry
+        .get("hooks")
+        .and_then(|h| h.as_array())
+        .map(|hooks| {
+            hooks.iter().any(|hook| {
+                hook.get("command")
+                    .and_then(|c| c.as_str())
+                    .map(|cmd| cmd.contains(path_prefix))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
 /// Extension executor for installing and removing extensions
 pub struct ExtensionExecutor {
     cli: CliType,
@@ -76,6 +338,25 @@ impl ExtensionExecutor {
                 }
             }
 
+            // For Codex, also scan plugins directory (hook-based plugins)
+            if self.cli == CliType::Codex {
+                let plugins_dir = self.codex_plugins_dir();
+                if plugins_dir.exists() {
+                    if let Ok(entries) = fs::read_dir(&plugins_dir) {
+                        for entry in entries.flatten() {
+                            if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                                let name = entry.file_name().to_string_lossy().to_string();
+                                // Check if it has a hooks/ subdirectory
+                                let hooks_dir = entry.path().join("hooks");
+                                if hooks_dir.exists() {
+                                    installed.insert(name, ExtensionType::Plugin);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // For Claude, also scan plugins directory and cache directory
             if self.cli == CliType::Claude {
                 let plugins_dir = self.install_dir(ExtensionType::Plugin);
@@ -138,11 +419,39 @@ impl ExtensionExecutor {
         Ok(installed)
     }
 
+    /// Get the Codex plugins directory (for hook-based plugins)
+    fn codex_plugins_dir(&self) -> PathBuf {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        home.join(".codex/plugins")
+    }
+
+    /// Get the Codex hooks.json file path
+    fn codex_hooks_file(&self) -> PathBuf {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        home.join(".codex/hooks.json")
+    }
+
+    /// Get the Codex config.toml file path
+    fn codex_config_file(&self) -> PathBuf {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        home.join(".codex/config.toml")
+    }
+
     /// Install an extension from GitHub
     pub fn install(&self, ext: &Extension) -> Result<()> {
+        // Handle embedded extensions first (content generated by executor)
+        if ext.is_embedded {
+            return self.install_embedded(ext);
+        }
+
         // Gemini has completely different extension format
         if self.cli == CliType::Gemini {
             return self.install_for_gemini(ext);
+        }
+
+        // Codex with hooks → install plugin with hook conversion
+        if self.cli == CliType::Codex && ext.has_hooks {
+            return self.install_plugin_for_codex(ext);
         }
 
         // Check if this plugin requires full marketplace structure (Claude only)
@@ -296,11 +605,300 @@ impl ExtensionExecutor {
             }
         })?;
 
-        // 3. Update known_marketplaces.json
+        // 3. Install dependencies in the plugin directory
+        let package_json = plugin_source.join("package.json");
+        if package_json.exists() {
+            let bun_status = Command::new("bun")
+                .args(["install"])
+                .current_dir(&plugin_source)
+                .status();
+
+            if bun_status.is_err() || !bun_status.unwrap().success() {
+                let _ = Command::new("npm")
+                    .args(["install", "--silent"])
+                    .current_dir(&plugin_source)
+                    .status();
+            }
+        }
+
+        // 4. Update known_marketplaces.json
         self.update_known_marketplaces(marketplace_name, ext.source_repo, &marketplace_dir)?;
 
-        // 4. Update installed_plugins.json
+        // 5. Update installed_plugins.json
         self.update_installed_plugins(ext.name, marketplace_name, &version_link, version)?;
+
+        // 6. Update settings.json enabledPlugins
+        self.update_settings_enabled_plugins(ext.name, marketplace_name, true)?;
+
+        Ok(())
+    }
+
+    /// Install a plugin with hooks for Codex CLI
+    /// Converts Claude plugin hooks to Codex hooks.json format
+    fn install_plugin_for_codex(&self, ext: &Extension) -> Result<()> {
+        let plugins_dir = self.codex_plugins_dir();
+        let plugin_dir = plugins_dir.join(ext.name);
+
+        // Create plugin directory
+        fs::create_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
+            path: plugin_dir.display().to_string(),
+            source: err,
+        })?;
+
+        // Download the full plugin to temp dir
+        let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
+            path: "tempdir".to_string(),
+            source: err,
+        })?;
+        let temp_plugin = temp_dir.path().join("plugin");
+        self.download_and_extract(ext.source_repo, ext.source_path, &temp_plugin)?;
+
+        // Find hooks directory in the downloaded plugin
+        let hooks_source = self.find_hooks_dir(&temp_plugin);
+
+        if let Some(hooks_dir) = hooks_source {
+            // Copy hook scripts to plugin directory
+            let dest_hooks = plugin_dir.join("hooks");
+            self.copy_dir_recursive(&hooks_dir, &dest_hooks)?;
+
+            // Replace ${CLAUDE_PLUGIN_ROOT} with actual plugin path
+            self.replace_plugin_root_variable(&dest_hooks, &plugin_dir)?;
+
+            // Generate and merge hooks.json entries
+            self.update_codex_hooks_json(ext.name, &dest_hooks)?;
+        }
+
+        // Enable hooks feature in config.toml
+        self.enable_codex_hooks_feature()?;
+
+        Ok(())
+    }
+
+    /// Find the hooks directory within a Claude plugin
+    /// Looks for .claude-plugin/hooks/ or hooks/ at the top level
+    fn find_hooks_dir(&self, plugin_dir: &Path) -> Option<PathBuf> {
+        let claude_plugin_hooks = plugin_dir.join(".claude-plugin/hooks");
+        if claude_plugin_hooks.exists() {
+            return Some(claude_plugin_hooks);
+        }
+        let top_level_hooks = plugin_dir.join("hooks");
+        if top_level_hooks.exists() {
+            return Some(top_level_hooks);
+        }
+        None
+    }
+
+    /// Replace ${CLAUDE_PLUGIN_ROOT} with the actual plugin path in all text files
+    fn replace_plugin_root_variable(&self, dir: &Path, plugin_dir: &Path) -> Result<()> {
+        let plugin_path_str = plugin_dir.display().to_string();
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    self.replace_plugin_root_variable(&path, plugin_dir)?;
+                } else if let Some(ext) = path.extension() {
+                    let ext_str = ext.to_string_lossy();
+                    if matches!(ext_str.as_ref(), "js" | "json" | "sh" | "md" | "toml") {
+                        if let Ok(content) = fs::read_to_string(&path) {
+                            if content.contains("${CLAUDE_PLUGIN_ROOT}") {
+                                let converted =
+                                    content.replace("${CLAUDE_PLUGIN_ROOT}", &plugin_path_str);
+                                let _ = fs::write(&path, converted);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Update ~/.codex/hooks.json with hook entries from a plugin
+    fn update_codex_hooks_json(&self, plugin_name: &str, hooks_dir: &Path) -> Result<()> {
+        let hooks_file = self.codex_hooks_file();
+
+        // Read existing hooks.json or create new
+        let mut hooks_config: serde_json::Value = if hooks_file.exists() {
+            let content = fs::read_to_string(&hooks_file).map_err(|err| OperationError::Io {
+                path: hooks_file.display().to_string(),
+                source: err,
+            })?;
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({"hooks": {}}))
+        } else {
+            serde_json::json!({"hooks": {}})
+        };
+
+        // Ensure hooks object exists
+        if hooks_config.get("hooks").is_none() {
+            hooks_config["hooks"] = serde_json::json!({});
+        }
+
+        // Supported Codex hook events that map from Claude events
+        let codex_events = ["PreToolUse", "PostToolUse", "Stop", "SessionStart"];
+
+        // Walk the hooks directory and register scripts
+        if let Ok(event_dirs) = fs::read_dir(hooks_dir) {
+            for event_entry in event_dirs.flatten() {
+                if !event_entry
+                    .file_type()
+                    .map(|ft| ft.is_dir())
+                    .unwrap_or(false)
+                {
+                    continue;
+                }
+                let event_name = event_entry.file_name().to_string_lossy().to_string();
+
+                // Only convert events that Codex supports
+                if !codex_events.contains(&event_name.as_str()) {
+                    continue;
+                }
+
+                // Collect all scripts for this event
+                if let Ok(scripts) = fs::read_dir(event_entry.path()) {
+                    let mut hook_commands: Vec<serde_json::Value> = Vec::new();
+
+                    for script in scripts.flatten() {
+                        let script_path = script.path();
+                        if script_path.is_file() {
+                            let command = format!("node {}", script_path.display());
+                            hook_commands.push(serde_json::json!({
+                                "type": "command",
+                                "command": command,
+                                "timeout": 600
+                            }));
+                        }
+                    }
+
+                    if !hook_commands.is_empty() {
+                        // Determine appropriate matcher
+                        let matcher = match event_name.as_str() {
+                            "PreToolUse" | "PostToolUse" => "*",
+                            _ => "",
+                        };
+
+                        let new_entry = serde_json::json!({
+                            "matcher": matcher,
+                            "hooks": hook_commands
+                        });
+
+                        // Get or create the event array
+                        let event_array = hooks_config["hooks"]
+                            .get_mut(&event_name)
+                            .and_then(|v| v.as_array_mut());
+
+                        if let Some(arr) = event_array {
+                            // Remove any existing entries for this plugin (by command path)
+                            let plugin_prefix = format!(
+                                "{}/{}/hooks/",
+                                self.codex_plugins_dir().display(),
+                                plugin_name
+                            );
+                            arr.retain(|entry| !entry_contains_plugin_path(entry, &plugin_prefix));
+                            arr.push(new_entry);
+                        } else {
+                            hooks_config["hooks"][&event_name] = serde_json::json!([new_entry]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Write hooks.json
+        if let Some(parent) = hooks_file.parent() {
+            fs::create_dir_all(parent).map_err(|err| OperationError::Io {
+                path: parent.display().to_string(),
+                source: err,
+            })?;
+        }
+        let content = serde_json::to_string_pretty(&hooks_config).unwrap_or_default();
+        fs::write(&hooks_file, content).map_err(|err| OperationError::Io {
+            path: hooks_file.display().to_string(),
+            source: err,
+        })?;
+
+        Ok(())
+    }
+
+    /// Enable the codex_hooks feature in ~/.codex/config.toml
+    fn enable_codex_hooks_feature(&self) -> Result<()> {
+        let config_file = self.codex_config_file();
+
+        let mut content = if config_file.exists() {
+            fs::read_to_string(&config_file).unwrap_or_default()
+        } else {
+            String::new()
+        };
+
+        // Check if codex_hooks is already enabled
+        if content.contains("codex_hooks") {
+            // Update existing entry
+            let re = regex::Regex::new(r"codex_hooks\s*=\s*\w+").unwrap();
+            content = re.replace(&content, "codex_hooks = true").to_string();
+        } else if content.contains("[features]") {
+            // Add under existing [features] section
+            content = content.replace("[features]", "[features]\ncodex_hooks = true");
+        } else {
+            // Add new [features] section
+            if !content.is_empty() && !content.ends_with('\n') {
+                content.push('\n');
+            }
+            content.push_str("\n[features]\ncodex_hooks = true\n");
+        }
+
+        if let Some(parent) = config_file.parent() {
+            fs::create_dir_all(parent).map_err(|err| OperationError::Io {
+                path: parent.display().to_string(),
+                source: err,
+            })?;
+        }
+        fs::write(&config_file, content).map_err(|err| OperationError::Io {
+            path: config_file.display().to_string(),
+            source: err,
+        })?;
+
+        Ok(())
+    }
+
+    /// Remove a Codex plugin's hooks from hooks.json
+    fn remove_codex_plugin_hooks(&self, plugin_name: &str) -> Result<()> {
+        let hooks_file = self.codex_hooks_file();
+        if !hooks_file.exists() {
+            return Ok(());
+        }
+
+        let content = fs::read_to_string(&hooks_file).map_err(|err| OperationError::Io {
+            path: hooks_file.display().to_string(),
+            source: err,
+        })?;
+
+        let mut hooks_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({"hooks": {}}));
+
+        let plugin_prefix = format!(
+            "{}/{}/hooks/",
+            self.codex_plugins_dir().display(),
+            plugin_name
+        );
+
+        // Remove entries matching this plugin from all event arrays
+        if let Some(hooks) = hooks_config
+            .get_mut("hooks")
+            .and_then(|h| h.as_object_mut())
+        {
+            for (_event, entries) in hooks.iter_mut() {
+                if let Some(arr) = entries.as_array_mut() {
+                    arr.retain(|entry| !entry_contains_plugin_path(entry, &plugin_prefix));
+                }
+            }
+            // Remove empty event arrays
+            hooks.retain(|_, v| !v.as_array().map(|a| a.is_empty()).unwrap_or(false));
+        }
+
+        let content = serde_json::to_string_pretty(&hooks_config).unwrap_or_default();
+        fs::write(&hooks_file, content).map_err(|err| OperationError::Io {
+            path: hooks_file.display().to_string(),
+            source: err,
+        })?;
 
         Ok(())
     }
@@ -1060,6 +1658,11 @@ prompt = """
 
     /// Remove an installed extension
     pub fn remove(&self, ext: &Extension) -> Result<()> {
+        // Handle embedded extensions
+        if ext.is_embedded {
+            return self.remove_embedded(ext);
+        }
+
         if self.cli == CliType::Gemini {
             // Gemini: remove from extensions/ directory and unregister
             let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
@@ -1070,6 +1673,19 @@ prompt = """
                 })?;
             }
             self.unregister_gemini_extension(ext.name)?;
+            return Ok(());
+        }
+
+        // Codex hook-based plugins
+        if self.cli == CliType::Codex && ext.has_hooks {
+            let plugin_dir = self.codex_plugins_dir().join(ext.name);
+            if plugin_dir.exists() {
+                fs::remove_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
+                    path: plugin_dir.display().to_string(),
+                    source: err,
+                })?;
+            }
+            self.remove_codex_plugin_hooks(ext.name)?;
             return Ok(());
         }
 
@@ -1111,6 +1727,193 @@ prompt = """
         Ok(())
     }
 
+    /// Install an embedded extension (content generated by executor)
+    fn install_embedded(&self, ext: &Extension) -> Result<()> {
+        match self.cli {
+            CliType::Claude | CliType::Codex => self.install_embedded_skill(ext),
+            CliType::Gemini => self.install_embedded_for_gemini(ext),
+        }
+    }
+
+    /// Install an embedded extension as SKILL.md for Claude/Codex
+    fn install_embedded_skill(&self, ext: &Extension) -> Result<()> {
+        let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
+        fs::create_dir_all(&dest).map_err(|err| OperationError::Io {
+            path: dest.display().to_string(),
+            source: err,
+        })?;
+
+        // Generate SKILL.md content based on extension name and CLI
+        let skill_content = self.generate_embedded_content(ext.name);
+        let skill_md = dest.join("SKILL.md");
+        fs::write(&skill_md, skill_content).map_err(|err| OperationError::Io {
+            path: skill_md.display().to_string(),
+            source: err,
+        })?;
+
+        // For Codex loop-runner, also install SessionStart hook
+        if self.cli == CliType::Codex && ext.name == "loop-runner" {
+            self.install_loop_runner_hook()?;
+        }
+
+        Ok(())
+    }
+
+    /// Install an embedded extension as Gemini TOML extension
+    fn install_embedded_for_gemini(&self, ext: &Extension) -> Result<()> {
+        let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
+        fs::create_dir_all(&dest).map_err(|err| OperationError::Io {
+            path: dest.display().to_string(),
+            source: err,
+        })?;
+
+        let content = self.generate_embedded_content(ext.name);
+
+        // Create gemini-extension.json
+        let manifest = format!(
+            r#"{{
+  "name": "{}",
+  "version": "1.0.0",
+  "contextFileName": "GEMINI.md"
+}}"#,
+            ext.name
+        );
+        fs::write(dest.join("gemini-extension.json"), manifest).map_err(|err| {
+            OperationError::Io {
+                path: dest.join("gemini-extension.json").display().to_string(),
+                source: err,
+            }
+        })?;
+
+        // Create GEMINI.md
+        let gemini_md = format!("# {}\n\n{}", ext.name, content);
+        fs::write(dest.join("GEMINI.md"), gemini_md).map_err(|err| OperationError::Io {
+            path: dest.join("GEMINI.md").display().to_string(),
+            source: err,
+        })?;
+
+        // Create commands/<name>/invoke.toml
+        let commands_dir = dest.join("commands").join(ext.name);
+        fs::create_dir_all(&commands_dir).map_err(|err| OperationError::Io {
+            path: commands_dir.display().to_string(),
+            source: err,
+        })?;
+
+        let description = match ext.name {
+            "loop-runner" => "Schedule periodic task execution at specified intervals",
+            _ => "Embedded extension",
+        };
+        let invoke_toml = format!(
+            r#"description = "{}"
+prompt = """
+{}
+"""
+"#,
+            description,
+            content.trim()
+        );
+        fs::write(commands_dir.join("invoke.toml"), invoke_toml).map_err(|err| {
+            OperationError::Io {
+                path: commands_dir.join("invoke.toml").display().to_string(),
+                source: err,
+            }
+        })?;
+
+        self.register_gemini_extension(ext.name)?;
+        Ok(())
+    }
+
+    /// Generate embedded content for a specific extension and CLI
+    fn generate_embedded_content(&self, name: &str) -> String {
+        match name {
+            "loop-runner" => self.generate_loop_runner_content(),
+            _ => format!(
+                "---\nname: {}\ndescription: Embedded extension\n---\n",
+                name
+            ),
+        }
+    }
+
+    /// Generate loop-runner SKILL.md content based on target CLI
+    fn generate_loop_runner_content(&self) -> String {
+        match self.cli {
+            CliType::Claude => LOOP_RUNNER_CLAUDE.to_string(),
+            CliType::Codex => LOOP_RUNNER_CODEX.to_string(),
+            CliType::Gemini => LOOP_RUNNER_GEMINI.to_string(),
+        }
+    }
+
+    /// Install the SessionStart hook for loop-runner on Codex
+    fn install_loop_runner_hook(&self) -> Result<()> {
+        let plugin_dir = self.codex_plugins_dir().join("loop-runner");
+        let hooks_dir = plugin_dir.join("hooks").join("SessionStart");
+        fs::create_dir_all(&hooks_dir).map_err(|err| OperationError::Io {
+            path: hooks_dir.display().to_string(),
+            source: err,
+        })?;
+
+        // Write the hook script
+        let hook_path = hooks_dir.join("check-loops.js");
+        fs::write(&hook_path, LOOP_RUNNER_HOOK_SCRIPT).map_err(|err| OperationError::Io {
+            path: hook_path.display().to_string(),
+            source: err,
+        })?;
+
+        // Register in hooks.json
+        let hooks_dir_parent = plugin_dir.join("hooks");
+        self.update_codex_hooks_json("loop-runner", &hooks_dir_parent)?;
+
+        // Enable hooks feature
+        self.enable_codex_hooks_feature()?;
+
+        Ok(())
+    }
+
+    /// Remove an embedded extension
+    fn remove_embedded(&self, ext: &Extension) -> Result<()> {
+        match self.cli {
+            CliType::Gemini => {
+                let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
+                if dest.exists() {
+                    fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
+                        path: dest.display().to_string(),
+                        source: err,
+                    })?;
+                }
+                self.unregister_gemini_extension(ext.name)?;
+            }
+            CliType::Codex => {
+                // Remove skill
+                let skill_dir = self.install_dir(ExtensionType::Skill).join(ext.name);
+                if skill_dir.exists() {
+                    fs::remove_dir_all(&skill_dir).map_err(|err| OperationError::Io {
+                        path: skill_dir.display().to_string(),
+                        source: err,
+                    })?;
+                }
+                // Remove hook plugin directory and hooks.json entries
+                let plugin_dir = self.codex_plugins_dir().join(ext.name);
+                if plugin_dir.exists() {
+                    fs::remove_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
+                        path: plugin_dir.display().to_string(),
+                        source: err,
+                    })?;
+                }
+                self.remove_codex_plugin_hooks(ext.name)?;
+            }
+            CliType::Claude => {
+                let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
+                if dest.exists() {
+                    fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
+                        path: dest.display().to_string(),
+                        source: err,
+                    })?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Remove a marketplace-based plugin
     fn remove_marketplace_plugin(&self, ext: &Extension) -> Result<()> {
         let home = dirs::home_dir().expect("Cannot find home directory");
@@ -1144,6 +1947,9 @@ prompt = """
 
         // 4. Remove from known_marketplaces.json
         self.remove_from_known_marketplaces(marketplace_name)?;
+
+        // 5. Remove from settings.json enabledPlugins
+        self.update_settings_enabled_plugins(ext.name, marketplace_name, false)?;
 
         Ok(())
     }
@@ -1214,6 +2020,50 @@ prompt = """
 
         // Write back
         let content = serde_json::to_string_pretty(&marketplaces).unwrap_or_default();
+        fs::write(&file_path, content).map_err(|err| OperationError::Io {
+            path: file_path.display().to_string(),
+            source: err,
+        })?;
+
+        Ok(())
+    }
+
+    /// Update settings.json enabledPlugins for marketplace-based plugins
+    fn update_settings_enabled_plugins(
+        &self,
+        plugin_name: &str,
+        marketplace_name: &str,
+        enabled: bool,
+    ) -> Result<()> {
+        let home = dirs::home_dir().expect("Cannot find home directory");
+        let file_path = home.join(".claude/settings.json");
+
+        let mut settings: serde_json::Value = if file_path.exists() {
+            let content = fs::read_to_string(&file_path).map_err(|err| OperationError::Io {
+                path: file_path.display().to_string(),
+                source: err,
+            })?;
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+
+        let plugin_key = format!("{}@{}", plugin_name, marketplace_name);
+
+        if enabled {
+            // Ensure enabledPlugins object exists
+            if settings.get("enabledPlugins").is_none() {
+                settings["enabledPlugins"] = serde_json::json!({});
+            }
+            settings["enabledPlugins"][&plugin_key] = serde_json::json!(true);
+        } else if let Some(plugins) = settings
+            .get_mut("enabledPlugins")
+            .and_then(|p| p.as_object_mut())
+        {
+            plugins.remove(&plugin_key);
+        }
+
+        let content = serde_json::to_string_pretty(&settings).unwrap_or_default();
         fs::write(&file_path, content).map_err(|err| OperationError::Io {
             path: file_path.display().to_string(),
             source: err,

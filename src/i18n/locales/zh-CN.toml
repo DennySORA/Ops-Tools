@@ -459,3 +459,4 @@
 "skill.writing_rules" = "Writing Rules (代码风格指南)"
 "skill.claude_mem" = "Claude Mem (会话记忆与上下文持久化)"
 "skill.pua" = "PUA (调试激励器与系统化调试)"
+"skill.loop_runner" = "Loop Runner (周期性任务调度器)"
