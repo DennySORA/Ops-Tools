@@ -125,6 +125,7 @@ Extension {
     marketplace_name: None,                         // For marketplace-based plugins
     marketplace_plugin_path: None,                  // Plugin path within marketplace repo
     version: None,                                  // Plugin version for marketplace installs
+    is_embedded: false,                             // Set true for executor-generated content
 },
 ```
 
@@ -144,6 +145,11 @@ Extension {
     cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
     skill_subpath: Some("skills/frontend-design"),  // Path to skill within plugin
     command_file: None,
+    has_hooks: false,
+    marketplace_name: None,
+    marketplace_plugin_path: None,
+    version: None,
+    is_embedded: false,
 },
 ```
 
@@ -158,21 +164,26 @@ Use when the plugin only has commands that can be converted to skills:
 
 ```rust
 Extension {
-    name: "code-review",
-    display_name_key: keys::SKILL_CODE_REVIEW,
+    name: "my-command-plugin",
+    display_name_key: keys::SKILL_MY_COMMAND_PLUGIN,
     extension_type: ExtensionType::Plugin,
-    source_repo: "anthropics/claude-code",
-    source_path: "plugins/code-review",
+    source_repo: "owner/repo",
+    source_path: "plugins/my-command-plugin",
     cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
     skill_subpath: None,
-    command_file: Some("commands/code-review.md"),  // Command file to convert
+    command_file: Some("commands/my-command.md"),  // Command file to convert
+    has_hooks: false,
+    marketplace_name: None,
+    marketplace_plugin_path: None,
+    version: None,
+    is_embedded: false,
 },
 ```
 
 **Behavior:**
-- Claude: Installs full plugin to `~/.claude/plugins/code-review/`
-- Codex: Converts command to `~/.codex/skills/code-review/SKILL.md`
-- Gemini: Creates extension at `~/.gemini/extensions/code-review/` with TOML commands
+- Claude: Installs full plugin to `~/.claude/plugins/my-command-plugin/`
+- Codex: Converts command to `~/.codex/skills/my-command-plugin/SKILL.md`
+- Gemini: Creates extension at `~/.gemini/extensions/my-command-plugin/` with TOML commands
 
 #### Option C: Plugin with Hooks (All CLIs)
 
@@ -207,12 +218,16 @@ Extension {
     name: "claude-specific",
     display_name_key: keys::SKILL_CLAUDE_SPECIFIC,
     extension_type: ExtensionType::Plugin,
-    source_repo: "anthropics/claude-code",
+    source_repo: "owner/repo",
     source_path: "plugins/claude-specific",
     cli_support: &[CliType::Claude],  // Claude only
     skill_subpath: None,
     command_file: None,
     has_hooks: false,
+    marketplace_name: None,
+    marketplace_plugin_path: None,
+    version: None,
+    is_embedded: false,
 },
 ```
 
@@ -458,10 +473,11 @@ Update the test assertions in `src/features/skill_installer/tools.rs` if needed:
 fn test_get_available_extensions_codex() {
     let extensions = get_available_extensions(CliType::Codex);
     assert!(!extensions.is_empty());
-    // All Codex extensions must have either skill_subpath or command_file
-    assert!(extensions
-        .iter()
-        .all(|ext| ext.skill_subpath.is_some() || ext.command_file.is_some()));
+    // Codex extensions must have: skill_subpath, command_file, has_hooks, or is_embedded
+    assert!(extensions.iter().all(|ext| ext.skill_subpath.is_some()
+        || ext.command_file.is_some()
+        || ext.has_hooks
+        || ext.is_embedded));
 }
 ```
 
@@ -543,30 +559,30 @@ When converting a Claude command file to SKILL.md:
 ```yaml
 ---
 allowed-tools: Bash(git *), Read, Write
-description: "Create a git commit"
-argument-hint: "[commit message]"
+description: "Perform a task"
+argument-hint: "[arguments]"
 ---
 
 ## Context
-- Current git status: !`git status`
+- Current state: !`some-command`
 
 ## Your task
-Based on the above changes, create a commit...
+Based on the above, perform the task...
 ```
 
 ### Converted SKILL.md
 
 ```yaml
 ---
-name: commit-commands
-description: Create a git commit
+name: my-plugin
+description: Perform a task
 ---
 
 ## Context
-- Current git status: !`git status`
+- Current state: !`some-command`
 
 ## Your task
-Based on the above changes, create a commit...
+Based on the above, perform the task...
 ```
 
 **Conversion rules:**
@@ -885,17 +901,17 @@ Before submitting a new extension:
 **Claude:**
 ```bash
 > /frontend-design
-> /commit
+> /loop-runner
 ```
 
 **Codex:**
 ```bash
 > /frontend-design
-> /commit
+> /loop-runner
 ```
 
 **Gemini:**
 ```bash
 > /frontend-design:invoke
-> /commit-commands:invoke
+> /loop-runner:invoke
 ```

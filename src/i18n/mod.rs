@@ -618,11 +618,6 @@ pub mod keys {
     // Extension names
     pub const SKILL_RALPH_WIGGUM: &str = "skill.ralph_wiggum";
     pub const SKILL_FRONTEND_DESIGN: &str = "skill.frontend_design";
-    pub const SKILL_CODE_REVIEW: &str = "skill.code_review";
-    pub const SKILL_PR_REVIEW_TOOLKIT: &str = "skill.pr_review_toolkit";
-    pub const SKILL_COMMIT_COMMANDS: &str = "skill.commit_commands";
-    pub const SKILL_SECURITY_GUIDANCE: &str = "skill.security_guidance";
-    pub const SKILL_WRITING_RULES: &str = "skill.writing_rules";
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
     pub const SKILL_PUA: &str = "skill.pua";
     pub const SKILL_LOOP_RUNNER: &str = "skill.loop_runner";

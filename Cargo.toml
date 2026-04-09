@@ -9,9 +9,6 @@ repository = "https://github.com/DennySORA/Ops-Tools"
 license = "MIT"
 keywords = ["devops", "cli", "terraform", "mcp", "ai-tools"]
 
-[build-dependencies]
-dotenv = "0.15"
-
 [dependencies]
 dialoguer = { version = "0.12", features = ["fuzzy-select"] }
 walkdir = "2.5"

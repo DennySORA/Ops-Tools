@@ -8,7 +8,6 @@ use std::process::Command;
 
 /// Loop Runner SKILL.md content for Claude Code
 /// Claude has built-in /loop support via CronCreate/CronList/CronDelete tools.
-/// This skill provides a consistent interface.
 const LOOP_RUNNER_CLAUDE: &str = r#"---
 name: loop-runner
 description: Schedule periodic task execution with customizable intervals
@@ -51,7 +50,7 @@ Convert the user's interval to a cron expression:
 "#;
 
 /// Loop Runner SKILL.md content for Codex CLI
-/// Codex does not have built-in cron tools, so we use background shell processes.
+/// All operations are delegated to launcher.sh for robust daemon management.
 const LOOP_RUNNER_CODEX: &str = r#"---
 name: loop-runner
 description: Schedule periodic task execution with customizable intervals
@@ -59,196 +58,345 @@ description: Schedule periodic task execution with customizable intervals
 
 # Loop Runner
 
-Schedule recurring tasks to run at specified intervals using background processes.
+Schedule recurring tasks using the launcher at `~/.codex/plugins/loop-runner/launcher.sh`.
 
-## Usage
+## All operations MUST go through the launcher script. Do NOT use nohup or & directly.
 
-When the user requests periodic execution (e.g., "every 5 minutes check if tests pass"),
-parse their request and manage background loop processes.
-
-## Commands
-- `loop <interval> <task>` - Start a new periodic task
-- `loop list` - List all active loops
-- `loop cancel <id>` - Cancel a specific loop
-- `loop results <id>` - Show recent results from a loop
-
-## Creating a Loop
-
-1. Generate a unique 8-character ID: `date +%s%N | md5sum | head -c 8`
-2. Convert interval to seconds (e.g., 5m → 300, 1h → 3600)
-3. Create directory: `mkdir -p ~/.codex/loops`
-4. Write the loop script at `~/.codex/loops/<id>.sh`:
-
+### Start a loop
 ```bash
-#!/bin/bash
-# Loop ID: <id>
-# Task: <task description>
-# Interval: <seconds>s
-# Created: <ISO timestamp>
-
-INTERVAL=<seconds>
-LOG="$HOME/.codex/loops/<id>.log"
-
-while true; do
-    echo "=== $(date -Iseconds) ===" >> "$LOG"
-    ( <task_commands> ) >> "$LOG" 2>&1
-    echo "--- exit: $? ---" >> "$LOG"
-    echo "" >> "$LOG"
-    sleep "$INTERVAL"
-done
+ID=$(date +%s%N | md5sum | head -c 8)
+~/.codex/plugins/loop-runner/launcher.sh start "$ID" <interval_seconds> <command>
+```
+Example — check git status every 5 minutes:
+```bash
+ID=$(date +%s%N | md5sum | head -c 8)
+~/.codex/plugins/loop-runner/launcher.sh start "$ID" 300 git status
 ```
 
-5. Make executable: `chmod +x ~/.codex/loops/<id>.sh`
-6. Start in background: `nohup bash ~/.codex/loops/<id>.sh > /dev/null 2>&1 & echo $!`
-7. Save PID: `echo <pid> > ~/.codex/loops/<id>.pid`
-8. Report to user: "Loop `<id>` started: <task> every <interval>"
+### List active loops
+```bash
+~/.codex/plugins/loop-runner/launcher.sh list
+```
 
-## Listing Loops
+### Cancel a loop
+```bash
+~/.codex/plugins/loop-runner/launcher.sh cancel <id>
+```
 
-For each `.pid` file in `~/.codex/loops/`:
-1. Read PID from file
-2. Check if alive: `kill -0 <pid> 2>/dev/null`
-3. Read the header comments from the corresponding `.sh` file for task/interval info
-4. Display: `[<id>] <task> (every <interval>) - <status>`
-5. Clean up dead entries (remove .pid file if process is gone)
+### Cancel all loops
+```bash
+~/.codex/plugins/loop-runner/launcher.sh cancel-all
+```
 
-## Cancelling a Loop
+### Check results
+```bash
+~/.codex/plugins/loop-runner/launcher.sh results <id>
+```
 
-1. Read PID: `cat ~/.codex/loops/<id>.pid`
-2. Kill process: `kill <pid> 2>/dev/null`
-3. Remove files: `rm -f ~/.codex/loops/<id>.pid ~/.codex/loops/<id>.sh`
-4. Keep log: `~/.codex/loops/<id>.log` remains for review
-5. Report: "Loop `<id>` cancelled"
+## How It Works
 
-## Checking Results
+- Loops run as `setsid` daemon processes, fully detached from the Bash tool.
+- Each daemon monitors the parent Codex process PID — **when Codex exits, all loops automatically self-terminate**. No orphan processes.
+- Results are written to `.pending` files. A Stop hook picks them up after each turn and injects them into the conversation via `systemMessage`.
+- A SessionStart hook displays active loops when opening a new session.
 
-Display the last 50 lines: `tail -50 ~/.codex/loops/<id>.log`
+## Interval Conversion
 
-## Interval Parsing
-
-- `Ns` or `N seconds` → N seconds (minimum 60)
-- `Nm` or `N minutes` → N * 60 seconds
-- `Nh` or `N hours` → N * 3600 seconds
-- `Nd` or `N days` → N * 86400 seconds
-- Default (no unit specified): treat as minutes
+Convert the user's interval to seconds:
+- `10s` → 10 (minimum 10)
+- `5m` or `5 minutes` → 300
+- `1h` or `1 hour` → 3600
+- `1d` or `1 day` → 86400
+- No unit → treat as minutes
 "#;
 
 /// Loop Runner content for Gemini CLI
 const LOOP_RUNNER_GEMINI: &str = r#"# Loop Runner
 
-Schedule recurring tasks to run at specified intervals using background processes.
+Schedule recurring tasks using the launcher at `~/.gemini/extensions/loop-runner/launcher.sh`.
 
-## Usage
+## All operations MUST go through the launcher script. Do NOT use nohup or & directly.
 
-When the user requests periodic execution, parse their request and manage background loop processes.
-
-## Commands
-- `loop <interval> <task>` - Start a new periodic task
-- `loop list` - List all active loops
-- `loop cancel <id>` - Cancel a specific loop
-- `loop results <id>` - Show recent results from a loop
-
-## Creating a Loop
-
-1. Generate a unique 8-character ID: `date +%s%N | md5sum | head -c 8`
-2. Convert interval to seconds (e.g., 5m = 300, 1h = 3600)
-3. Create directory: `mkdir -p ~/.gemini/loops`
-4. Write the loop script at `~/.gemini/loops/<id>.sh`:
-
+### Start a loop
 ```bash
-#!/bin/bash
-# Loop ID: <id>
-# Task: <task description>
-# Interval: <seconds>s
-# Created: <ISO timestamp>
-
-INTERVAL=<seconds>
-LOG="$HOME/.gemini/loops/<id>.log"
-
-while true; do
-    echo "=== $(date -Iseconds) ===" >> "$LOG"
-    ( <task_commands> ) >> "$LOG" 2>&1
-    echo "--- exit: $? ---" >> "$LOG"
-    echo "" >> "$LOG"
-    sleep "$INTERVAL"
-done
+ID=$(date +%s%N | md5sum | head -c 8)
+~/.gemini/extensions/loop-runner/launcher.sh start "$ID" <interval_seconds> <command>
 ```
 
-5. Make executable and start: `chmod +x ~/.gemini/loops/<id>.sh && nohup bash ~/.gemini/loops/<id>.sh > /dev/null 2>&1 & echo $!`
-6. Save PID: `echo <pid> > ~/.gemini/loops/<id>.pid`
+### List / Cancel / Results
+```bash
+~/.gemini/extensions/loop-runner/launcher.sh list
+~/.gemini/extensions/loop-runner/launcher.sh cancel <id>
+~/.gemini/extensions/loop-runner/launcher.sh cancel-all
+~/.gemini/extensions/loop-runner/launcher.sh results <id>
+```
 
-## Listing Loops
+## How It Works
 
-Check each `.pid` file in `~/.gemini/loops/`, verify process is alive with `kill -0`, read task info from `.sh` header comments.
-
-## Cancelling a Loop
-
-Read PID, kill process, remove `.pid` and `.sh` files. Keep `.log` for review.
-
-## Checking Results
-
-Display with: `tail -50 ~/.gemini/loops/<id>.log`
-
-## Interval Parsing
-
-- `Ns` = N seconds (min 60), `Nm` = N*60s, `Nh` = N*3600s, `Nd` = N*86400s
-- Default: treat as minutes
+- Loops run as `setsid` daemon processes.
+- Each daemon monitors the parent CLI process — when the CLI exits, loops self-terminate.
+- Interval: `10s`→10, `5m`→300, `1h`→3600, `1d`→86400. No unit → minutes.
 "#;
 
-/// SessionStart hook script for Codex loop-runner
-/// Displays active loops when a new Codex session starts
-const LOOP_RUNNER_HOOK_SCRIPT: &str = r#"#!/usr/bin/env node
+/// Launcher script for loop-runner (installed as executable bash script).
+/// Handles daemon lifecycle: setsid + PPID monitoring + trap cleanup.
+const LOOP_RUNNER_LAUNCHER: &str = r#"#!/usr/bin/env bash
+set -euo pipefail
+
+CLI_DIR="${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}"
+LOOPS_DIR="$CLI_DIR/loops"
+mkdir -p "$LOOPS_DIR"
+
+start_loop() {
+    local ID="$1" INTERVAL="$2"; shift 2
+    local TASK_CMD="$*"
+    local SCRIPT="$LOOPS_DIR/$ID.sh"
+    local LOG="$LOOPS_DIR/$ID.log"
+    local PIDFILE="$LOOPS_DIR/$ID.pid"
+
+    # Detect the CLI process: grandparent of this script
+    local CLI_PID=""
+    CLI_PID=$(ps -o ppid= -p "$PPID" 2>/dev/null | tr -d ' ' || true)
+
+    # Save Codex terminal for bell notification
+    local CLI_TTY=""
+    if [ -n "$CLI_PID" ]; then
+        CLI_TTY=$(ps -o tty= -p "$CLI_PID" 2>/dev/null | tr -d ' ' || true)
+        [ "$CLI_TTY" = "?" ] && CLI_TTY=""
+    fi
+
+    cat > "$SCRIPT" << INNER
+#!/usr/bin/env bash
+CLI_PID="${CLI_PID}"
+CLI_TTY="${CLI_TTY}"
+INTERVAL=${INTERVAL}
+LOG="${LOG}"
+PIDFILE="${PIDFILE}"
+PENDING="${LOOPS_DIR}/${ID}.pending"
+# Loop ID: ${ID}
+# Task: ${TASK_CMD}
+# Interval: ${INTERVAL}s
+# Created: $(date -Iseconds)
+
+cleanup() { rm -f "\$PIDFILE" "\$PENDING"; exit 0; }
+trap cleanup SIGTERM SIGINT
+
+while true; do
+    if [ -n "\$CLI_PID" ] && ! kill -0 "\$CLI_PID" 2>/dev/null; then
+        cleanup
+    fi
+    TS=\$(date -Iseconds)
+    OUTPUT=\$(eval ${TASK_CMD} 2>&1) || true
+    printf '=== %s ===\n%s\n---\n\n' "\$TS" "\$OUTPUT" >> "\$LOG"
+    BRIEF=\$(printf '%s' "\$OUTPUT" | tail -20)
+    LINES=\$(printf '%s' "\$OUTPUT" | wc -l)
+    if [ "\$LINES" -gt 20 ]; then
+        BRIEF="(...\$LINES lines, showing last 20)\n\$BRIEF"
+    fi
+    printf '[%s] Loop ${ID}:\n%b\n(full log: %s)\n' "\$TS" "\$BRIEF" "\$LOG" > "\$PENDING"
+    # Ring terminal bell to alert user
+    if [ -n "\$CLI_TTY" ] && [ -e "/dev/\$CLI_TTY" ]; then
+        printf '\a' > "/dev/\$CLI_TTY" 2>/dev/null || true
+    fi
+    sleep "\$INTERVAL"
+done
+INNER
+    chmod +x "$SCRIPT"
+
+    setsid bash "$SCRIPT" </dev/null &>/dev/null &
+    local PID=$!
+    echo "$PID" > "$PIDFILE"
+
+    sleep 0.3
+    if kill -0 "$PID" 2>/dev/null; then
+        echo "Loop $ID started (PID $PID): $TASK_CMD every ${INTERVAL}s"
+    else
+        rm -f "$PIDFILE" "$SCRIPT"
+        echo "ERROR: Loop $ID failed to start" >&2; exit 1
+    fi
+}
+
+list_loops() {
+    local FOUND=0
+    for pf in "$LOOPS_DIR"/*.pid; do
+        [ -f "$pf" ] || continue
+        local ID; ID=$(basename "$pf" .pid)
+        local PID; PID=$(cat "$pf" 2>/dev/null || echo "")
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            local SH="$LOOPS_DIR/$ID.sh"
+            local TASK; TASK=$(grep '^# Task:' "$SH" 2>/dev/null | head -1 | sed 's/^# Task: //' || echo "?")
+            local INT;  INT=$(grep  '^# Interval:' "$SH" 2>/dev/null | head -1 | sed 's/^# Interval: //' || echo "?")
+            echo "[$ID] $TASK (every $INT) - running (PID $PID)"
+            FOUND=1
+        else
+            rm -f "$pf" "$LOOPS_DIR/$ID.pending"
+        fi
+    done
+    if [ "$FOUND" = 0 ]; then echo "No active loops."; fi
+}
+
+cancel_loop() {
+    local ID="$1" PF="$LOOPS_DIR/$1.pid"
+    if [ -f "$PF" ]; then
+        local P; P=$(cat "$PF" 2>/dev/null || echo "")
+        # Kill entire process group (setsid makes PID = PGID)
+        [ -n "$P" ] && { kill -- -"$P" 2>/dev/null || kill -9 "$P" 2>/dev/null || true; }
+        sleep 0.2
+        rm -f "$PF" "$LOOPS_DIR/$ID.sh" "$LOOPS_DIR/$ID.pending"
+        echo "Loop $ID cancelled. Log kept at $LOOPS_DIR/$ID.log"
+    else echo "Loop $ID not found." >&2; exit 1; fi
+}
+
+cancel_all() {
+    local N=0
+    for pf in "$LOOPS_DIR"/*.pid; do
+        [ -f "$pf" ] || continue
+        local ID; ID=$(basename "$pf" .pid)
+        local P; P=$(cat "$pf" 2>/dev/null || echo "")
+        [ -n "$P" ] && { kill -- -"$P" 2>/dev/null || kill -9 "$P" 2>/dev/null || true; }
+        rm -f "$pf" "$LOOPS_DIR/$ID.sh" "$LOOPS_DIR/$ID.pending"
+        N=$((N+1))
+    done
+    echo "Cancelled $N loop(s)."
+}
+
+show_results() {
+    local LOG="$LOOPS_DIR/$1.log"
+    if [ -f "$LOG" ]; then tail -"${2:-50}" "$LOG"
+    else echo "No results for loop $1."; fi
+}
+
+case "${1:-help}" in
+    start)     shift; start_loop "$@" ;;
+    list)      list_loops ;;
+    cancel)    shift; cancel_loop "$@" ;;
+    cancel-all) cancel_all ;;
+    results)   shift; show_results "$@" ;;
+    *)         echo "Usage: launcher.sh {start|list|cancel|cancel-all|results} [args]" ;;
+esac
+"#;
+
+/// SessionStart hook — shows active loops and cleans stale PIDs.
+const LOOP_RUNNER_HOOK_SESSION: &str = r#"#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-
 const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
 
-let input = '';
+let buf = '';
 process.stdin.setEncoding('utf8');
-process.stdin.on('data', (d) => { input += d; });
+process.stdin.on('data', d => buf += d);
 process.stdin.on('end', () => {
-  const activeLoops = [];
-
+  const active = [];
   try {
     if (fs.existsSync(loopsDir)) {
-      const files = fs.readdirSync(loopsDir);
-      for (const file of files) {
-        if (!file.endsWith('.pid')) continue;
-        const id = file.replace('.pid', '');
-        const pidFile = path.join(loopsDir, file);
-        const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
-
+      for (const f of fs.readdirSync(loopsDir)) {
+        if (!f.endsWith('.pid')) continue;
+        const id = f.replace('.pid', '');
+        const pid = parseInt(fs.readFileSync(path.join(loopsDir, f), 'utf8').trim(), 10);
         try {
-          process.kill(pid, 0); // Check if alive
-          const shFile = path.join(loopsDir, id + '.sh');
-          if (fs.existsSync(shFile)) {
-            const script = fs.readFileSync(shFile, 'utf8');
-            const taskMatch = script.match(/^# Task: (.+)$/m);
-            const intervalMatch = script.match(/^# Interval: (.+)$/m);
-            activeLoops.push({
-              id,
-              task: taskMatch ? taskMatch[1] : 'unknown',
-              interval: intervalMatch ? intervalMatch[1] : 'unknown'
-            });
+          process.kill(pid, 0);
+          const sh = path.join(loopsDir, id + '.sh');
+          if (fs.existsSync(sh)) {
+            const src = fs.readFileSync(sh, 'utf8');
+            const t = (src.match(/^# Task: (.+)$/m) || [])[1] || '?';
+            const i = (src.match(/^# Interval: (.+)$/m) || [])[1] || '?';
+            active.push({ id, task: t, interval: i });
           }
-        } catch (e) {
-          // Process dead, clean up stale PID file
-          try { fs.unlinkSync(pidFile); } catch (_) {}
+        } catch (_) {
+          try { fs.unlinkSync(path.join(loopsDir, f)); } catch (_) {}
+          try { fs.unlinkSync(path.join(loopsDir, id + '.pending')); } catch (_) {}
         }
       }
     }
-  } catch (e) { /* ignore errors */ }
-
-  const output = { continue: true };
-  if (activeLoops.length > 0) {
-    const lines = activeLoops.map(
-      (l) => `  [${l.id}] ${l.task} (every ${l.interval})`
-    );
-    output.systemMessage = 'Active loops:\\n' + lines.join('\\n') +
-      '\\n\\nUse /loop-runner to manage loops.';
+  } catch (_) {}
+  const out = { continue: true };
+  if (active.length) {
+    out.systemMessage = 'Active loops:\n' +
+      active.map(l => `  [${l.id}] ${l.task} (every ${l.interval})`).join('\n') +
+      '\n\nUse /loop-runner to manage.';
   }
+  process.stdout.write(JSON.stringify(out) + '\n');
+});
+"#;
 
-  process.stdout.write(JSON.stringify(output) + '\n');
+/// Stop hook — picks up .pending result files and injects them via systemMessage.
+/// If no pending results, outputs nothing so Codex stops normally.
+const LOOP_RUNNER_HOOK_STOP: &str = r#"#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
+
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', d => buf += d);
+process.stdin.on('end', () => {
+  const results = [];
+  try {
+    if (fs.existsSync(loopsDir)) {
+      for (const f of fs.readdirSync(loopsDir)) {
+        if (!f.endsWith('.pending')) continue;
+        const fp = path.join(loopsDir, f);
+        try {
+          const txt = fs.readFileSync(fp, 'utf8').trim();
+          if (txt) results.push(txt);
+          fs.unlinkSync(fp);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  if (results.length) {
+    let msg = results.join('\n\n');
+    const MAX = 1500;
+    if (msg.length > MAX) {
+      msg = msg.slice(0, MAX) + '\n...(truncated, see full log)';
+    }
+    const prefix = '[LOOP RESULTS] The following loop check results are ready. ' +
+      'Summarize the key findings and present them to the user:\n\n';
+    process.stdout.write(JSON.stringify({
+      continue: true,
+      systemMessage: prefix + msg
+    }) + '\n');
+  }
+  // No pending results → no output → Codex stops normally
+});
+"#;
+
+/// UserPromptSubmit hook — when user types next message, prepend any pending loop results
+/// so the model naturally incorporates them into its response.
+/// This is the most reliable notification path: fires on every user interaction.
+const LOOP_RUNNER_HOOK_PROMPT: &str = r#"#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
+
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', d => buf += d);
+process.stdin.on('end', () => {
+  const results = [];
+  try {
+    if (fs.existsSync(loopsDir)) {
+      for (const f of fs.readdirSync(loopsDir)) {
+        if (!f.endsWith('.pending')) continue;
+        const fp = path.join(loopsDir, f);
+        try {
+          const txt = fs.readFileSync(fp, 'utf8').trim();
+          if (txt) results.push(txt);
+          fs.unlinkSync(fp);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  if (results.length) {
+    let msg = results.join('\n\n');
+    if (msg.length > 1500) {
+      msg = msg.slice(0, 1500) + '\n...(truncated, see full log)';
+    }
+    process.stdout.write(JSON.stringify({
+      continue: true,
+      systemMessage: '[LOOP UPDATE] Before responding, briefly note these loop results to the user:\n\n' + msg
+    }) + '\n');
+  }
 });
 "#;
 
@@ -1819,6 +1967,27 @@ prompt = """
             }
         })?;
 
+        // Install launcher.sh for loop-runner
+        if ext.name == "loop-runner" {
+            let launcher_content = LOOP_RUNNER_LAUNCHER.replace(
+                "${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}",
+                &format!(
+                    "${{LOOP_RUNNER_CLI_DIR:-$HOME/{}}}",
+                    self.cli.config_dir_name()
+                ),
+            );
+            let launcher_path = dest.join("launcher.sh");
+            fs::write(&launcher_path, launcher_content).map_err(|err| OperationError::Io {
+                path: launcher_path.display().to_string(),
+                source: err,
+            })?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let _ = fs::set_permissions(&launcher_path, fs::Permissions::from_mode(0o755));
+            }
+        }
+
         self.register_gemini_extension(ext.name)?;
         Ok(())
     }
@@ -1846,24 +2015,72 @@ prompt = """
     /// Install the SessionStart hook for loop-runner on Codex
     fn install_loop_runner_hook(&self) -> Result<()> {
         let plugin_dir = self.codex_plugins_dir().join("loop-runner");
-        let hooks_dir = plugin_dir.join("hooks").join("SessionStart");
-        fs::create_dir_all(&hooks_dir).map_err(|err| OperationError::Io {
-            path: hooks_dir.display().to_string(),
+
+        // 1. Install launcher.sh (executable)
+        fs::create_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
+            path: plugin_dir.display().to_string(),
+            source: err,
+        })?;
+        let launcher_path = plugin_dir.join("launcher.sh");
+        // Adapt launcher for the CLI directory
+        let launcher_content = LOOP_RUNNER_LAUNCHER.replace(
+            "${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}",
+            &format!(
+                "${{LOOP_RUNNER_CLI_DIR:-$HOME/{}}}",
+                self.cli.config_dir_name()
+            ),
+        );
+        fs::write(&launcher_path, launcher_content).map_err(|err| OperationError::Io {
+            path: launcher_path.display().to_string(),
+            source: err,
+        })?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&launcher_path, fs::Permissions::from_mode(0o755));
+        }
+
+        // 2. Install SessionStart hook
+        let session_hook_dir = plugin_dir.join("hooks").join("SessionStart");
+        fs::create_dir_all(&session_hook_dir).map_err(|err| OperationError::Io {
+            path: session_hook_dir.display().to_string(),
+            source: err,
+        })?;
+        let session_hook = session_hook_dir.join("check-loops.js");
+        fs::write(&session_hook, LOOP_RUNNER_HOOK_SESSION).map_err(|err| OperationError::Io {
+            path: session_hook.display().to_string(),
             source: err,
         })?;
 
-        // Write the hook script
-        let hook_path = hooks_dir.join("check-loops.js");
-        fs::write(&hook_path, LOOP_RUNNER_HOOK_SCRIPT).map_err(|err| OperationError::Io {
-            path: hook_path.display().to_string(),
+        // 3. Install Stop hook (picks up pending results)
+        let stop_hook_dir = plugin_dir.join("hooks").join("Stop");
+        fs::create_dir_all(&stop_hook_dir).map_err(|err| OperationError::Io {
+            path: stop_hook_dir.display().to_string(),
+            source: err,
+        })?;
+        let stop_hook = stop_hook_dir.join("check-results.js");
+        fs::write(&stop_hook, LOOP_RUNNER_HOOK_STOP).map_err(|err| OperationError::Io {
+            path: stop_hook.display().to_string(),
             source: err,
         })?;
 
-        // Register in hooks.json
-        let hooks_dir_parent = plugin_dir.join("hooks");
-        self.update_codex_hooks_json("loop-runner", &hooks_dir_parent)?;
+        // 4. Install UserPromptSubmit hook (catch-up on next user input)
+        let prompt_hook_dir = plugin_dir.join("hooks").join("UserPromptSubmit");
+        fs::create_dir_all(&prompt_hook_dir).map_err(|err| OperationError::Io {
+            path: prompt_hook_dir.display().to_string(),
+            source: err,
+        })?;
+        let prompt_hook = prompt_hook_dir.join("inject-results.js");
+        fs::write(&prompt_hook, LOOP_RUNNER_HOOK_PROMPT).map_err(|err| OperationError::Io {
+            path: prompt_hook.display().to_string(),
+            source: err,
+        })?;
 
-        // Enable hooks feature
+        // 5. Register all hooks in hooks.json
+        let hooks_dir = plugin_dir.join("hooks");
+        self.update_codex_hooks_json("loop-runner", &hooks_dir)?;
+
+        // 5. Enable hooks feature in config.toml
         self.enable_codex_hooks_feature()?;
 
         Ok(())
@@ -1883,6 +2100,26 @@ prompt = """
                 self.unregister_gemini_extension(ext.name)?;
             }
             CliType::Codex => {
+                // Kill all running loop processes before removal
+                let home = dirs::home_dir().expect("Cannot find home directory");
+                let loops_dir = home.join(".codex/loops");
+                if loops_dir.exists() {
+                    if let Ok(entries) = fs::read_dir(&loops_dir) {
+                        for entry in entries.flatten() {
+                            let path = entry.path();
+                            if path.extension().map(|e| e == "pid").unwrap_or(false) {
+                                if let Ok(pid_str) = fs::read_to_string(&path) {
+                                    if let Ok(pid) = pid_str.trim().parse::<i32>() {
+                                        let _ = Command::new("kill").arg(pid.to_string()).status();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Remove entire loops directory (PIDs, scripts, logs, pending)
+                    let _ = fs::remove_dir_all(&loops_dir);
+                }
+
                 // Remove skill
                 let skill_dir = self.install_dir(ExtensionType::Skill).join(ext.name);
                 if skill_dir.exists() {

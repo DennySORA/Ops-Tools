@@ -16,5 +16,3 @@ pub use template_01::TEMPLATE_01;
 pub use template_02::TEMPLATE_02_FIXED;
 pub use template_03::TEMPLATE_03;
 pub use template_04::TEMPLATE_04_FIXED;
-#[allow(unused_imports)]
-pub use yaml_gen_prompt::generate_yaml_prompt;

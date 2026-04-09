@@ -452,11 +452,6 @@
 
 "skill.ralph_wiggum" = "Ralph Wiggum (AI エージェントループ)"
 "skill.frontend_design" = "フロントエンドデザイン (UI コンポーネント設計)"
-"skill.code_review" = "Code Review (コードレビュー)"
-"skill.pr_review_toolkit" = "PR Review Toolkit (PR レビューツールキット)"
-"skill.commit_commands" = "Commit Commands (Git コミット補助)"
-"skill.security_guidance" = "Security Guidance (セキュリティガイダンス)"
-"skill.writing_rules" = "Writing Rules (コードスタイルガイドライン)"
 "skill.claude_mem" = "Claude Mem (セッションメモリとコンテキスト永続化)"
 "skill.pua" = "PUA (デバッグモチベーターと体系的デバッグ)"
 "skill.loop_runner" = "Loop Runner (定期タスクスケジューラー)"

@@ -452,11 +452,6 @@
 
 "skill.ralph_wiggum" = "Ralph Wiggum (AI Agent Loop)"
 "skill.frontend_design" = "Frontend Design (UI Component Design)"
-"skill.code_review" = "Code Review (Code Quality Analysis)"
-"skill.pr_review_toolkit" = "PR Review Toolkit (Pull Request Review)"
-"skill.commit_commands" = "Commit Commands (Git Commit Helpers)"
-"skill.security_guidance" = "Security Guidance (Security Best Practices)"
-"skill.writing_rules" = "Writing Rules (Code Style Guidelines)"
 "skill.claude_mem" = "Claude Mem (Session Memory & Context Persistence)"
 "skill.pua" = "PUA (Debugging Motivator & Systematic Debugging)"
 "skill.loop_runner" = "Loop Runner (Periodic Task Scheduler)"

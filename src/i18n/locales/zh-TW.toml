@@ -452,11 +452,6 @@
 
 "skill.ralph_wiggum" = "Ralph Wiggum (AI 代理迴圈)"
 "skill.frontend_design" = "前端設計 (UI 元件設計)"
-"skill.code_review" = "Code Review (程式碼審查)"
-"skill.pr_review_toolkit" = "PR Review Toolkit (PR 審查工具)"
-"skill.commit_commands" = "Commit Commands (Git 提交輔助)"
-"skill.security_guidance" = "Security Guidance (安全指引)"
-"skill.writing_rules" = "Writing Rules (程式碼風格指南)"
 "skill.claude_mem" = "Claude Mem (對話記憶與上下文持久化)"
 "skill.pua" = "PUA (除錯激勵器與系統化除錯)"
 "skill.loop_runner" = "Loop Runner (週期性任務排程器)"
