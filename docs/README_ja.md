@@ -1,4 +1,4 @@
-# DevOps ツールセット
+# Ops-Tools
 
 DevOps ワークフローの効率化のために設計された、堅牢な Rust 製 CLI ツールセットです。
 
@@ -8,54 +8,81 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 
 ## 機能一覧
 
-| 機能 | 説明 |
-|------|------|
-| Terraform クリーンアップ | `.terraform`、`.terragrunt-cache` およびロックファイルを削除 |
-| AI アシスタントアップグレード | Claude Code、Codex、Gemini CLI を一括更新 |
-| パッケージ管理 | nvm、pnpm、Rust、Go、kubectl、k9s、tmux、vim などをインストール/更新 |
-| MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
-| セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
-| プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
-| スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex/Gemini） |
-| Rust ビルド | クロスプラットフォーム実行ファイル（cargo/cross、glibc/musl 選択可） |
-| コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
-| Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
+| カテゴリ | 機能 | 説明 |
+|---------|------|------|
+| アップグレード | システム更新 | Linux システム全体のメンテナンス（APT、ツール、クリーンアップ、再起動） |
+| アップグレード | AI ツール更新 | Claude Code、Codex、Gemini CLI を一括更新 |
+| アップグレード | Rust 更新 | Rust ツールチェーン + Cargo ツールのアップグレード |
+| アップグレード | パッケージ管理 | nvm、pnpm、Rust、Go、kubectl、k9s、tmux などをインストール/更新 |
+| ビルド | Rust ビルド | クロスプラットフォーム Rust バイナリ（cargo/cross、30+ ターゲット） |
+| ビルド | コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
+| ビルド | CUDA ML ビルド | ML パッケージをソースからビルド（PyTorch、Flash Attention、xFormers） |
+| AI | MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
+| AI | スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex/Gemini） |
+| AI | プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
+| インフラ | Terraform クリーンアップ | `.terraform`、`.terragrunt-cache` およびロックファイルを削除 |
+| インフラ | Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
+| セキュリティ | セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
+
+## メニュー構造
+
+インタラクティブメニューは 5 つのカテゴリに分類され、使用頻度に基づいてスマートソートされます：
+
+```
+よく使う（使用頻度順）
+  システム更新、AI ツール更新、...
+
+カテゴリ
+  ビルド          — Rust ビルド、コンテナビルド、CUDA ML ビルド
+  AI              — MCP 管理、スキルインストーラー、プロンプト生成
+  アップグレード  — システム更新、AI ツール更新、Rust 更新、パッケージ管理
+  インフラ        — Terraform クリーンアップ、Kubeconfig 管理
+  セキュリティ    — セキュリティスキャン
+
+設定          — 言語、よく使うアイテム数、ピン管理
+```
+
+ピン留めしたアイテムは最上部に表示されます。よく使うアイテムは使用頻度で自動ソートされます。
 
 ## 機能
 
-### 1. Terraform/Terragrunt キャッシュクリーナー
-Terraform および Terragrunt によって生成されたキャッシュファイルをインテリジェントに削除します：
-- `.terragrunt-cache` ディレクトリ
-- `.terraform` ディレクトリ
-- `.terraform.lock.hcl` ファイル
-- 重複するサブパスを自動的に除外し、冗長な削除を回避します。
+### システム更新
+DGX Spark / NVIDIA GPU 対応の Linux システム全体メンテナンス：
+- **モード**：フル更新、スキャンのみ、クリーンアップ、検証、バックアップ
+- **プロファイル**：デフォルト（フル）、セーフ（再起動なし、控えめ）、アグレッシブ（徹底的）
+- **ワークフロー**：APT アップグレード、DGX カーネル/ドライバー、Snap/Flatpak/Docker、ツール更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、キャッシュクリーンアップ、検証、再起動判断
+- **DGX 自動検出**：CUDA バージョン、GPU アーキテクチャ、ドライバー/カーネルパッケージを `nvcc`、`nvidia-smi`、`dpkg` から自動検出
+- **設定**：`update.toml` または `~/.config/update/config.toml`（`update.example.toml` を参照）
+- ドライランモードで変更をプレビュー
 
-### 2. AI コードアシスタントアップグレーダー
-人気のある AI コードアシスタントツールを一括アップグレードします：
+### AI ツール更新
+AI コードアシスタントの一括アップグレード：
 - `Claude Code` (@anthropic-ai/claude-code)
-- `OpenAI Codex` (@openai/codex)
+- `OpenAI Codex` (@openai/codex) — ローカルリポジトリからのソースビルド対応
 - `Google Gemini CLI` (@google/gemini-cli)
 
-Codex のアップグレードは `bun install -g @openai/codex` を使用します。
-
-### 3. パッケージのインストール/更新（macOS/Linux）
-対話式のチェックリストでインストール・削除・更新を行います：
-- `nvm`（最新 Node.js をインストール）
-- `pnpm`
-- `Rust`（rustup 経由）
-- `Go`（最新公式アーカイブ/pkg を取得）
-- `Terraform`
-- `kubectl`
-- `kubectx`
-- `k9s`
-- `git`
-- `uv`（最新 Python をインストール）
-- `tmux`（TPM と tmux.conf をセットアップ）
-- `vim`（vim-plug と molokai 設定）
+### パッケージ管理（macOS / Linux）
+対話式チェックリストでインストール・削除・更新：
+- `nvm`（最新 Node.js）、`pnpm`、`Rust`（rustup 経由）、`Go`（最新公式アーカイブ）
+- `Terraform`、`kubectl`、`kubectx`、`k9s`、`git`、`uv`（最新 Python）
+- `tmux`（TPM + tmux.conf）、`vim`（vim-plug + molokai）
 - `ffmpeg`（Linux はビルドスクリプト、macOS は Homebrew）
 
-### 4. MCP ツール管理
-Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
+### Rust 更新
+Rust ツールチェーンと Cargo ツールのアップグレード：
+- rustc、cargo、rustup のバージョン確認
+- 不足している Cargo ツールをインストール（cargo-edit、cargo-update、cargo-outdated、cargo-audit）
+- 6 ステップアップグレード：rustup self-update、rustup update、cargo install-update、cargo upgrade、cargo outdated、cargo audit
+
+### CUDA ML ビルド
+GPU に合わせて CUDA 対応 ML パッケージをソースからビルド：
+- **パッケージ**：PyTorch、TorchVision、TorchAudio、Flash Attention、xFormers、FlashInfer、BitsAndBytes、ExLlamaV2、AutoGPTQ、AutoAWQ、llama-cpp-python、CTranslate2、TensorRT、Transformer Engine、DeepSpeed、vLLM、CuPy、Unsloth
+- **モード**：ソースビルド、キャッシュからインストール、ステータス、クリーン
+- CUDA バージョン、GPU アーキテクチャ、ビルド最適化（ccache、Ninja、clang、mold）を自動検出
+- 隔離ビルド環境：`~/.ml-packages/`
+
+### MCP 管理
+Claude、Codex、Gemini CLI 用の MCP サーバー管理：
 
 | MCP ツール | 説明 |
 |------------|------|
@@ -63,57 +90,24 @@ Claude、Codex、Gemini CLI 用の MCP サーバーを管理します：
 | `context7` | ドキュメント検索 |
 | `chrome-devtools` | Chrome 開発者ツール |
 | `kubernetes` | K8s 管理 |
-| `tailwindcss` | Tailwind CSS（CSS フレームワーク）|
-| `arxiv-mcp-server` | arXiv 学術論文検索・ダウンロード |
+| `tailwindcss` | Tailwind CSS |
+| `arxiv-mcp-server` | arXiv 論文検索・ダウンロード |
 | `github` | GitHub 統合 |
-| `cloudflare-*` | Cloudflare MCP（Docs/Workers/Observability など） |
+| `cloudflare-*` | Cloudflare MCP サーバー |
 
-**環境変数**（オプション - MCP管理機能を使用する場合のみ必要、ビルド時に `.env` で設定）：
-- `GITHUB_PERSONAL_ACCESS_TOKEN`：GitHub パーソナルアクセストークン（必須）
-- `GITHUB_MCP_MODE`：`docker`（デフォルト、Copilot サブスクリプション不要）または `remote`（GitHub Copilot サブスクリプションが必要）
-- `GITHUB_HOST`：GitHub Enterprise ホスト（オプション、デフォルトは `github.com`）
-- `GITHUB_TOOLSETS`：ツールセット（オプション、例：`repos,issues,pull_requests,actions`）
-- `CONTEXT7_API_KEY`
-- `enable_cloudflare_mcp`（`true` で Cloudflare MCP を有効化）
-- `ARXIV_STORAGE_PATH`（arXiv 論文の保存パス、デフォルトは `~/.arxiv-papers`）
+**オプション MCP 認証情報**（ビルド時に `.env` で設定）：
+1. `cp .env.example .env`
+2. 必要な値を入力
+3. `cargo build --release` でビルド
 
-Codex の MCP インストールでは、`CONTEXT7_API_KEY`、`GITHUB_PERSONAL_ACCESS_TOKEN`、`GITHUB_HOST` のビルド時の値を `~/.codex/config.toml` に書き込むため、実行時の環境変数は不要です。
-Cloudflare MCP は OAuth の対話ログインを使用するため、CLI に表示される URL で認可を完了してください。WSL の場合は `wslview <URL>` を使用できます。
+利用可能なオプション：
+- **Context7**：`CONTEXT7_API_KEY` を設定
+- **GitHub**：`GITHUB_PERSONAL_ACCESS_TOKEN`（必須）、オプションで `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
+- **Cloudflare**：`enable_cloudflare_mcp=true` を設定（インストール時 OAuth）
+- **arXiv**：`ARXIV_STORAGE_PATH` を設定（デフォルト `~/.arxiv-papers`）
 
-### 5. プロジェクトセキュリティスキャナー
-現在の Git リポジトリを厳格モードで素早くスキャンします：
-- `gitleaks`（Git 履歴 + ワーキングツリー）
-- `trufflehog`（Git 履歴 + ワーキングツリー）
-- `git-secrets`（Git 履歴 + ワーキングツリー）
-- `trivy`（ワーキングツリーの SCA + Misconfig）
-- `semgrep`（ワーキングツリーの SAST）
-
-自動インストールは一般的なパッケージマネージャー、Trivy のインストールスクリプト、Semgrep の pipx/venv を優先し、見つからない場合は GitHub Release から取得します（`curl`/`wget` と `tar`/`unzip` が必要です）。
-ワーキングツリーのスキャンは Git で追跡済みかつ `.gitignore` で除外されていないファイルのみ対象で、各スキャンの生ログを出力します。
-
-### 6. プロンプトジェネレーター（LLM）
-LLM ワークフロー用の 4 ステッププロンプトを生成・実行します：
-- **生成**：YAML/JSON 仕様ファイルからプロンプトファイルを作成
-- **実行**：Claude/Codex/Gemini CLI で対話式に実行（全件または指定機能を選択）
-- **ステータス**：機能の実行進捗とステータスを確認
-- **検証**：仕様ファイル形式を検証
-- **YAML Prompt**：YAML 仕様 Prompt を生成（内蔵テンプレート）
-
-4 ステップワークフロー：
-1. P1：要件、実装、デプロイ
-2. P2：検証環境での E2E 検証
-3. P3：リファクタリングと最適化
-4. P4：検証環境での E2E 回帰テスト
-
-各機能の進捗を追跡し、セッション管理により中断後の再開が可能です。
-
-**Rust Build ヒント**
-- `*-unknown-linux-gnu`（glibc）：主流ディストロ向け；動的リンクでバイナリは小さめだがシステム glibc に依存。
-- `*-unknown-linux-musl`（musl、多くは静的）：Alpine/最小イメージ向け；単一バイナリ配布に便利。
-- `i686-*` はレガシー 32bit x86、`powerpc64le-*` は OpenPOWER/IBM Cloud 向け、`wasm32-unknown-unknown` はブラウザ/wasm ランタイム向け（no std）。
-
-### 7. スキルインストーラー
-AI CLI ツールの拡張機能をインストール・管理します：
+### スキルインストーラー
+AI CLI ツールの拡張機能をインストール：
 
 | CLI | 拡張形式 | インストールパス |
 |-----|---------|-----------------|
@@ -121,89 +115,90 @@ AI CLI ツールの拡張機能をインストール・管理します：
 | OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
 | Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
 
-**利用可能な拡張機能：**
-- `ralph-wiggum` - AI エージェントループ（Claude/Gemini）
-- `security-guidance` - セキュリティベストプラクティス（Claude/Gemini）
-- `frontend-design` - フロントエンドインターフェースデザイン（全 CLI）
-- `code-review` - コードレビューアシスタント（全 CLI）
-- `pr-review-toolkit` - PR レビューツール（全 CLI）
-- `commit-commands` - Git Commit ヘルパー（全 CLI）
-- `writing-rules` - ライティングスタイルルール（全 CLI）
+利用可能な拡張機能：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner など。
 
-**注意：** Gemini は異なる拡張形式を使用します。インストーラーは Claude プラグインを Gemini ネイティブの TOML 形式に自動変換し、`extension-enablement.json` に登録します。
+詳細は [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開発ガイドを参照。
 
-詳細は [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開発ガイドを参照してください。
+### LLM プロンプトジェネレーター
+LLM ワークフロー用の 4 ステッププロンプトを生成・実行：
+- **コマンド**：生成、実行、ステータス、検証、YAML Prompt
+- **4 ステップ**：P1（実装・デプロイ）、P2（E2E 検証）、P3（リファクタリング・最適化）、P4（回帰テスト）
+- 進捗追跡、中断後の再開に対応
 
-### 8. コンテナイメージビルダー
-Docker または Buildah でマルチアーキテクチャコンテナイメージをビルドします：
-- **ビルドエンジン**：Docker (buildx) または Buildah（デーモンレス OCI ビルダー）
-- **マルチアーキテクチャサポート**：
-  - x86_64 / amd64（Intel/AMD 64 ビット）
-  - arm64 / aarch64（Apple Silicon、AWS Graviton）
-  - armv7 / arm/v7（Raspberry Pi 2/3）
-  - Jetson Nano（NVIDIA Jetson Nano aarch64）
-- **Dockerfile スキャナー**：Dockerfile、Containerfile、およびバリアント（Dockerfile.dev など）を自動検出
-- **レジストリプッシュ**：コンテナレジストリへのオプションプッシュ
-- **クイック選択**：最近使用したイメージ名、タグ、レジストリを記憶して素早く再利用
+### Rust ビルダー
+クロスプラットフォーム Rust バイナリのビルド：
+- **エンジン**：cargo（ネイティブ）または cross（コンテナ化クロスコンパイル）
+- **30+ ターゲット**：x86_64-gnu、x86_64-musl、aarch64、i686、powerpc64le、wasm32 など
+- 不足している rustup ターゲットを自動インストール
+
+### コンテナビルダー
+マルチアーキテクチャコンテナイメージのビルド：
+- **エンジン**：Docker (buildx) または Buildah（デーモンレス）
+- **アーキテクチャ**：x86_64、arm64、armv7、Jetson Nano
+- Dockerfile/Containerfile バリアントを自動検出
+- レジストリプッシュ、よく使う設定を記憶
+
+### Terraform クリーナー
+Terraform/Terragrunt キャッシュのスマートクリーンアップ：
+- `.terragrunt-cache`、`.terraform`、`.terraform.lock.hcl`
+- 重複パスを自動除外
+
+### Kubeconfig マネージャー
+tmux ウィンドウ分離の kubeconfig で安全なマルチクラスター操作：
+- セットアップ、クリーンアップ、リスト、全クリーンアップ
+- 誤って別のクラスターに切り替えることを防止
+
+### セキュリティスキャナー
+Git リポジトリを厳格モードでスキャン：
+- `gitleaks`、`trufflehog`、`git-secrets`（履歴 + ワーキングツリー）
+- `trivy`（SCA + misconfig）、`semgrep`（SAST）
+- 自動インストール、Git 追跡ファイルのみスキャン
 
 ## インストール
 
-### インストールスクリプト経由 (推奨 - Linux/macOS)
+### インストールスクリプト（Linux / macOS）
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/DennySORA/Ops-Tools/main/install.sh | bash
 ```
 
-### 手動インストール
+### 手動ダウンロード
 
-[Releases](https://github.com/DennySORA/Ops-Tools/releases) ページから、お使いのシステムに対応するバージョンをダウンロードしてください。
+[Releases](https://github.com/DennySORA/Ops-Tools/releases) ページからプリビルドバイナリをダウンロード：
+- Linux x86_64
+- macOS x86_64 / arm64 (Apple Silicon)
+- Windows x86_64
 
-### ソースコードからのビルド
+### ソースからビルド
 
 ```bash
-# ビルド
 cargo build --release
-
-# 環境変数の設定 (オプション、MCP 管理機能を使用する場合)
-cp .env.example .env
-# .env を編集して認証情報を入力
-```
-
-## 使用方法
-
-スクリプト経由でインストールした場合は、直接実行できます：
-
-```bash
-ops-tools
-```
-
-ソースコードからビルドした場合：
-
-```bash
-cargo run
-# または
 ./target/release/tools
+
+# オプション：MCP 認証情報を設定
+cp .env.example .env
+# .env を編集し、再ビルド
 ```
 
-機能メニューを選択してください：
-1. Terraform/Terragrunt キャッシュファイルのクリーニング
-2. AI コードアシスタントツールのアップグレード
-3. システムパッケージのインストール/更新（macOS/Linux）
-4. Rust プロジェクトとツールチェーンのアップグレード
-5. 複数プラットフォーム向けに Rust バイナリをビルド（glibc/musl、cargo/cross 選択可）
-6. セキュリティスキャン (Gitleaks/TruffleHog/Git-Secrets/Trivy/Semgrep)
-7. MCP ツールの管理 (Claude/Codex/Gemini)
-8. プロンプトジェネレーター（LLM 4 ステップワークフロー）
-9. コンテナイメージビルダー（Docker/Buildah マルチアーキ）
-10. Kubeconfig 管理（tmux ウィンドウ分離）
-11. 言語設定（英語/繁体字中国語/簡体字中国語/日本語）
+## 多言語対応
 
-起動時に言語選択が表示され、後からメニューで切り替えできます。
-言語設定は `~/.config/ops-tools/config.toml`（Linux）、`~/Library/Application Support/ops-tools/config.toml`（macOS）、`%APPDATA%\\ops-tools\\config.toml`（Windows）に保存されます。
+4 言語対応 — 初回起動時に選択、設定から変更可能：
+
+- English
+- 繁體中文
+- 简体中文
+- 日本語
+
+言語設定の保存先：
+- Linux：`~/.config/ops-tools/config.toml`
+- macOS：`~/Library/Application Support/ops-tools/config.toml`
+- Windows：`%APPDATA%\ops-tools\config.toml`
 
 ## 貢献
 
 Pull Request や Issue の作成は大歓迎です！
+
+詳細は [CONTRIBUTING.md](../CONTRIBUTING.md) 開発ガイドを参照。
 
 ## ライセンス
 
