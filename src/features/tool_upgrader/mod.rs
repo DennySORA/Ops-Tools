@@ -3,8 +3,12 @@ mod upgrader;
 
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
-use tools::{AI_TOOLS, UpgradeCommand};
+use tools::AI_TOOLS;
 use upgrader::{PackageUpgrader, SourceBuildExecutor};
+
+/// Codex source build 的固定參數
+const CODEX_CARGO_PACKAGE: &str = "codex-cli";
+const CODEX_BINARY_NAME: &str = "codex";
 
 /// 執行 AI 工具升級功能
 pub fn run() {
@@ -13,9 +17,17 @@ pub fn run() {
 
     console.header(i18n::t(keys::TOOL_UPGRADER_HEADER));
 
+    // 預先偵測 Codex source path
+    let codex_source_dir = SourceBuildExecutor::resolve_source_dir();
+
     console.info(i18n::t(keys::TOOL_UPGRADER_LIST_TITLE));
     for tool in AI_TOOLS {
-        console.list_item("📦", &format!("{} ({})", tool.name, tool.display));
+        let mode = if tool.name == "OpenAI Codex" && codex_source_dir.is_some() {
+            "source build"
+        } else {
+            tool.display
+        };
+        console.list_item("📦", &format!("{} ({})", tool.name, mode));
     }
     console.separator();
 
@@ -27,7 +39,6 @@ pub fn run() {
     console.blank_line();
 
     let package_upgrader = PackageUpgrader::new();
-    let source_builder = SourceBuildExecutor::new();
     let mut success_count = 0;
     let mut failed_count = 0;
 
@@ -38,9 +49,19 @@ pub fn run() {
             &crate::tr!(keys::TOOL_UPGRADER_PROGRESS, tool = tool.name),
         );
 
-        let result = match tool.command {
-            UpgradeCommand::SourceBuild { .. } => source_builder.execute(tool),
-            _ => package_upgrader.upgrade(tool),
+        // Codex: 有設 source path → source build，沒有 → 一般升級
+        let result = if tool.name == "OpenAI Codex" {
+            if let Some(ref source_dir) = codex_source_dir {
+                SourceBuildExecutor::execute_source_build(
+                    source_dir,
+                    CODEX_CARGO_PACKAGE,
+                    CODEX_BINARY_NAME,
+                )
+            } else {
+                package_upgrader.upgrade(tool)
+            }
+        } else {
+            package_upgrader.upgrade(tool)
         };
 
         match result {

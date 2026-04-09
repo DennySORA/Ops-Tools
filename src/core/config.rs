@@ -17,9 +17,15 @@ pub struct AppConfig {
     /// Pinned menu items (shown at the top)
     #[serde(default)]
     pub pinned_items: Vec<String>,
-    /// Local source directory for building Codex from source
+    /// Local Codex source directory (root of codex-rs workspace)
     #[serde(default)]
     pub codex_source_path: Option<String>,
+    /// Private git remote URL for Codex fork (e.g. git@github.com:User/codex.git)
+    #[serde(default)]
+    pub codex_private_remote: Option<String>,
+    /// Feature branch name in the Codex fork
+    #[serde(default)]
+    pub codex_feature_branch: Option<String>,
 }
 
 impl AppConfig {

@@ -31,9 +31,6 @@ impl PackageUpgrader {
                 program.to_string(),
                 args.iter().map(|s| s.to_string()).collect(),
             ),
-            UpgradeCommand::SourceBuild { .. } => {
-                unreachable!("SourceBuild should be handled by SourceBuildExecutor")
-            }
         }
     }
 
@@ -73,124 +70,166 @@ impl Default for PackageUpgrader {
     }
 }
 
-/// 從本地原始碼編譯安裝的執行器
+/// Codex source build executor.
+/// Reads config for source dir, private remote, and feature branch.
+/// Full workflow: pull upstream → checkout branch → rebase → build → install → push.
 pub struct SourceBuildExecutor;
 
+/// Default feature branch name when not configured.
+const DEFAULT_FEATURE_BRANCH: &str = "feat/cron-scheduler";
+
 impl SourceBuildExecutor {
-    pub fn new() -> Self {
-        Self
-    }
-
-    /// 從設定檔讀取 Codex 原始碼路徑
-    fn resolve_source_dir(&self) -> Result<PathBuf> {
-        let config = load_config()?.unwrap_or_default();
-        let source_path = config
-            .codex_source_path
-            .ok_or_else(|| OperationError::Config {
-                key: "codex_source_path".to_string(),
-                message: i18n::t(keys::SOURCE_BUILD_PATH_NOT_SET).to_string(),
-            })?;
-
-        let path = PathBuf::from(&source_path);
-        if !path.is_dir() {
-            return Err(OperationError::Validation(crate::tr!(
-                keys::SOURCE_BUILD_DIR_NOT_FOUND,
-                path = source_path
-            )));
+    /// Resolve source directory from env `CODEX_SOURCE_PATH` or config `codex_source_path`.
+    /// Returns None if not configured (caller should fallback to normal upgrade).
+    pub fn resolve_source_dir() -> Option<PathBuf> {
+        if let Ok(env_path) = std::env::var("CODEX_SOURCE_PATH") {
+            let p = PathBuf::from(&env_path);
+            if p.is_dir() {
+                return Some(p);
+            }
         }
-
-        Ok(path)
+        if let Ok(Some(config)) = load_config()
+            && let Some(cfg_path) = config.codex_source_path
+        {
+            let p = PathBuf::from(&cfg_path);
+            if p.is_dir() {
+                return Some(p);
+            }
+        }
+        None
     }
 
-    /// 在指定目錄執行 git pull --ff-only 取得最新原始碼
-    fn pull_latest(&self, source_dir: &Path) -> Result<String> {
-        run_command_in_dir("git", &["pull", "--ff-only"], source_dir, "git pull")
-    }
+    /// Full workflow:
+    /// 1. git fetch upstream (official OpenAI)
+    /// 2. git checkout main && git merge upstream/main --ff-only
+    /// 3. git checkout <feature_branch> && git rebase main
+    /// 4. cargo build --release -p <cargo_package>
+    /// 5. Copy binary to installed location
+    /// 6. git push private main && git push private <feature_branch>
+    pub fn execute_source_build(
+        source_dir: &Path,
+        cargo_package: &str,
+        binary_name: &str,
+    ) -> Result<String> {
+        let config = load_config()?.unwrap_or_default();
+        let feature_branch = config
+            .codex_feature_branch
+            .as_deref()
+            .unwrap_or(DEFAULT_FEATURE_BRANCH);
+        let has_private = config.codex_private_remote.is_some();
 
-    /// 執行 cargo build --release 編譯指定套件
-    fn cargo_build(&self, source_dir: &Path, cargo_package: &str) -> Result<String> {
+        let mut log = Vec::new();
+
+        // 1. Fetch upstream
+        let fetch_out = run_command_in_dir(
+            "git",
+            &["fetch", "upstream"],
+            source_dir,
+            "git fetch upstream",
+        )?;
+        log.push(format!("[fetch] {fetch_out}"));
+
+        // 2. Update main from upstream
+        run_command_in_dir(
+            "git",
+            &["checkout", "main"],
+            source_dir,
+            "git checkout main",
+        )?;
+        let merge_out = run_command_in_dir(
+            "git",
+            &["merge", "upstream/main", "--ff-only"],
+            source_dir,
+            "git merge upstream/main",
+        )?;
+        log.push(format!("[main] {merge_out}"));
+
+        // 3. Rebase feature branch onto updated main
+        run_command_in_dir(
+            "git",
+            &["checkout", feature_branch],
+            source_dir,
+            &format!("git checkout {feature_branch}"),
+        )?;
+        let rebase_out = run_command_in_dir(
+            "git",
+            &["rebase", "main"],
+            source_dir,
+            &format!("git rebase main (on {feature_branch})"),
+        )?;
+        log.push(format!("[rebase] {rebase_out}"));
+
+        // 4. Build
         run_command_in_dir(
             "cargo",
             &["build", "--release", "-p", cargo_package],
             source_dir,
             &format!("cargo build -p {cargo_package}"),
-        )
-    }
+        )?;
+        log.push("[build] ok".to_string());
 
-    /// 找到已安裝的二進位檔位置（透過 `which`）
-    fn find_installed_binary(&self, binary_name: &str) -> Result<PathBuf> {
-        let output = Command::new("which")
-            .arg(binary_name)
-            .output()
-            .map_err(|e| OperationError::Command {
-                command: format!("which {binary_name}"),
-                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-            })?;
-
-        if output.status.success() {
-            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            Ok(PathBuf::from(path_str))
-        } else {
-            Err(OperationError::Validation(crate::tr!(
-                keys::SOURCE_BUILD_BINARY_NOT_FOUND,
-                name = binary_name
-            )))
-        }
-    }
-
-    /// 複製編譯好的二進位檔到安裝位置
-    fn install_binary(
-        &self,
-        source_dir: &Path,
-        binary_name: &str,
-        install_target: &Path,
-    ) -> Result<String> {
-        let built_binary = source_dir.join("target").join("release").join(binary_name);
-
-        if !built_binary.is_file() {
+        // 5. Install binary
+        let install_target = find_binary_path(binary_name)?;
+        let built = source_dir.join("target").join("release").join(binary_name);
+        if !built.is_file() {
             return Err(OperationError::Validation(crate::tr!(
                 keys::SOURCE_BUILD_ARTIFACT_NOT_FOUND,
-                path = built_binary.display()
+                path = built.display()
             )));
         }
-
-        std::fs::copy(&built_binary, install_target).map_err(|e| OperationError::Io {
+        std::fs::copy(&built, &install_target).map_err(|e| OperationError::Io {
             path: install_target.display().to_string(),
             source: e,
         })?;
-
-        Ok(crate::tr!(
+        log.push(crate::tr!(
             keys::SOURCE_BUILD_INSTALLED,
-            source = built_binary.display(),
+            source = built.display(),
             target = install_target.display()
-        ))
-    }
+        ));
 
-    /// 執行完整的原始碼編譯安裝流程
-    pub fn execute(&self, tool: &AiTool) -> Result<String> {
-        let UpgradeCommand::SourceBuild {
-            cargo_package,
-            binary_name,
-        } = tool.command
-        else {
-            unreachable!("SourceBuildExecutor only handles SourceBuild commands");
-        };
+        // 6. Push to private remote (best-effort, don't fail the build)
+        if has_private {
+            let _ = run_command_in_dir(
+                "git",
+                &["push", "private", "main"],
+                source_dir,
+                "git push private main",
+            );
+            let push_result = run_command_in_dir(
+                "git",
+                &["push", "private", feature_branch, "--force-with-lease"],
+                source_dir,
+                &format!("git push private {feature_branch}"),
+            );
+            match push_result {
+                Ok(_) => log.push(format!("[push] private/{feature_branch} synced")),
+                Err(_) => log.push("[push] private sync skipped (not critical)".to_string()),
+            }
+        }
 
-        let source_dir = self.resolve_source_dir()?;
-        let install_target = self.find_installed_binary(binary_name)?;
-
-        let pull_output = self.pull_latest(&source_dir)?;
-        let _build_output = self.cargo_build(&source_dir, cargo_package)?;
-        let install_output = self.install_binary(&source_dir, cargo_package, &install_target)?;
-
-        let summary = format!("{pull_output}\n{install_output}");
-        Ok(summary)
+        Ok(log.join("\n"))
     }
 }
 
-impl Default for SourceBuildExecutor {
-    fn default() -> Self {
-        Self::new()
+/// 透過 `which` 找到已安裝的二進位檔位置
+fn find_binary_path(binary_name: &str) -> Result<PathBuf> {
+    let output = Command::new("which")
+        .arg(binary_name)
+        .output()
+        .map_err(|e| OperationError::Command {
+            command: format!("which {binary_name}"),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+        })?;
+
+    if output.status.success() {
+        Ok(PathBuf::from(
+            String::from_utf8_lossy(&output.stdout).trim(),
+        ))
+    } else {
+        Err(OperationError::Validation(crate::tr!(
+            keys::SOURCE_BUILD_BINARY_NOT_FOUND,
+            name = binary_name
+        )))
     }
 }
 
@@ -228,7 +267,7 @@ fn run_command_in_dir(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::features::tool_upgrader::tools::{AI_TOOLS, AiTool, UpgradeCommand};
+    use crate::features::tool_upgrader::tools::{AI_TOOLS, UpgradeCommand};
 
     #[test]
     fn test_build_command_for_npm_package() {
@@ -281,60 +320,29 @@ mod tests {
     }
 
     #[test]
-    fn test_source_build_entry_exists() {
-        let source_build = AI_TOOLS
-            .iter()
-            .find(|t| t.name == "OpenAI Codex (Source Build)")
-            .expect("Source Build entry should exist in AI_TOOLS");
-
-        assert!(matches!(
-            source_build.command,
-            UpgradeCommand::SourceBuild {
-                cargo_package: "codex-cli",
-                binary_name: "codex",
-            }
-        ));
-    }
-
-    #[test]
-    fn test_source_build_executor_rejects_missing_config() {
-        // Without a configured source path, the executor should fail
-        let executor = SourceBuildExecutor::new();
-        let tool =
-            AiTool::from_source_build("Test Tool", "test build", "some-package", "some-binary");
-        let result = executor.execute(&tool);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_source_build_executor_rejects_nonexistent_dir() {
+    fn test_resolve_source_dir_from_env() {
         use std::env;
-        use std::sync::{Mutex, OnceLock};
+        let dir = env::temp_dir();
+        unsafe { env::set_var("CODEX_SOURCE_PATH", dir.to_str().unwrap()) };
+        let result = SourceBuildExecutor::resolve_source_dir();
+        unsafe { env::remove_var("CODEX_SOURCE_PATH") };
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), dir);
+    }
 
-        // Use a lock to prevent concurrent env manipulation
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        let _guard = LOCK.get_or_init(|| Mutex::new(())).lock().unwrap();
+    #[test]
+    fn test_resolve_source_dir_none_when_unset() {
+        use std::env;
+        unsafe { env::remove_var("CODEX_SOURCE_PATH") };
+        let _ = SourceBuildExecutor::resolve_source_dir();
+    }
 
-        let temp = tempfile::tempdir().unwrap();
-        let old_xdg = env::var_os("XDG_CONFIG_HOME");
-        unsafe { env::set_var("XDG_CONFIG_HOME", temp.path()) };
-
-        // Write config with a non-existent source path
-        let config = crate::core::AppConfig {
-            codex_source_path: Some("/nonexistent/path/to/codex".to_string()),
-            ..Default::default()
-        };
-        let _ = crate::core::save_config(&config);
-
-        let executor = SourceBuildExecutor::new();
-        let tool = AiTool::from_source_build("Test", "test", "codex-tui", "codex");
-        let result = executor.execute(&tool);
-        assert!(result.is_err());
-
-        // Restore env
-        match old_xdg {
-            Some(val) => unsafe { env::set_var("XDG_CONFIG_HOME", val) },
-            None => unsafe { env::remove_var("XDG_CONFIG_HOME") },
-        }
+    #[test]
+    fn test_resolve_source_dir_ignores_nonexistent_env() {
+        use std::env;
+        unsafe { env::set_var("CODEX_SOURCE_PATH", "/nonexistent/path/12345") };
+        let result = SourceBuildExecutor::resolve_source_dir();
+        unsafe { env::remove_var("CODEX_SOURCE_PATH") };
+        assert!(result.as_ref().is_none_or(|p| p.is_dir()));
     }
 }

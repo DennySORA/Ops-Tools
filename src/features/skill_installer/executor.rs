@@ -50,7 +50,7 @@ Convert the user's interval to a cron expression:
 "#;
 
 /// Loop Runner SKILL.md content for Codex CLI
-/// All operations are delegated to launcher.sh for robust daemon management.
+/// Uses built-in cron_create/cron_list/cron_delete tools (in-process scheduler).
 const LOOP_RUNNER_CODEX: &str = r#"---
 name: loop-runner
 description: Schedule periodic task execution with customizable intervals
@@ -58,56 +58,62 @@ description: Schedule periodic task execution with customizable intervals
 
 # Loop Runner
 
-Schedule recurring tasks using the launcher at `~/.codex/plugins/loop-runner/launcher.sh`.
+Use the built-in cron tools to schedule periodic tasks.
 
-## All operations MUST go through the launcher script. Do NOT use nohup or & directly.
+## Critical: What cron_create does
 
-### Start a loop
-```bash
-ID=$(date +%s%N | md5sum | head -c 8)
-~/.codex/plugins/loop-runner/launcher.sh start "$ID" <interval_seconds> <command>
+`cron_create` does exactly ONE thing: **re-injects the prompt as a user message when the interval elapses**.
+
+- Do NOT create scripts, files, daemons, or background processes
+- Do NOT use Bash to run nohup, sleep, cron, or any scheduler
+- Do NOT write anything to disk
+- When the prompt fires, you receive it like the user typed it — just respond normally
+
+## Usage
+
+### Create a schedule → `cron_create`
+
+When the user asks for periodic execution (e.g., "every 5 minutes check build", "loop every 1h check training"):
+
 ```
-Example — check git status every 5 minutes:
-```bash
-ID=$(date +%s%N | md5sum | head -c 8)
-~/.codex/plugins/loop-runner/launcher.sh start "$ID" 300 git status
-```
-
-### List active loops
-```bash
-~/.codex/plugins/loop-runner/launcher.sh list
-```
-
-### Cancel a loop
-```bash
-~/.codex/plugins/loop-runner/launcher.sh cancel <id>
-```
-
-### Cancel all loops
-```bash
-~/.codex/plugins/loop-runner/launcher.sh cancel-all
+cron_create(
+  prompt = "Check build status and report the results",
+  interval_seconds = 300,
+  recurring = true
+)
 ```
 
-### Check results
-```bash
-~/.codex/plugins/loop-runner/launcher.sh results <id>
-```
+- `prompt`: the message you will receive when the timer fires — describe the task clearly
+- `interval_seconds`: time between firings in seconds
+- `recurring`: true to repeat, false for one-shot
 
-## How It Works
-
-- Loops run as `setsid` daemon processes, fully detached from the Bash tool.
-- Each daemon monitors the parent Codex process PID — **when Codex exits, all loops automatically self-terminate**. No orphan processes.
-- Results are written to `.pending` files. A Stop hook picks them up after each turn and injects them into the conversation via `systemMessage`.
-- A SessionStart hook displays active loops when opening a new session.
-
-## Interval Conversion
-
-Convert the user's interval to seconds:
-- `10s` → 10 (minimum 10)
-- `5m` or `5 minutes` → 300
-- `1h` or `1 hour` → 3600
-- `1d` or `1 day` → 86400
+Interval conversion:
+- `10s` → 10
+- `5m` → 300
+- `1h` → 3600
+- `1d` → 86400
 - No unit → treat as minutes
+
+### List schedules → `cron_list`
+
+When the user asks "show active loops" or "list scheduled tasks".
+
+### Cancel a schedule → `cron_delete`
+
+When the user says "cancel loop xxx" or "stop that loop" — pass the job ID.
+
+## What happens when a schedule fires
+
+1. You receive the prompt as if the user typed it
+2. You respond normally — run commands, check status, report back
+3. Nothing extra is needed
+4. The next cycle fires automatically
+
+## Lifecycle
+
+- Schedules live in Codex process memory (in-process)
+- Codex exits → all schedules vanish automatically
+- No files, no residue, no cleanup needed
 "#;
 
 /// Loop Runner content for Gemini CLI

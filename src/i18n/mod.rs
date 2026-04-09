@@ -244,8 +244,6 @@ pub mod keys {
     pub const TOOL_UPGRADER_FAILED: &str = "tool_upgrader.failed";
     pub const TOOL_UPGRADER_SUMMARY: &str = "tool_upgrader.summary";
 
-    pub const SOURCE_BUILD_PATH_NOT_SET: &str = "source_build.path_not_set";
-    pub const SOURCE_BUILD_DIR_NOT_FOUND: &str = "source_build.dir_not_found";
     pub const SOURCE_BUILD_BINARY_NOT_FOUND: &str = "source_build.binary_not_found";
     pub const SOURCE_BUILD_ARTIFACT_NOT_FOUND: &str = "source_build.artifact_not_found";
     pub const SOURCE_BUILD_INSTALLED: &str = "source_build.installed";
