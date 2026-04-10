@@ -1,5 +1,6 @@
-use crate::features::system_updater::domain::platform::PlatformInfo;
-use crate::features::system_updater::ports::HostServices;
+use crate::features::system_updater::domain::command::CommandSpec;
+use crate::features::system_updater::domain::platform::{OperatingSystem, PlatformInfo};
+use crate::features::system_updater::ports::{CommandExecutor, HostServices};
 use std::path::Path;
 
 const DETECTION_PATHS: [(&str, &str, bool); 5] = [
@@ -18,7 +19,35 @@ const DETECTION_PATHS: [(&str, &str, bool); 5] = [
     ),
 ];
 
-pub fn detect(host: &impl HostServices) -> PlatformInfo {
+pub fn detect(host: &impl HostServices, executor: &impl CommandExecutor) -> PlatformInfo {
+    let os = detect_operating_system(executor);
+    let arch = capture_trimmed(executor, "uname", ["-m"]);
+
+    match os {
+        OperatingSystem::Macos => detect_macos(executor, arch),
+        OperatingSystem::Linux => detect_linux(host, arch),
+    }
+}
+
+fn detect_operating_system(executor: &impl CommandExecutor) -> OperatingSystem {
+    match capture_trimmed(executor, "uname", ["-s"])
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "darwin" => OperatingSystem::Macos,
+        _ => OperatingSystem::Linux,
+    }
+}
+
+fn detect_macos(executor: &impl CommandExecutor, arch: Option<String>) -> PlatformInfo {
+    let model = capture_trimmed(executor, "sysctl", ["-n", "hw.model"]);
+    let version = capture_trimmed(executor, "sw_vers", ["-productVersion"]);
+    PlatformInfo::macos(model, version, arch)
+}
+
+fn detect_linux(host: &impl HostServices, arch: Option<String>) -> PlatformInfo {
+    let version = linux_pretty_name(host);
     let mut detected_model = None;
     let mut nvidia_signal = None;
 
@@ -41,7 +70,7 @@ pub fn detect(host: &impl HostServices) -> PlatformInfo {
             } else {
                 detected_model.clone().or(Some(value))
             };
-            return PlatformInfo::gb10(model, source);
+            return PlatformInfo::gb10(model, version, arch, source);
         }
 
         if nvidia_signal.is_none() && is_nvidia_signature(&value) {
@@ -55,18 +84,38 @@ pub fn detect(host: &impl HostServices) -> PlatformInfo {
     }
 
     if let Some((model, source)) = nvidia_signal {
-        return PlatformInfo::nvidia_linux(model, source);
+        return PlatformInfo::nvidia_linux(model, version, arch, source);
     }
 
     if host.exists(Path::new("/proc/driver/nvidia/version")) {
-        return PlatformInfo::nvidia_linux(detected_model, "proc.nvidia.version");
+        return PlatformInfo::nvidia_linux(detected_model, version, arch, "proc.nvidia.version");
     }
 
     if host.command_path("nvidia-smi").is_some() {
-        return PlatformInfo::nvidia_linux(detected_model, "command.nvidia-smi");
+        return PlatformInfo::nvidia_linux(detected_model, version, arch, "command.nvidia-smi");
     }
 
-    PlatformInfo::generic_linux(detected_model)
+    PlatformInfo::generic_linux(detected_model, version, arch)
+}
+
+fn linux_pretty_name(host: &impl HostServices) -> Option<String> {
+    let content = host.read_to_string(Path::new("/etc/os-release")).ok()?;
+    content
+        .lines()
+        .find_map(|line| line.strip_prefix("PRETTY_NAME="))
+        .map(|value| value.trim_matches('"').to_string())
+}
+
+fn capture_trimmed(
+    executor: &impl CommandExecutor,
+    program: &str,
+    args: impl IntoIterator<Item = &'static str>,
+) -> Option<String> {
+    executor
+        .capture(&CommandSpec::new(program, args))
+        .ok()
+        .map(|output| output.trim().to_string())
+        .filter(|output| !output.is_empty())
 }
 
 fn normalize_detection_value(raw: &str) -> String {
@@ -91,19 +140,42 @@ fn is_nvidia_signature(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::detect;
-    use crate::features::system_updater::domain::platform::PlatformClass;
-    use crate::features::system_updater::testing::FakeHost;
+    use crate::features::system_updater::domain::platform::{OperatingSystem, PlatformClass};
+    use crate::features::system_updater::testing::{FakeExecutor, FakeHost};
     use std::path::PathBuf;
+
+    #[test]
+    fn detects_macos_from_uname_and_sysctl() {
+        let host = FakeHost::new();
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Darwin\n");
+        executor.push_capture_ok("uname -m", "arm64\n");
+        executor.push_capture_ok("sysctl -n hw.model", "Mac14,15\n");
+        executor.push_capture_ok("sw_vers -productVersion", "15.4\n");
+
+        let platform = detect(&host, &executor);
+        assert_eq!(platform.os, OperatingSystem::Macos);
+        assert_eq!(platform.class, PlatformClass::Macos);
+        assert_eq!(platform.model.as_deref(), Some("Mac14,15"));
+        assert_eq!(platform.version.as_deref(), Some("15.4"));
+        assert_eq!(platform.arch.as_deref(), Some("arm64"));
+    }
 
     #[test]
     fn detects_gb10_from_dmi_product_name() {
         let mut host = FakeHost::new();
+        host.add_file("/etc/os-release", "PRETTY_NAME=\"Ubuntu 24.04.2 LTS\"\n");
         host.add_file(
             "/sys/class/dmi/id/product_name",
             "NVIDIA DGX Spark GB10 Developer System\n",
         );
 
-        let platform = detect(&host);
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "aarch64\n");
+
+        let platform = detect(&host, &executor);
+        assert_eq!(platform.os, OperatingSystem::Linux);
         assert_eq!(platform.class, PlatformClass::Gb10);
         assert_eq!(
             platform.model.as_deref(),
@@ -113,6 +185,8 @@ mod tests {
             platform.detection_source.as_deref(),
             Some("dmi.product_name")
         );
+        assert_eq!(platform.version.as_deref(), Some("Ubuntu 24.04.2 LTS"));
+        assert_eq!(platform.arch.as_deref(), Some("aarch64"));
     }
 
     #[test]
@@ -124,7 +198,11 @@ mod tests {
             "nvidia,tegra\0nvidia,gb10\0",
         );
 
-        let platform = detect(&host);
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "aarch64\n");
+
+        let platform = detect(&host, &executor);
         assert_eq!(platform.class, PlatformClass::Gb10);
         assert_eq!(platform.model.as_deref(), Some("NVIDIA Embedded Platform"));
         assert_eq!(
@@ -138,7 +216,11 @@ mod tests {
         let mut host = FakeHost::new();
         host.add_file("/sys/class/dmi/id/product_name", "Dell PowerEdge R760");
 
-        let platform = detect(&host);
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "x86_64\n");
+
+        let platform = detect(&host, &executor);
         assert_eq!(platform.class, PlatformClass::GenericLinux);
         assert_eq!(platform.model.as_deref(), Some("Dell PowerEdge R760"));
         assert!(platform.detection_source.is_none());
@@ -150,7 +232,11 @@ mod tests {
         host.add_file("/sys/class/dmi/id/product_name", "Dell PowerEdge R760");
         host.add_command("nvidia-smi", PathBuf::from("/usr/bin/nvidia-smi"), false);
 
-        let platform = detect(&host);
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "x86_64\n");
+
+        let platform = detect(&host, &executor);
         assert_eq!(platform.class, PlatformClass::NvidiaLinux);
         assert_eq!(platform.model.as_deref(), Some("Dell PowerEdge R760"));
         assert_eq!(
@@ -164,7 +250,11 @@ mod tests {
         let mut host = FakeHost::new();
         host.add_file("/sys/class/dmi/id/product_name", "NVIDIA HGX Server");
 
-        let platform = detect(&host);
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "x86_64\n");
+
+        let platform = detect(&host, &executor);
         assert_eq!(platform.class, PlatformClass::NvidiaLinux);
         assert_eq!(platform.model.as_deref(), Some("NVIDIA HGX Server"));
         assert_eq!(

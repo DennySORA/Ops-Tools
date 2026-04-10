@@ -10,7 +10,7 @@
 
 | 分类 | 功能 | 说明 |
 |------|------|------|
-| 升级 | 系统升级 | 完整 Linux 系统维护（APT、工具、清理、重启） |
+| 升级 | 系统升级 | 跨平台系统维护（Linux APT / macOS Homebrew + 工具） |
 | 升级 | AI 工具升级 | 批量更新 Claude Code、Codex、Gemini CLI |
 | 升级 | Rust 升级 | 升级 Rust 工具链 + Cargo 工具 |
 | 升级 | 软件包管理 | 安装/更新 nvm、pnpm、Rust、Go、kubectl、k9s、tmux 等 |
@@ -47,11 +47,13 @@
 ## 功能特色
 
 ### 系统升级
-完整的 Linux 系统维护，支持 DGX Spark / NVIDIA GPU：
+具备平台感知能力的跨平台系统维护：
 - **模式**：完整更新、仅扫描、清理、验证、备份
 - **配置文件**：默认（完整）、安全（不重启、保守清理）、激进（深度清理）
-- **流程**：APT 升级、DGX 内核/驱动、Snap/Flatpak/Docker、工具更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、缓存清理、验证、重启决策
+- **Linux 流程**：APT 升级、DGX 内核/驱动、Snap/Flatpak/Docker、工具更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、缓存清理、验证、重启决策
+- **macOS 流程**：Homebrew 更新/升级、保守的 `softwareupdate`、工具更新、缓存清理、验证与维护快照
 - **DGX 自动检测**：CUDA 版本、GPU 架构、驱动/内核包从 `nvcc`、`nvidia-smi`、`dpkg` 自动检测
+- **平台检测**：运行时自动识别 Linux 与 macOS，并安全跳过不支持的步骤
 - **配置**：`update.toml` 或 `~/.config/update/config.toml`（参见 `update.example.toml`）
 - 支持试运行模式预览变更
 

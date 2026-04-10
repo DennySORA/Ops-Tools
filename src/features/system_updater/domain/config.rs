@@ -9,6 +9,8 @@ pub struct Config {
     pub runtime: RuntimeConfig,
     pub preflight: PreflightConfig,
     pub apt: AptConfig,
+    pub brew: BrewConfig,
+    pub macos: MacosConfig,
     pub dgx: DgxConfig,
     pub docker: DockerConfig,
     pub tools: ToolsConfig,
@@ -90,7 +92,7 @@ pub struct ReportConfig {
 impl Default for ReportConfig {
     fn default() -> Self {
         Self {
-            dir: PathBuf::from("~/.local/state/update/reports"),
+            dir: state_dir().join("update").join("reports"),
             diff_history_limit: 20,
         }
     }
@@ -108,7 +110,7 @@ impl Default for RuntimeConfig {
     fn default() -> Self {
         Self {
             auto_reboot: true,
-            lock_path: PathBuf::from("~/.local/state/update/update.lock"),
+            lock_path: state_dir().join("update").join("update.lock"),
             needrestart_reject: vec![
                 "nvidia-persistenced".into(),
                 "nvidia-fabricmanager".into(),
@@ -154,6 +156,44 @@ impl Default for AptConfig {
             protected_keywords: vec!["nvidia".into(), "dgx".into(), "cuda".into(), "nccl".into()],
             hold_packages: Vec::new(),
             deny_remove_packages: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct BrewConfig {
+    pub enabled: bool,
+    pub cleanup: bool,
+    pub autoremove: bool,
+    pub greedy_casks: bool,
+}
+
+impl Default for BrewConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            cleanup: true,
+            autoremove: true,
+            greedy_casks: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct MacosConfig {
+    pub software_update: bool,
+    pub recommended_only: bool,
+    pub allow_restart: bool,
+}
+
+impl Default for MacosConfig {
+    fn default() -> Self {
+        Self {
+            software_update: true,
+            recommended_only: true,
+            allow_restart: false,
         }
     }
 }
@@ -380,6 +420,12 @@ impl Default for SchedulingConfig {
             randomized_delay_minutes: 30,
         }
     }
+}
+
+fn state_dir() -> PathBuf {
+    dirs::state_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join(".local/state")))
+        .unwrap_or_else(|| PathBuf::from(".local/state"))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]

@@ -1,5 +1,8 @@
 # Copy to `update.toml` in the repo root, or to
 # `~/.config/update/config.toml`, then adjust as needed.
+# Built-in default report/lock paths are OS-specific:
+# - Linux: ~/.local/state/update/
+# - macOS: ~/Library/Application Support/update/
 
 [report]
 dir = "~/.local/state/update/reports"
@@ -26,6 +29,17 @@ maintenance_packages = ["fwupd", "needrestart"]
 protected_keywords = ["nvidia", "dgx", "cuda", "nccl"]
 hold_packages = []
 deny_remove_packages = []
+
+[brew]
+enabled = true
+cleanup = true
+autoremove = true
+greedy_casks = false
+
+[macos]
+software_update = true
+recommended_only = true
+allow_restart = false
 
 # Platform strategy:
 # - GB10 / DGX Spark: uses this section and GB10-specific tuning.

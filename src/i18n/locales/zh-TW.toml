@@ -512,9 +512,9 @@
 # System Updater
 "menu.system_updater.name" = "系統升級"
 "menu.system_updater.desc" = "完整系統維護與升級"
-"system_updater.header" = "Linux 系統更新與維護"
+"system_updater.header" = "系統更新與維護"
 "system_updater.select_mode" = "選擇操作"
-"system_updater.mode_run" = "完整更新（APT + 工具 + 清理 + 驗證）"
+"system_updater.mode_run" = "完整更新（系統套件 + 工具 + 清理 + 驗證）"
 "system_updater.mode_scan" = "僅掃描（唯讀系統檢查）"
 "system_updater.mode_cleanup" = "清理（備份 + 快取/產物清理）"
 "system_updater.mode_verify" = "驗證（僅執行更新後驗證）"

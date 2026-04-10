@@ -109,7 +109,7 @@ impl CommandStatus {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum StepGroup {
     Backup,
-    Apt,
+    SystemPackages,
     Dgx,
     Services,
     Tooling,
@@ -122,7 +122,7 @@ impl StepGroup {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Backup => "backup",
-            Self::Apt => "apt",
+            Self::SystemPackages => "system-packages",
             Self::Dgx => "dgx",
             Self::Services => "services",
             Self::Tooling => "tooling",

@@ -11,6 +11,11 @@ struct ToolSpec {
 
 const TOOLS: &[ToolSpec] = &[
     ToolSpec {
+        binary: "brew",
+        args: &["--version"],
+        label: "Homebrew",
+    },
+    ToolSpec {
         binary: "nvidia-smi",
         args: &["--query-gpu=driver_version", "--format=csv,noheader"],
         label: "NVIDIA Driver",
@@ -180,12 +185,12 @@ pub fn run_scan(
     println!();
     println!("-- Global Packages ------------------------------------");
     println!();
-    scan_global_packages(host, executor);
+    scan_global_packages(host, executor, platform);
 
     println!();
     println!("-- Security Posture -----------------------------------");
     println!();
-    scan_security(host, executor);
+    scan_security(host, executor, platform);
 }
 
 fn scan_system_info(
@@ -193,7 +198,23 @@ fn scan_system_info(
     executor: &impl CommandExecutor,
     platform: &PlatformInfo,
 ) {
-    if let Ok(content) = host.read_to_string(std::path::Path::new("/etc/os-release")) {
+    if platform.is_macos() {
+        let product = executor
+            .capture(&CommandSpec::new("sw_vers", ["-productName"]))
+            .ok()
+            .map(|value| value.trim().to_string())
+            .unwrap_or_else(|| "macOS".to_string());
+        let version = executor
+            .capture(&CommandSpec::new("sw_vers", ["-productVersion"]))
+            .ok()
+            .map(|value| value.trim().to_string())
+            .unwrap_or_default();
+        if version.is_empty() {
+            println!("  OS:       {product}");
+        } else {
+            println!("  OS:       {product} {version}");
+        }
+    } else if let Ok(content) = host.read_to_string(std::path::Path::new("/etc/os-release")) {
         for line in content.lines() {
             if let Some(name) = line.strip_prefix("PRETTY_NAME=") {
                 println!("  OS:       {}", name.trim_matches('"'));
@@ -251,7 +272,11 @@ fn scan_nvm(host: &impl HostServices, executor: &impl CommandExecutor) {
     println!("  - {:<16} not installed", "nvm");
 }
 
-fn scan_global_packages(host: &impl HostServices, executor: &impl CommandExecutor) {
+fn scan_global_packages(
+    host: &impl HostServices,
+    executor: &impl CommandExecutor,
+    platform: &PlatformInfo,
+) {
     if executor.is_dry_run() {
         println!("  [dry-run] skipping package count");
         return;
@@ -369,18 +394,44 @@ fn scan_global_packages(host: &impl HostServices, executor: &impl CommandExecuto
         );
     }
 
-    report_count_or_error(
-        "apt upgradable",
-        "packages",
-        executor.capture(&CommandSpec::new("apt", ["list", "--upgradable"])),
-        |output| {
-            output
-                .lines()
-                .filter(|line| line.contains("upgradable"))
-                .count()
-        },
-        &mut found,
-    );
+    if platform.is_macos() {
+        if host.command_path("brew").is_some() {
+            report_count_or_error(
+                "brew outdated",
+                "packages",
+                executor.capture(&CommandSpec::new("brew", ["outdated", "--quiet"])),
+                |output| {
+                    output
+                        .lines()
+                        .filter(|line| !line.trim().is_empty())
+                        .count()
+                },
+                &mut found,
+            );
+        }
+        if host.command_path("softwareupdate").is_some() {
+            report_count_or_error(
+                "softwareupdate",
+                "updates",
+                executor.capture(&CommandSpec::new("softwareupdate", ["--list"])),
+                available_software_update_count,
+                &mut found,
+            );
+        }
+    } else {
+        report_count_or_error(
+            "apt upgradable",
+            "packages",
+            executor.capture(&CommandSpec::new("apt", ["list", "--upgradable"])),
+            |output| {
+                output
+                    .lines()
+                    .filter(|line| line.contains("upgradable"))
+                    .count()
+            },
+            &mut found,
+        );
+    }
 
     if !found {
         println!("  (no global packages detected)");
@@ -408,7 +459,11 @@ fn report_count_or_error<F>(
     }
 }
 
-fn scan_security(host: &impl HostServices, executor: &impl CommandExecutor) {
+fn scan_security(
+    host: &impl HostServices,
+    executor: &impl CommandExecutor,
+    platform: &PlatformInfo,
+) {
     let path_var = host.var("PATH").unwrap_or_default();
     let mut issues = Vec::new();
     for directory in path_var.split(':') {
@@ -442,7 +497,10 @@ fn scan_security(host: &impl HostServices, executor: &impl CommandExecutor) {
         }
     }
 
-    if host.command_path("ufw").is_some() && host.command_path("systemctl").is_some() {
+    if platform.is_linux()
+        && host.command_path("ufw").is_some()
+        && host.command_path("systemctl").is_some()
+    {
         match executor.capture(&CommandSpec::new(
             "systemctl",
             ["show", "-p", "ActiveState", "--value", "ufw"],
@@ -459,11 +517,26 @@ fn scan_security(host: &impl HostServices, executor: &impl CommandExecutor) {
         }
     }
 
-    if host.exists(std::path::Path::new("/etc/apt/apt.conf.d/20auto-upgrades")) {
-        println!("  OK  Unattended upgrades configured");
-    } else {
-        println!("  ??  Unattended upgrades not configured");
+    if platform.is_linux() {
+        if host.exists(std::path::Path::new("/etc/apt/apt.conf.d/20auto-upgrades")) {
+            println!("  OK  Unattended upgrades configured");
+        } else {
+            println!("  ??  Unattended upgrades not configured");
+        }
+    } else if host.command_path("softwareupdate").is_some() {
+        match executor.capture(&CommandSpec::new("softwareupdate", ["--schedule"])) {
+            Ok(output) => println!("  info softwareupdate schedule: {}", output.trim()),
+            Err(err) => eprintln!("  !!  Failed to inspect softwareupdate schedule: {err}"),
+        }
     }
+}
+
+fn available_software_update_count(output: &str) -> usize {
+    output
+        .lines()
+        .map(str::trim_start)
+        .filter(|line| line.starts_with('*') || line.starts_with('-'))
+        .count()
 }
 
 fn command_version(executor: &impl CommandExecutor, program: &str, args: &[&str]) -> String {

@@ -10,7 +10,7 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 
 | Category | Feature | Description |
 |----------|---------|-------------|
-| Upgrade | System Updater | Full Linux system maintenance (APT, tools, cleanup, reboot) |
+| Upgrade | System Updater | Cross-platform system maintenance (Linux APT / macOS Homebrew + tooling) |
 | Upgrade | AI Tool Upgrader | Batch update Claude Code, Codex, Gemini CLI |
 | Upgrade | Rust Upgrader | Upgrade Rust toolchain + cargo tools |
 | Upgrade | Package Manager | Install/update nvm, pnpm, Rust, Go, kubectl, k9s, tmux, etc. |
@@ -47,11 +47,13 @@ Pinned items appear at the top. Common actions are auto-sorted by how often you 
 ## Features
 
 ### System Updater
-Full Linux system maintenance with DGX Spark / NVIDIA GPU support:
+Cross-platform system maintenance with platform-aware workflows:
 - **Modes**: Full update, Scan only, Cleanup, Verify, Backup
 - **Profiles**: Default (full), Safe (no reboot, conservative), Aggressive (deep cleanup)
-- **Workflow**: APT upgrade, DGX kernel/driver, Snap/Flatpak/Docker, tool updates (nvm, bun, deno, pipx, conda, pnpm, Rust, uv), cache cleanup, verification, reboot decision
+- **Linux workflow**: APT upgrade, DGX kernel/driver, Snap/Flatpak/Docker, tool updates (nvm, bun, deno, pipx, conda, pnpm, Rust, uv), cache cleanup, verification, reboot decision
+- **macOS workflow**: Homebrew update/upgrade, conservative `softwareupdate`, tool updates, cache cleanup, verification, backup snapshots
 - **DGX auto-detection**: CUDA version, GPU arch, driver/kernel packages detected at runtime from `nvcc`, `nvidia-smi`, `dpkg`
+- **Platform detection**: auto-detects Linux vs macOS at runtime and skips unsupported steps cleanly
 - **Config**: `update.toml` or `~/.config/update/config.toml` (see `update.example.toml`)
 - Dry-run mode for previewing changes
 

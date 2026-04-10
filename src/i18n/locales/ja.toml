@@ -512,9 +512,9 @@
 # System Updater
 "menu.system_updater.name" = "システム更新"
 "menu.system_updater.desc" = "システム全体のメンテナンスとアップグレード"
-"system_updater.header" = "Linux システム更新とメンテナンス"
+"system_updater.header" = "システム更新とメンテナンス"
 "system_updater.select_mode" = "操作を選択"
-"system_updater.mode_run" = "フル更新（APT + ツール + クリーンアップ + 検証）"
+"system_updater.mode_run" = "フル更新（システムパッケージ + ツール + クリーンアップ + 検証）"
 "system_updater.mode_scan" = "スキャンのみ（読み取り専用チェック）"
 "system_updater.mode_cleanup" = "クリーンアップ（バックアップ + キャッシュ整理）"
 "system_updater.mode_verify" = "検証（更新後の確認のみ）"

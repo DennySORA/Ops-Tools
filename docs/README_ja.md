@@ -10,7 +10,7 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 
 | カテゴリ | 機能 | 説明 |
 |---------|------|------|
-| アップグレード | システム更新 | Linux システム全体のメンテナンス（APT、ツール、クリーンアップ、再起動） |
+| アップグレード | システム更新 | クロスプラットフォーム保守（Linux APT / macOS Homebrew + ツール） |
 | アップグレード | AI ツール更新 | Claude Code、Codex、Gemini CLI を一括更新 |
 | アップグレード | Rust 更新 | Rust ツールチェーン + Cargo ツールのアップグレード |
 | アップグレード | パッケージ管理 | nvm、pnpm、Rust、Go、kubectl、k9s、tmux などをインストール/更新 |
@@ -47,11 +47,13 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 ## 機能
 
 ### システム更新
-DGX Spark / NVIDIA GPU 対応の Linux システム全体メンテナンス：
+プラットフォームを考慮したクロスプラットフォーム保守:
 - **モード**：フル更新、スキャンのみ、クリーンアップ、検証、バックアップ
 - **プロファイル**：デフォルト（フル）、セーフ（再起動なし、控えめ）、アグレッシブ（徹底的）
-- **ワークフロー**：APT アップグレード、DGX カーネル/ドライバー、Snap/Flatpak/Docker、ツール更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、キャッシュクリーンアップ、検証、再起動判断
+- **Linux ワークフロー**：APT アップグレード、DGX カーネル/ドライバー、Snap/Flatpak/Docker、ツール更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、キャッシュクリーンアップ、検証、再起動判断
+- **macOS ワークフロー**：Homebrew の更新/アップグレード、保守的な `softwareupdate`、ツール更新、キャッシュクリーンアップ、検証、バックアップスナップショット
 - **DGX 自動検出**：CUDA バージョン、GPU アーキテクチャ、ドライバー/カーネルパッケージを `nvcc`、`nvidia-smi`、`dpkg` から自動検出
+- **プラットフォーム検出**：実行時に Linux と macOS を自動判別し、未対応ステップは安全にスキップ
 - **設定**：`update.toml` または `~/.config/update/config.toml`（`update.example.toml` を参照）
 - ドライランモードで変更をプレビュー
 

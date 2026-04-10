@@ -80,67 +80,82 @@ where
     let mut warnings = WarningCollector::new();
 
     if context.executor.is_dry_run() {
-        println!("  [dry-run] would run dpkg --audit");
-        println!("  [dry-run] would inspect remaining apt upgrades");
-        println!("  [dry-run] would inspect held packages");
-        println!("  [dry-run] would inspect failed systemd units");
+        if context.platform.supports_apt() {
+            println!("  [dry-run] would run dpkg --audit");
+            println!("  [dry-run] would inspect remaining apt upgrades");
+            println!("  [dry-run] would inspect held packages");
+            println!("  [dry-run] would inspect failed systemd units");
+        }
+        if context.platform.supports_homebrew() {
+            println!("  [dry-run] would inspect remaining Homebrew upgrades");
+            println!("  [dry-run] would inspect remaining macOS software updates");
+        }
         if context.platform.expects_nvidia_tooling() {
             println!("  [dry-run] would verify nvidia-smi -L");
         }
         if context.host.command_path("docker").is_some() {
-            println!("  [dry-run] would verify sudo docker info");
+            println!("  [dry-run] would verify docker info");
             println!("  [dry-run] would inspect docker ps");
         }
         return Ok(StepOutcome::dry_run("postflight verification previewed"));
     }
 
-    let audit = context
-        .executor
-        .capture(&CommandSpec::new("dpkg", ["--audit"]))?;
-    if audit.trim().is_empty() {
-        println!("  dpkg audit clean.");
-    } else {
-        warnings.warn(format!(
-            "dpkg audit reported issues: {}",
-            first_non_empty_line(&audit)
-        ));
-    }
-
-    let upgradable = context
-        .executor
-        .capture(&CommandSpec::new("apt", ["list", "--upgradable"]))?;
-    let remaining = upgradable
-        .lines()
-        .filter(|line| line.contains("upgradable"))
-        .count();
-    if remaining == 0 {
-        println!("  No remaining APT upgrades detected.");
-    } else {
-        warnings.warn(format!(
-            "{remaining} APT package(s) still upgradable after maintenance"
-        ));
-    }
-
-    let holds = context
-        .executor
-        .capture(&CommandSpec::new("apt-mark", ["showhold"]))?;
-    if !holds.trim().is_empty() {
-        println!("  Held APT packages:");
-        for line in holds.lines().filter(|line| !line.trim().is_empty()) {
-            println!("    {line}");
-        }
-    }
-
-    if context.host.command_path("systemctl").is_some() {
-        let failed_units = context
+    if context.platform.supports_apt() {
+        let audit = context
             .executor
-            .capture(&CommandSpec::new("systemctl", ["--failed", "--no-legend"]))?;
-        if !failed_units.trim().is_empty() {
+            .capture(&CommandSpec::new("dpkg", ["--audit"]))?;
+        if audit.trim().is_empty() {
+            println!("  dpkg audit clean.");
+        } else {
             warnings.warn(format!(
-                "failed systemd units detected: {}",
-                first_non_empty_line(&failed_units)
+                "dpkg audit reported issues: {}",
+                first_non_empty_line(&audit)
             ));
         }
+
+        let upgradable = context
+            .executor
+            .capture(&CommandSpec::new("apt", ["list", "--upgradable"]))?;
+        let remaining = upgradable
+            .lines()
+            .filter(|line| line.contains("upgradable"))
+            .count();
+        if remaining == 0 {
+            println!("  No remaining APT upgrades detected.");
+        } else {
+            warnings.warn(format!(
+                "{remaining} APT package(s) still upgradable after maintenance"
+            ));
+        }
+
+        if context.host.command_path("apt-mark").is_some() {
+            let holds = context
+                .executor
+                .capture(&CommandSpec::new("apt-mark", ["showhold"]))?;
+            if !holds.trim().is_empty() {
+                println!("  Held APT packages:");
+                for line in holds.lines().filter(|line| !line.trim().is_empty()) {
+                    println!("    {line}");
+                }
+            }
+        }
+
+        if context.host.command_path("systemctl").is_some() {
+            let failed_units = context
+                .executor
+                .capture(&CommandSpec::new("systemctl", ["--failed", "--no-legend"]))?;
+            if !failed_units.trim().is_empty() {
+                warnings.warn(format!(
+                    "failed systemd units detected: {}",
+                    first_non_empty_line(&failed_units)
+                ));
+            }
+        }
+    }
+
+    if context.platform.supports_homebrew() {
+        verify_homebrew(context, &mut warnings)?;
+        verify_macos_software_updates(context, &mut warnings)?;
     }
 
     if context.platform.expects_nvidia_tooling() {
@@ -162,19 +177,15 @@ where
     if context.host.command_path("docker").is_some() {
         warnings.capture(
             "docker info",
-            context.executor.run(
-                &CommandSpec::new("docker", ["info"])
-                    .with_sudo()
-                    .with_timeout_secs(60),
-            ),
+            context
+                .executor
+                .run(&docker_command(context, ["info"]).with_timeout_secs(60)),
         );
         warnings.capture(
             "docker ps",
-            context.executor.run(
-                &CommandSpec::new("docker", ["ps"])
-                    .with_sudo()
-                    .with_timeout_secs(60),
-            ),
+            context
+                .executor
+                .run(&docker_command(context, ["ps"]).with_timeout_secs(60)),
         );
     }
 
@@ -278,6 +289,89 @@ where
     Ok(!output.trim().is_empty())
 }
 
+fn verify_homebrew<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+    warnings: &mut WarningCollector,
+) -> AppResult<()>
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    if context.host.command_path("brew").is_none() {
+        println!("  Homebrew not installed.");
+        return Ok(());
+    }
+
+    let outdated = context
+        .executor
+        .capture(&CommandSpec::new("brew", ["outdated", "--quiet"]))?;
+    let remaining = outdated
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count();
+    if remaining == 0 {
+        println!("  No remaining Homebrew upgrades detected.");
+    } else {
+        warnings.warn(format!(
+            "{remaining} Homebrew package(s) still outdated after maintenance"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_macos_software_updates<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+    warnings: &mut WarningCollector,
+) -> AppResult<()>
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    if context.host.command_path("softwareupdate").is_none() {
+        return Ok(());
+    }
+
+    let output = context
+        .executor
+        .capture(&CommandSpec::new("softwareupdate", ["--list"]))?;
+    let remaining = available_software_update_count(&output);
+    if remaining == 0 {
+        println!("  No remaining macOS software updates detected.");
+    } else {
+        warnings.warn(format!(
+            "{remaining} macOS software update(s) still available after maintenance"
+        ));
+    }
+    Ok(())
+}
+
+fn available_software_update_count(output: &str) -> usize {
+    output
+        .lines()
+        .map(str::trim_start)
+        .filter(|line| line.starts_with('*') || line.starts_with('-'))
+        .count()
+}
+
+fn docker_command<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+    args: impl IntoIterator<Item = &'static str>,
+) -> CommandSpec
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    let command = CommandSpec::new("docker", args);
+    if context.platform.is_linux() {
+        command.with_sudo()
+    } else {
+        command
+    }
+}
+
 fn first_non_empty_line(text: &str) -> &str {
     text.lines()
         .find(|line| !line.trim().is_empty())
@@ -356,7 +450,8 @@ mod tests {
             ),
         );
         let reporter = FakeReporter::new();
-        let platform = PlatformInfo::nvidia_linux(Some("NVIDIA Workstation".into()), "test");
+        let platform =
+            PlatformInfo::nvidia_linux(Some("NVIDIA Workstation".into()), None, None, "test");
         let context = MaintenanceContext {
             config: &Config::default(),
             platform: &platform,
@@ -377,7 +472,7 @@ mod tests {
 
         let executor = FakeExecutor::new(false);
         let reporter = FakeReporter::new();
-        let platform = PlatformInfo::nvidia_linux(Some("Rack GPU Host".into()), "test");
+        let platform = PlatformInfo::nvidia_linux(Some("Rack GPU Host".into()), None, None, "test");
         let context = MaintenanceContext {
             config: &Config::default(),
             platform: &platform,
@@ -425,7 +520,7 @@ mod tests {
         executor.push_capture_ok("apt list --upgradable", "Listing...\n");
         executor.push_capture_ok("apt-mark showhold", "");
         let reporter = FakeReporter::new();
-        let platform = PlatformInfo::nvidia_linux(Some("GPU Server".into()), "test");
+        let platform = PlatformInfo::nvidia_linux(Some("GPU Server".into()), None, None, "test");
         let context = MaintenanceContext {
             config: &Config::default(),
             platform: &platform,

@@ -16,25 +16,30 @@ where
 
     write_capture(
         context,
-        CommandSpec::new("dpkg", ["--get-selections"]),
-        &snapshot_dir.join("dpkg-selections.txt"),
-    )?;
-    write_capture(
-        context,
-        CommandSpec::new("apt-mark", ["showmanual"]),
-        &snapshot_dir.join("apt-manual.txt"),
-    )?;
-    write_capture(
-        context,
-        CommandSpec::new("apt-mark", ["showhold"]),
-        &snapshot_dir.join("apt-hold.txt"),
-    )?;
-    write_capture(
-        context,
         CommandSpec::new("uname", ["-a"]),
         &snapshot_dir.join("uname.txt"),
     )?;
-    if context.host.command_path("systemctl").is_some() {
+    if context.platform.is_linux() && context.host.command_path("dpkg").is_some() {
+        write_capture(
+            context,
+            CommandSpec::new("dpkg", ["--get-selections"]),
+            &snapshot_dir.join("dpkg-selections.txt"),
+        )?;
+    }
+    if context.platform.is_linux() && context.host.command_path("apt-mark").is_some() {
+        write_capture(
+            context,
+            CommandSpec::new("apt-mark", ["showmanual"]),
+            &snapshot_dir.join("apt-manual.txt"),
+        )?;
+        write_capture(
+            context,
+            CommandSpec::new("apt-mark", ["showhold"]),
+            &snapshot_dir.join("apt-hold.txt"),
+        )?;
+    }
+
+    if context.platform.is_linux() && context.host.command_path("systemctl").is_some() {
         write_capture(
             context,
             CommandSpec::new("systemctl", ["--failed", "--no-legend"]),
@@ -50,13 +55,40 @@ where
             .write_string(&snapshot_dir.join("os-release.txt"), &content)?;
     }
 
-    if context.host.exists(Path::new("/etc/apt/sources.list")) {
+    if context.platform.is_linux() && context.host.exists(Path::new("/etc/apt/sources.list")) {
         let content = context
             .host
             .read_to_string(Path::new("/etc/apt/sources.list"))?;
         context
             .host
             .write_string(&snapshot_dir.join("apt-sources.list"), &content)?;
+    }
+
+    if context.platform.is_macos() && context.host.command_path("sw_vers").is_some() {
+        write_capture(
+            context,
+            CommandSpec::new("sw_vers", std::iter::empty::<&str>()),
+            &snapshot_dir.join("sw_vers.txt"),
+        )?;
+    }
+    if context.platform.is_macos() && context.host.command_path("brew").is_some() {
+        write_capture(
+            context,
+            CommandSpec::new("brew", ["list", "--versions"]),
+            &snapshot_dir.join("brew-list.txt"),
+        )?;
+        write_capture(
+            context,
+            CommandSpec::new("brew", ["outdated", "--verbose"]),
+            &snapshot_dir.join("brew-outdated.txt"),
+        )?;
+    }
+    if context.platform.is_macos() && context.host.command_path("softwareupdate").is_some() {
+        write_capture(
+            context,
+            CommandSpec::new("softwareupdate", ["--list"]),
+            &snapshot_dir.join("softwareupdate.txt"),
+        )?;
     }
 
     if context.host.command_path("nvidia-smi").is_some() {

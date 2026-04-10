@@ -59,11 +59,13 @@ fn default_config_paths() -> Vec<PathBuf> {
 }
 
 fn config_home() -> PathBuf {
-    if let Ok(dir) = std::env::var("XDG_CONFIG_HOME") {
-        PathBuf::from(dir)
-    } else {
-        home_dir().join(".config")
-    }
+    dirs::config_dir().unwrap_or_else(|| {
+        if let Ok(dir) = std::env::var("XDG_CONFIG_HOME") {
+            PathBuf::from(dir)
+        } else {
+            home_dir().join(".config")
+        }
+    })
 }
 
 fn home_dir() -> PathBuf {

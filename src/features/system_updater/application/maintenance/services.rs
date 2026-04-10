@@ -70,7 +70,11 @@ where
     }
 
     let mut warnings = WarningCollector::new();
-    println!("  Docker Engine upgrades are covered by APT full-upgrade.");
+    if context.platform.supports_homebrew() {
+        println!("  Docker Desktop app upgrades are handled outside Compose project refresh.");
+    } else {
+        println!("  Docker Engine upgrades are covered by the host package manager step.");
+    }
 
     if context.config.docker.compose_projects.is_empty() {
         println!("  No compose projects configured, skipping Compose updates.");
@@ -92,18 +96,15 @@ where
         warnings.capture(
             format!("docker compose pull failed for {}", directory.display()),
             context.executor.run(
-                &CommandSpec::new("docker", ["compose", "pull", "--include-deps"])
-                    .with_sudo()
+                &docker_command(context, ["compose", "pull", "--include-deps"])
                     .with_cwd(directory.clone()),
             ),
         );
         warnings.capture(
             format!("docker compose up -d failed for {}", directory.display()),
-            context.executor.run(
-                &CommandSpec::new("docker", ["compose", "up", "-d"])
-                    .with_sudo()
-                    .with_cwd(directory.clone()),
-            ),
+            context
+                .executor
+                .run(&docker_command(context, ["compose", "up", "-d"]).with_cwd(directory.clone())),
         );
     }
 
@@ -138,7 +139,7 @@ where
             "docker system prune",
             context
                 .executor
-                .run(&CommandSpec::new("docker", ["system", "prune", "-f"]).with_sudo()),
+                .run(&docker_command(context, ["system", "prune", "-f"])),
         );
     }
     if matches!(context.config.cleanup.strategy, CleanupStrategy::Aggressive)
@@ -148,7 +149,7 @@ where
             "docker builder prune",
             context
                 .executor
-                .run(&CommandSpec::new("docker", ["builder", "prune", "-af"]).with_sudo()),
+                .run(&docker_command(context, ["builder", "prune", "-af"])),
         );
     }
     if matches!(context.config.cleanup.strategy, CleanupStrategy::Aggressive)
@@ -158,7 +159,7 @@ where
             "docker volume prune",
             context
                 .executor
-                .run(&CommandSpec::new("docker", ["volume", "prune", "-f"]).with_sudo()),
+                .run(&docker_command(context, ["volume", "prune", "-f"])),
         );
     }
 
@@ -167,6 +168,23 @@ where
     } else {
         warnings.finish_as(StepStatus::Partial)
     })
+}
+
+fn docker_command<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+    args: impl IntoIterator<Item = &'static str>,
+) -> CommandSpec
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    let command = CommandSpec::new("docker", args);
+    if context.platform.is_linux() {
+        command.with_sudo()
+    } else {
+        command
+    }
 }
 
 pub fn run_needrestart<H, E, R>(context: &MaintenanceContext<'_, H, E, R>) -> AppResult<StepOutcome>

@@ -1,6 +1,7 @@
 use crate::features::system_updater::domain::command::CommandSpec;
 use crate::features::system_updater::domain::config::Config;
 use crate::features::system_updater::domain::error::{AppResult, DomainError, InfrastructureError};
+use crate::features::system_updater::domain::platform::PlatformInfo;
 use crate::features::system_updater::ports::{CommandExecutor, HostServices};
 use std::path::Path;
 use std::time::Instant;
@@ -11,7 +12,12 @@ pub struct PreflightSummary {
     pub duration_ms: u128,
 }
 
-pub fn run<H, E>(config: &Config, host: &H, executor: &E) -> AppResult<PreflightSummary>
+pub fn run<H, E>(
+    config: &Config,
+    platform: &PlatformInfo,
+    host: &H,
+    executor: &E,
+) -> AppResult<PreflightSummary>
 where
     H: HostServices,
     E: CommandExecutor,
@@ -33,7 +39,7 @@ where
     enforce_disk_floor(host, Path::new("/var"), config.preflight.min_var_free_gb)?;
 
     if config.preflight.check_network {
-        record_dns_result(host, "archive.ubuntu.com", &mut warnings);
+        record_dns_result(host, primary_registry(platform), &mut warnings);
         record_dns_result(host, "pypi.org", &mut warnings);
     }
 
@@ -48,27 +54,37 @@ where
     println!("  Verifying sudo access...");
     executor.run(&CommandSpec::new("sudo", ["-v"]))?;
 
-    match executor.capture(&CommandSpec::new("fuser", ["/var/lib/dpkg/lock-frontend"])) {
-        Ok(output) if !output.trim().is_empty() => {
-            return Err(DomainError::safety(
-                "DOMAIN_APT_LOCK_HELD",
-                "another package manager is running (dpkg lock held)",
-            )
-            .into());
+    if platform.supports_apt() {
+        match executor.capture(&CommandSpec::new("fuser", ["/var/lib/dpkg/lock-frontend"])) {
+            Ok(output) if !output.trim().is_empty() => {
+                return Err(DomainError::safety(
+                    "DOMAIN_APT_LOCK_HELD",
+                    "another package manager is running (dpkg lock held)",
+                )
+                .into());
+            }
+            Ok(_) => {}
+            Err(err) => match err {
+                InfrastructureError::CommandFailed {
+                    exit_code: Some(1), ..
+                } => {}
+                other => return Err(other.into()),
+            },
         }
-        Ok(_) => {}
-        Err(err) => match err {
-            InfrastructureError::CommandFailed {
-                exit_code: Some(1), ..
-            } => {}
-            other => return Err(other.into()),
-        },
     }
 
     Ok(PreflightSummary {
         warnings,
         duration_ms: started.elapsed().as_millis(),
     })
+}
+
+fn primary_registry(platform: &PlatformInfo) -> &'static str {
+    if platform.supports_homebrew() {
+        "formulae.brew.sh"
+    } else {
+        "archive.ubuntu.com"
+    }
 }
 
 fn enforce_disk_floor(host: &impl HostServices, path: &Path, min_gib: u64) -> AppResult<()> {
@@ -108,6 +124,7 @@ mod tests {
     use super::run;
     use crate::features::system_updater::domain::config::Config;
     use crate::features::system_updater::domain::error::InfrastructureError;
+    use crate::features::system_updater::domain::platform::PlatformInfo;
     use crate::features::system_updater::testing::{FakeExecutor, FakeHost, FakeReporter};
 
     #[test]
@@ -122,7 +139,9 @@ mod tests {
         let executor = FakeExecutor::new(false);
         let config = Config::default();
 
-        let err = run(&config, &host, &executor).unwrap_err().to_string();
+        let err = run(&config, &PlatformInfo::default(), &host, &executor)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("DOMAIN_DISK_LOW"));
     }
 
@@ -145,7 +164,7 @@ mod tests {
         let executor = FakeExecutor::new(true);
         let config = Config::default();
 
-        let summary = run(&config, &host, &executor).expect("preflight");
+        let summary = run(&config, &PlatformInfo::default(), &host, &executor).expect("preflight");
         assert_eq!(summary.warnings.len(), 1);
         assert!(summary.warnings[0].contains("archive.ubuntu.com"));
     }
@@ -175,7 +194,33 @@ mod tests {
         );
         executor.push_run_ok("sudo -v");
 
-        let summary = run(&Config::default(), &host, &executor).expect("preflight");
+        let summary = run(
+            &Config::default(),
+            &PlatformInfo::default(),
+            &host,
+            &executor,
+        )
+        .expect("preflight");
         assert!(summary.warnings.is_empty());
+    }
+
+    #[test]
+    fn macos_preflight_uses_homebrew_dns_target_and_skips_dpkg_lock() {
+        let mut host = FakeHost::new();
+        host.set_free_space("/", 10);
+        host.set_free_space("/var", 10);
+        host.set_env("USER", "tester");
+        host.set_dns("formulae.brew.sh", Ok(true));
+        host.set_dns("pypi.org", Ok(true));
+
+        let reporter = FakeReporter::new();
+        let executor = FakeExecutor::with_reporter(false, reporter);
+        executor.push_run_ok("sudo -v");
+
+        let platform = PlatformInfo::macos(Some("Mac14,15".into()), Some("15.4".into()), None);
+        let summary = run(&Config::default(), &platform, &host, &executor).expect("preflight");
+
+        assert!(summary.warnings.is_empty());
+        assert_eq!(executor.commands(), vec!["sudo -v".to_string()]);
     }
 }

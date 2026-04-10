@@ -103,8 +103,8 @@ fn execute_from_env() -> AppResult<()> {
 
 fn execute_runtime_command(options: CliOptions) -> AppResult<()> {
     println!();
-    println!("  Linux System Update & Scanner");
-    println!("  =============================");
+    println!("  System Update & Scanner");
+    println!("  =======================");
     if options.dry_run {
         println!();
         println!("  *** DRY RUN MODE -- no changes will be made ***");
@@ -133,7 +133,7 @@ fn execute_runtime_command(options: CliOptions) -> AppResult<()> {
     )?;
     let scan_executor = ShellCommandExecutor::new(false, reporter.clone());
     let executor = ShellCommandExecutor::new(options.dry_run, reporter.clone());
-    let platform = platform::detect(&host);
+    let platform = platform::detect(&host, &scan_executor);
 
     if platform.supports_gb10_tuning() || platform.expects_nvidia_tooling() {
         super::dgx_detect::detect_and_merge(&host, &scan_executor, &mut loaded.config.dgx);
@@ -188,7 +188,7 @@ fn execute_runtime_command(options: CliOptions) -> AppResult<()> {
             Ok(())
         }
         CliCommand::Run | CliCommand::Cleanup | CliCommand::Verify => {
-            let preflight = match preflight::run(&loaded.config, &host, &executor) {
+            let preflight = match preflight::run(&loaded.config, &platform, &host, &executor) {
                 Ok(summary) => summary,
                 Err(err) => {
                     let _ = reporter.record_step(StepEvent {
@@ -302,7 +302,7 @@ fn build_selection(
     let base_groups = match command {
         CliCommand::Run => vec![
             StepGroup::Backup,
-            StepGroup::Apt,
+            StepGroup::SystemPackages,
             StepGroup::Dgx,
             StepGroup::Services,
             StepGroup::Tooling,
@@ -347,7 +347,7 @@ fn parse_step_groups(values: &[String]) -> AppResult<BTreeSet<StepGroup>> {
     for value in values {
         let group = match value.as_str() {
             "backup" => StepGroup::Backup,
-            "apt" => StepGroup::Apt,
+            "system-packages" | "system_packages" | "packages" | "apt" => StepGroup::SystemPackages,
             "dgx" => StepGroup::Dgx,
             "services" => StepGroup::Services,
             "tooling" => StepGroup::Tooling,
@@ -597,7 +597,7 @@ fn parse_command(positionals: Vec<String>) -> AppResult<CliCommand> {
 }
 
 pub fn print_usage() {
-    println!("Linux System Update & Scanner");
+    println!("System Update & Scanner");
     println!();
     println!("Usage: update [GLOBAL OPTIONS] [COMMAND]");
     println!();
@@ -632,7 +632,8 @@ impl CommandObserver for NoopObserver {
 
 #[cfg(test)]
 mod tests {
-    use super::{CliCommand, parse_args};
+    use super::{CliCommand, parse_args, parse_step_groups};
+    use crate::features::system_updater::domain::report::StepGroup;
 
     #[test]
     fn parses_known_flags() {
@@ -678,5 +679,18 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("DOMAIN_CLI_UNKNOWN_OPTION"));
+    }
+
+    #[test]
+    fn accepts_legacy_and_new_system_package_group_names() {
+        let groups = parse_step_groups(&[
+            "apt".to_string(),
+            "system-packages".to_string(),
+            "packages".to_string(),
+        ])
+        .expect("parse groups");
+
+        assert_eq!(groups.len(), 1);
+        assert!(groups.contains(&StepGroup::SystemPackages));
     }
 }

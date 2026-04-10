@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Persisted language preference in a standard per-user config directory.
 - Added a macOS/Linux package installer/updater with interactive install/remove/update for common dev tools (nvm, pnpm, Rust, Go, Terraform, kubectl, kubectx, k9s, git, uv, tmux, vim, ffmpeg).
 - Added a Rust multi-platform builder (cargo/cross) that installs missing targets and builds selected triples.
+- Added macOS support to System Updater with auto-detection, Homebrew maintenance, conservative `softwareupdate`, and macOS-specific backup/verification steps.
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CUDA ML builder now auto-enables detected build accelerators such as ccache, Ninja, clang, and mold/lld.
 - CUDA ML builder install mode now prefers user-site installs without sudo, resolves missing dependencies online, and pins PyTorch runtime installs to the detected CUDA backend.
 - CUDA ML builder install mode now installs cached wheel files by local path instead of package name, so cached artifacts are always reused and pip does not replace them from indexes.
+- Refactored System Updater platform detection around OS-aware capabilities so Linux-only and macOS-only steps are selected cleanly at runtime.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.

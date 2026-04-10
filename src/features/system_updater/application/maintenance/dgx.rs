@@ -211,7 +211,7 @@ mod tests {
         let executor = FakeExecutor::new(false);
         let reporter = FakeReporter::new();
         let config = Config::default();
-        let platform = PlatformInfo::generic_linux(Some("Dell PowerEdge".into()));
+        let platform = PlatformInfo::generic_linux(Some("Dell PowerEdge".into()), None, None);
         let context = MaintenanceContext {
             config: &config,
             platform: &platform,
@@ -231,7 +231,8 @@ mod tests {
         let executor = FakeExecutor::new(false);
         let reporter = FakeReporter::new();
         let config = Config::default();
-        let platform = PlatformInfo::nvidia_linux(Some("RTX Workstation".into()), "test");
+        let platform =
+            PlatformInfo::nvidia_linux(Some("RTX Workstation".into()), None, None, "test");
         let context = MaintenanceContext {
             config: &config,
             platform: &platform,

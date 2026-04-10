@@ -13,15 +13,24 @@ impl HostRuntime {
         let home = std::env::var("HOME").unwrap_or_default();
         let current_path = std::env::var("PATH").unwrap_or_default();
         let extra = [
+            "/opt/homebrew/bin".to_string(),
+            "/opt/homebrew/sbin".to_string(),
+            "/usr/local/bin".to_string(),
+            "/usr/local/sbin".to_string(),
             format!("{home}/.cargo/bin"),
             format!("{home}/.local/bin"),
             "/usr/local/cuda/bin".to_string(),
             "/snap/bin".to_string(),
         ];
 
+        let path_entries: Vec<&str> = current_path
+            .split(':')
+            .filter(|entry| !entry.is_empty())
+            .collect();
         let mut prepend = Vec::new();
         for directory in &extra {
-            if Path::new(directory).is_dir() && !current_path.contains(directory) {
+            if Path::new(directory).is_dir() && !path_entries.iter().any(|entry| entry == directory)
+            {
                 prepend.push(directory.clone());
             }
         }
@@ -123,6 +132,10 @@ impl FileSystem for HostRuntime {
 
 impl SystemProbe for HostRuntime {
     fn hostname(&self) -> Result<String, InfrastructureError> {
+        if let Some(value) = run_command("hostname", std::iter::empty::<&str>())? {
+            return Ok(value);
+        }
+
         std::fs::read_to_string("/etc/hostname")
             .map(|value| value.trim().to_string())
             .map_err(|err| {
@@ -184,33 +197,69 @@ impl SystemProbe for HostRuntime {
     }
 
     fn dns_resolves(&self, host: &str) -> Result<bool, InfrastructureError> {
-        let output = Command::new("getent")
-            .args(["hosts", host])
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .map_err(|err| {
-                InfrastructureError::probe(
-                    "INFRA_DNS_SPAWN",
-                    format!("getent hosts {host}"),
-                    err.to_string(),
-                )
-            })?;
-
-        if output.status.success() {
-            Ok(!String::from_utf8_lossy(&output.stdout).trim().is_empty())
-        } else {
-            let detail = String::from_utf8_lossy(&output.stderr)
-                .lines()
-                .find(|line| !line.trim().is_empty())
-                .unwrap_or("lookup returned no output")
-                .to_string();
-            Err(InfrastructureError::probe(
-                "INFRA_DNS_FAILED",
-                format!("getent hosts {host}"),
-                detail,
-            ))
+        if self.command_path("getent").is_some() {
+            return run_dns_probe("getent", ["hosts", host]);
         }
+        if self.command_path("dscacheutil").is_some() {
+            return run_dns_probe("dscacheutil", ["-q", "host", "-a", "name", host]);
+        }
+        if self.command_path("nslookup").is_some() {
+            return run_dns_probe("nslookup", [host]);
+        }
+
+        Err(InfrastructureError::probe(
+            "INFRA_DNS_UNSUPPORTED",
+            host,
+            "no supported DNS lookup command found (getent, dscacheutil, nslookup)",
+        ))
     }
+}
+
+fn run_command(
+    program: &str,
+    args: impl IntoIterator<Item = impl AsRef<str>>,
+) -> Result<Option<String>, InfrastructureError> {
+    let args: Vec<String> = args
+        .into_iter()
+        .map(|arg| arg.as_ref().to_string())
+        .collect();
+    let command = if args.is_empty() {
+        program.to_string()
+    } else {
+        format!("{program} {}", args.join(" "))
+    };
+    let output = Command::new(program)
+        .args(&args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|err| {
+            InfrastructureError::probe("INFRA_COMMAND_SPAWN", command.clone(), err.to_string())
+        })?;
+
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr)
+            .lines()
+            .find(|line| !line.trim().is_empty())
+            .unwrap_or("no stderr output")
+            .to_string();
+        return Err(InfrastructureError::probe(
+            "INFRA_COMMAND_FAILED",
+            command,
+            detail,
+        ));
+    }
+
+    Ok(
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+            .filter(|value| !value.is_empty()),
+    )
+}
+
+fn run_dns_probe(
+    program: &str,
+    args: impl IntoIterator<Item = impl AsRef<str>>,
+) -> Result<bool, InfrastructureError> {
+    Ok(run_command(program, args)?.is_some())
 }
