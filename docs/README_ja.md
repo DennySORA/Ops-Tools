@@ -50,9 +50,9 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 プラットフォームを考慮したクロスプラットフォーム保守:
 - **モード**：フル更新、スキャンのみ、クリーンアップ、検証、バックアップ
 - **プロファイル**：デフォルト（フル）、セーフ（再起動なし、控えめ）、アグレッシブ（徹底的）
-- **Linux ワークフロー**：APT アップグレード、DGX カーネル/ドライバー、Snap/Flatpak/Docker、ツール更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、キャッシュクリーンアップ、検証、再起動判断
+- **Linux ワークフロー**：APT アップグレード、NVIDIA/WSL ホストでの CUDA Toolkit runfile 更新、DGX カーネル/ドライバー、Snap/Flatpak/Docker、ツール更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、キャッシュクリーンアップ、検証、再起動判断
 - **macOS ワークフロー**：Homebrew の更新/アップグレード、保守的な `softwareupdate`、ツール更新、キャッシュクリーンアップ、検証、バックアップスナップショット
-- **DGX 自動検出**：CUDA バージョン、GPU アーキテクチャ、ドライバー/カーネルパッケージを `nvcc`、`nvidia-smi`、`dpkg` から自動検出
+- **CUDA 自動検出**：NVIDIA runfile インデックス、`nvidia-smi`、`nvcc`、`dpkg` から最新版 runfile、GPU アーキテクチャ、WSL CUDA シグナル、ドライバー/カーネルパッケージを自動検出
 - **プラットフォーム検出**：実行時に Linux と macOS を自動判別し、未対応ステップは安全にスキップ
 - **設定**：`update.toml` または `~/.config/update/config.toml`（`update.example.toml` を参照）
 - ドライランモードで変更をプレビュー

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a macOS/Linux package installer/updater with interactive install/remove/update for common dev tools (nvm, pnpm, Rust, Go, Terraform, kubectl, kubectx, k9s, git, uv, tmux, vim, ffmpeg).
 - Added a Rust multi-platform builder (cargo/cross) that installs missing targets and builds selected triples.
 - Added macOS support to System Updater with auto-detection, Homebrew maintenance, conservative `softwareupdate`, and macOS-specific backup/verification steps.
+- Added CUDA Toolkit runfile upgrades to System Updater for NVIDIA/WSL Linux hosts, including official runfile metadata detection and managed `.zshrc` CUDA environment cleanup.
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).

@@ -11,6 +11,7 @@ pub struct Config {
     pub apt: AptConfig,
     pub brew: BrewConfig,
     pub macos: MacosConfig,
+    pub cuda: CudaConfig,
     pub dgx: DgxConfig,
     pub docker: DockerConfig,
     pub tools: ToolsConfig,
@@ -194,6 +195,35 @@ impl Default for MacosConfig {
             software_update: true,
             recommended_only: true,
             allow_restart: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CudaConfig {
+    pub enabled: bool,
+    pub configure_zshrc: bool,
+    pub remove_legacy_zshrc_entries: bool,
+    pub installer_dir: PathBuf,
+    pub runfile_index_base_url: String,
+    pub download_base_url: String,
+    pub version: Option<String>,
+    pub driver_version: Option<String>,
+}
+
+impl Default for CudaConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            configure_zshrc: true,
+            remove_legacy_zshrc_entries: true,
+            installer_dir: cache_dir().join("ops-tools").join("cuda"),
+            runfile_index_base_url:
+                "https://developer.download.nvidia.com/compute/cuda/repos/runfile".into(),
+            download_base_url: "https://developer.download.nvidia.com/compute/cuda".into(),
+            version: None,
+            driver_version: None,
         }
     }
 }
@@ -426,6 +456,12 @@ fn state_dir() -> PathBuf {
     dirs::state_dir()
         .or_else(|| dirs::home_dir().map(|home| home.join(".local/state")))
         .unwrap_or_else(|| PathBuf::from(".local/state"))
+}
+
+fn cache_dir() -> PathBuf {
+    dirs::cache_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join(".cache")))
+        .unwrap_or_else(|| PathBuf::from(".cache"))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]

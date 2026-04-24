@@ -41,6 +41,17 @@ software_update = true
 recommended_only = true
 allow_restart = false
 
+[cuda]
+enabled = true
+configure_zshrc = true
+remove_legacy_zshrc_entries = true
+installer_dir = "~/.cache/ops-tools/cuda"
+runfile_index_base_url = "https://developer.download.nvidia.com/compute/cuda/repos/runfile"
+download_base_url = "https://developer.download.nvidia.com/compute/cuda"
+# Leave unset to auto-detect the latest runfile from NVIDIA's official index.
+# version = "13.2.1"
+# driver_version = "595.58.03"
+
 # Platform strategy:
 # - GB10 / DGX Spark: uses this section and GB10-specific tuning.
 # - Generic NVIDIA Linux: skips this section but keeps NVIDIA safety checks.

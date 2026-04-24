@@ -50,9 +50,9 @@ Pinned items appear at the top. Common actions are auto-sorted by how often you 
 Cross-platform system maintenance with platform-aware workflows:
 - **Modes**: Full update, Scan only, Cleanup, Verify, Backup
 - **Profiles**: Default (full), Safe (no reboot, conservative), Aggressive (deep cleanup)
-- **Linux workflow**: APT upgrade, DGX kernel/driver, Snap/Flatpak/Docker, tool updates (nvm, bun, deno, pipx, conda, pnpm, Rust, uv), cache cleanup, verification, reboot decision
+- **Linux workflow**: APT upgrade, CUDA Toolkit runfile upgrade on NVIDIA/WSL hosts, DGX kernel/driver, Snap/Flatpak/Docker, tool updates (nvm, bun, deno, pipx, conda, pnpm, Rust, uv), cache cleanup, verification, reboot decision
 - **macOS workflow**: Homebrew update/upgrade, conservative `softwareupdate`, tool updates, cache cleanup, verification, backup snapshots
-- **DGX auto-detection**: CUDA version, GPU arch, driver/kernel packages detected at runtime from `nvcc`, `nvidia-smi`, `dpkg`
+- **CUDA auto-detection**: latest NVIDIA runfile metadata, GPU arch, WSL CUDA signals, and driver/kernel packages detected at runtime from NVIDIA's runfile index, `nvidia-smi`, `nvcc`, and `dpkg`
 - **Platform detection**: auto-detects Linux vs macOS at runtime and skips unsupported steps cleanly
 - **Config**: `update.toml` or `~/.config/update/config.toml` (see `update.example.toml`)
 - Dry-run mode for previewing changes

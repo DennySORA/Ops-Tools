@@ -91,6 +91,15 @@ fn detect_linux(host: &impl HostServices, arch: Option<String>) -> PlatformInfo 
         return PlatformInfo::nvidia_linux(detected_model, version, arch, "proc.nvidia.version");
     }
 
+    if is_wsl_cuda_host(host) {
+        return PlatformInfo::nvidia_linux(
+            detected_model.or_else(|| Some("WSL2 CUDA".into())),
+            version,
+            arch,
+            "wsl.cuda",
+        );
+    }
+
     if host.command_path("nvidia-smi").is_some() {
         return PlatformInfo::nvidia_linux(detected_model, version, arch, "command.nvidia-smi");
     }
@@ -135,6 +144,20 @@ fn is_gb10_signature(value: &str) -> bool {
 fn is_nvidia_signature(value: &str) -> bool {
     let lower = value.to_ascii_lowercase();
     lower.contains("nvidia")
+}
+
+fn is_wsl_cuda_host(host: &impl HostServices) -> bool {
+    let is_wsl = ["/proc/sys/kernel/osrelease", "/proc/version"]
+        .into_iter()
+        .any(|path| {
+            host.read_to_string(Path::new(path))
+                .map(|content| content.to_ascii_lowercase().contains("microsoft"))
+                .unwrap_or(false)
+        });
+
+    is_wsl
+        && (host.exists(Path::new("/usr/lib/wsl/lib/nvidia-smi"))
+            || host.exists(Path::new("/usr/lib/wsl/lib/libcuda.so")))
 }
 
 #[cfg(test)]
@@ -243,6 +266,26 @@ mod tests {
             platform.detection_source.as_deref(),
             Some("command.nvidia-smi")
         );
+    }
+
+    #[test]
+    fn detects_nvidia_linux_from_wsl_cuda_library() {
+        let mut host = FakeHost::new();
+        host.add_file(
+            "/proc/sys/kernel/osrelease",
+            "6.6.87.2-microsoft-standard-WSL2\n",
+        );
+        host.add_file("/usr/lib/wsl/lib/libcuda.so", "");
+
+        let executor = FakeExecutor::new(false);
+        executor.push_capture_ok("uname -s", "Linux\n");
+        executor.push_capture_ok("uname -m", "x86_64\n");
+
+        let platform = detect(&host, &executor);
+
+        assert_eq!(platform.class, PlatformClass::NvidiaLinux);
+        assert_eq!(platform.model.as_deref(), Some("WSL2 CUDA"));
+        assert_eq!(platform.detection_source.as_deref(), Some("wsl.cuda"));
     }
 
     #[test]

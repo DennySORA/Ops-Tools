@@ -1,6 +1,7 @@
 mod apt;
 mod backup;
 mod brew;
+mod cuda;
 mod dgx;
 mod macos;
 mod services;
@@ -71,10 +72,10 @@ where
         },
         StepDefinition {
             id: "dgx.cuda-shell",
-            name: "GB10 CUDA Toolkit + .zshrc",
+            name: "CUDA Toolkit + .zshrc",
             group: StepGroup::Dgx,
             support: PlatformSupport::Linux,
-            run: dgx::install_cuda_and_configure::<H, E, R>,
+            run: cuda::upgrade_toolkit_and_configure::<H, E, R>,
         },
         StepDefinition {
             id: "system-packages.apt-maintenance-tools",

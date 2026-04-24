@@ -50,9 +50,9 @@
 具平台感知能力的跨平台系統維護：
 - **模式**：完整更新、僅掃描、清理、驗證、備份
 - **設定檔**：預設（完整）、安全（不重啟、保守清理）、積極（深度清理）
-- **Linux 流程**：APT 升級、DGX 核心/驅動、Snap/Flatpak/Docker、工具更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、快取清理、驗證、重啟決策
+- **Linux 流程**：APT 升級、NVIDIA/WSL 主機的 CUDA Toolkit runfile 升級、DGX 核心/驅動、Snap/Flatpak/Docker、工具更新（nvm、bun、deno、pipx、conda、pnpm、Rust、uv）、快取清理、驗證、重啟決策
 - **macOS 流程**：Homebrew 更新/升級、保守的 `softwareupdate`、工具更新、快取清理、驗證與維護快照
-- **DGX 自動偵測**：CUDA 版本、GPU 架構、驅動/核心套件從 `nvcc`、`nvidia-smi`、`dpkg` 自動偵測
+- **CUDA 自動偵測**：從 NVIDIA runfile 索引、`nvidia-smi`、`nvcc`、`dpkg` 自動偵測最新版 runfile、GPU 架構、WSL CUDA 訊號與驅動/核心套件
 - **平台偵測**：執行時自動辨識 Linux 與 macOS，並安全跳過不支援步驟
 - **設定**：`update.toml` 或 `~/.config/update/config.toml`（參見 `update.example.toml`）
 - 支援試運行模式預覽變更

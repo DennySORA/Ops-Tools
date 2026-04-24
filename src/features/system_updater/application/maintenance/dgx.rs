@@ -5,7 +5,6 @@ use crate::features::system_updater::domain::command::CommandSpec;
 use crate::features::system_updater::domain::error::AppResult;
 use crate::features::system_updater::domain::report::StepOutcome;
 use crate::features::system_updater::ports::{CommandExecutor, HostServices, RunReporter};
-use std::path::PathBuf;
 
 pub fn install_kernel_driver<H, E, R>(
     context: &MaintenanceContext<'_, H, E, R>,
@@ -38,25 +37,6 @@ where
     } else {
         StepOutcome::ok()
     })
-}
-
-pub fn install_cuda_and_configure<H, E, R>(
-    context: &MaintenanceContext<'_, H, E, R>,
-) -> AppResult<StepOutcome>
-where
-    H: HostServices,
-    E: CommandExecutor,
-    R: RunReporter,
-{
-    if let Some(outcome) = skip_if_not_gb10(context, "GB10 CUDA toolkit configuration") {
-        return Ok(outcome);
-    }
-
-    let package = format!("cuda-toolkit-{}", context.config.dgx.cuda_major);
-    context
-        .executor
-        .run(&CommandSpec::new("apt", ["-y", "install", package.as_str()]).with_sudo())?;
-    configure_cuda_zshrc(context)
 }
 
 pub fn verify_watchdog<H, E, R>(context: &MaintenanceContext<'_, H, E, R>) -> AppResult<StepOutcome>
@@ -93,59 +73,6 @@ where
     Ok(warnings.finish())
 }
 
-fn configure_cuda_zshrc<H, E, R>(
-    context: &MaintenanceContext<'_, H, E, R>,
-) -> AppResult<StepOutcome>
-where
-    H: HostServices,
-    E: CommandExecutor,
-    R: RunReporter,
-{
-    let home = context.host.var("HOME").unwrap_or_default();
-    let zshrc = PathBuf::from(&home).join(".zshrc");
-    let backup = PathBuf::from(&home).join(".zshrc.bak");
-    let temp = PathBuf::from(&home).join(".zshrc.tmp");
-
-    let block_start = "# >>> CUDA DGX Spark >>>";
-    let block_end = "# <<< CUDA DGX Spark <<<";
-    let cuda_block = format!(
-        r#"{block_start}
-export CUDA_HOME="/usr/local/cuda"
-export PATH="$CUDA_HOME/bin${{PATH:+:$PATH}}"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib64${{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}}"
-# DGX Spark (GB10) native compute capability
-export CUDAARCHS="{arch}-real"
-export CMAKE_CUDA_ARCHITECTURES="{arch}-real"
-{block_end}"#,
-        arch = context.config.dgx.cuda_arch,
-    );
-
-    if context.executor.is_dry_run() {
-        println!("  [dry-run] would update CUDA block in {}", zshrc.display());
-        return Ok(StepOutcome::dry_run(format!(
-            "CUDA shell block would be updated in {}",
-            zshrc.display()
-        )));
-    }
-
-    let existing = if context.host.exists(&zshrc) {
-        context.host.read_to_string(&zshrc)?
-    } else {
-        String::new()
-    };
-
-    if context.host.exists(&zshrc) {
-        context.host.copy_file(&zshrc, &backup)?;
-        println!("  Backed up .zshrc -> .zshrc.bak");
-    }
-
-    let new_content = rewrite_cuda_block(&existing, block_start, block_end, &cuda_block);
-    context.host.write_string(&temp, &new_content)?;
-    context.host.rename(&temp, &zshrc)?;
-    println!("  CUDA environment configured in .zshrc");
-    Ok(StepOutcome::ok())
-}
-
 fn skip_if_not_gb10<H, E, R>(
     context: &MaintenanceContext<'_, H, E, R>,
     capability: &str,
@@ -161,39 +88,6 @@ where
             context.platform.summary()
         ))
     })
-}
-
-fn rewrite_cuda_block(
-    existing: &str,
-    block_start: &str,
-    block_end: &str,
-    replacement: &str,
-) -> String {
-    if existing.contains(block_start) {
-        let mut lines = Vec::new();
-        let mut in_block = false;
-        for line in existing.lines() {
-            if line.contains(block_start) {
-                in_block = true;
-                continue;
-            }
-            if line.contains(block_end) {
-                in_block = false;
-                continue;
-            }
-            if !in_block {
-                lines.push(line);
-            }
-        }
-        while lines.last() == Some(&"") {
-            lines.pop();
-        }
-        format!("{}\n\n{}\n", lines.join("\n"), replacement)
-    } else if existing.trim().is_empty() {
-        format!("{replacement}\n")
-    } else {
-        format!("{}\n\n{}\n", existing.trim_end(), replacement)
-    }
 }
 
 #[cfg(test)]

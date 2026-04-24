@@ -77,6 +77,7 @@ fn home_dir() -> PathBuf {
 fn expand_config_paths(config: &mut Config) {
     config.report.dir = expand_path(&config.report.dir);
     config.runtime.lock_path = expand_path(&config.runtime.lock_path);
+    config.cuda.installer_dir = expand_path(&config.cuda.installer_dir);
     config.docker.compose_projects = config
         .docker
         .compose_projects
