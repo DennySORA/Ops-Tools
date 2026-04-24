@@ -87,6 +87,10 @@ where
         )));
     }
 
+    if context.platform.supports_gb10_tuning() {
+        return upgrade_dgx_spark_toolkit_and_configure(context);
+    }
+
     if context.executor.is_dry_run() {
         println!("  [dry-run] would detect the latest NVIDIA CUDA runfile.");
         println!("  [dry-run] would download and run the CUDA toolkit installer if needed.");
@@ -138,6 +142,149 @@ where
         || context.host.command_path("nvcc").is_some()
         || context.host.exists(Path::new("/usr/local/cuda"))
         || is_wsl_cuda_host(context.host)
+}
+
+fn upgrade_dgx_spark_toolkit_and_configure<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+) -> AppResult<StepOutcome>
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    if context.executor.is_dry_run() {
+        let selection = resolve_dgx_spark_cuda_toolkit_package(context);
+        println!("  [dry-run] DGX Spark detected; would use the official DGX OS APT CUDA path.");
+        println!(
+            "  [dry-run] selected CUDA toolkit package: {} ({})",
+            selection.package, selection.source
+        );
+        println!("  [dry-run] would run: sudo apt update");
+        println!("  [dry-run] would run: sudo apt install {}", selection.package);
+        if context.config.cuda.configure_zshrc {
+            configure_cuda_zshrc(context, None)?;
+        }
+        return Ok(StepOutcome::dry_run(format!(
+            "DGX Spark CUDA toolkit APT upgrade previewed ({})",
+            selection.package
+        )));
+    }
+
+    println!("  DGX Spark detected; using the official DGX OS APT CUDA path.");
+    context
+        .executor
+        .run(&CommandSpec::new("apt", ["update"]).with_sudo())?;
+
+    let selection = resolve_dgx_spark_cuda_toolkit_package(context);
+    println!(
+        "  CUDA toolkit package: {} ({})",
+        selection.package, selection.source
+    );
+    context.executor.run(
+        &CommandSpec::new("apt", ["-y", "install", selection.package.as_str()]).with_sudo(),
+    )?;
+
+    if context.config.cuda.configure_zshrc {
+        configure_cuda_zshrc(context, None)?;
+    }
+
+    Ok(StepOutcome::ok())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct DgxSparkCudaToolkitSelection {
+    package: String,
+    source: &'static str,
+}
+
+fn resolve_dgx_spark_cuda_toolkit_package<H, E, R>(
+    context: &MaintenanceContext<'_, H, E, R>,
+) -> DgxSparkCudaToolkitSelection
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    if let Some(package) = configured_dgx_spark_cuda_toolkit_package(&context.config.dgx.cuda_major)
+    {
+        return DgxSparkCudaToolkitSelection {
+            package,
+            source: "configured/detected dgx.cuda_major",
+        };
+    }
+
+    if let Some(package) =
+        apt_cuda_toolkit_package(context, ["list", "--installed", "cuda-toolkit-*"])
+    {
+        return DgxSparkCudaToolkitSelection {
+            package,
+            source: "installed APT package",
+        };
+    }
+
+    if let Some(package) = apt_cuda_toolkit_package(context, ["list", "cuda-toolkit-*"]) {
+        return DgxSparkCudaToolkitSelection {
+            package,
+            source: "latest APT package",
+        };
+    }
+
+    DgxSparkCudaToolkitSelection {
+        package: "cuda-toolkit-13-0".to_string(),
+        source: "DGX Spark fallback",
+    }
+}
+
+fn configured_dgx_spark_cuda_toolkit_package(cuda_major: &str) -> Option<String> {
+    let value = cuda_major.trim();
+    if value.is_empty() {
+        None
+    } else if value.starts_with("cuda-toolkit-") {
+        Some(value.to_string())
+    } else {
+        Some(format!("cuda-toolkit-{value}"))
+    }
+}
+
+fn apt_cuda_toolkit_package<H, E, R, const N: usize>(
+    context: &MaintenanceContext<'_, H, E, R>,
+    args: [&'static str; N],
+) -> Option<String>
+where
+    H: HostServices,
+    E: CommandExecutor,
+    R: RunReporter,
+{
+    context
+        .executor
+        .capture(&CommandSpec::new("apt", args))
+        .ok()
+        .and_then(|output| latest_cuda_toolkit_package(&output))
+}
+
+fn latest_cuda_toolkit_package(apt_list_output: &str) -> Option<String> {
+    apt_list_output
+        .lines()
+        .filter_map(parse_cuda_toolkit_package_line)
+        .max_by_key(|(_, key)| *key)
+        .map(|(package, _)| package)
+}
+
+fn parse_cuda_toolkit_package_line(line: &str) -> Option<(String, (u64, u64))> {
+    let package = line.split('/').next()?.trim();
+    let key = cuda_toolkit_package_version_key(package)?;
+    Some((package.to_string(), key))
+}
+
+fn cuda_toolkit_package_version_key(package: &str) -> Option<(u64, u64)> {
+    let rest = package.strip_prefix("cuda-toolkit-")?;
+    let mut parts = rest.split('-');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((major, minor))
 }
 
 fn is_wsl_cuda_host(host: &impl HostServices) -> bool {
@@ -697,6 +844,66 @@ export EDITOR="vim"
         host.add_file("/usr/lib/wsl/lib/libcuda.so", "");
 
         assert!(is_wsl_cuda_host(&host));
+    }
+
+    #[test]
+    fn dgx_spark_uses_apt_toolkit_package_instead_of_runfile() {
+        let mut host = FakeHost::new();
+        host.set_env("HOME", "/home/tester");
+        let executor = FakeExecutor::new(false);
+        let mut config = Config::default();
+        config.dgx.cuda_major = "13-0".to_string();
+        let platform = PlatformInfo::gb10(
+            Some("NVIDIA DGX Spark GB10 Developer System".into()),
+            None,
+            Some("aarch64".into()),
+            "test",
+        );
+        let reporter = FakeReporter::new();
+        let context = MaintenanceContext {
+            config: &config,
+            platform: &platform,
+            host: &host,
+            executor: &executor,
+            reporter: &reporter,
+        };
+
+        let outcome = upgrade_toolkit_and_configure(&context).expect("spark cuda apt");
+
+        assert_eq!(outcome.status, StepStatus::Ok);
+        let commands = executor.commands();
+        assert!(commands.contains(&"sudo apt update".to_string()));
+        assert!(commands.contains(&"sudo apt -y install cuda-toolkit-13-0".to_string()));
+        assert!(!commands.iter().any(|command| command.contains("local_installers")));
+    }
+
+    #[test]
+    fn resolves_configured_dgx_spark_cuda_package() {
+        assert_eq!(
+            configured_dgx_spark_cuda_toolkit_package("13-0"),
+            Some("cuda-toolkit-13-0".to_string())
+        );
+        assert_eq!(
+            configured_dgx_spark_cuda_toolkit_package("cuda-toolkit-13-0"),
+            Some("cuda-toolkit-13-0".to_string())
+        );
+        assert_eq!(configured_dgx_spark_cuda_toolkit_package(""), None);
+    }
+
+    #[test]
+    fn selects_latest_versioned_cuda_toolkit_from_apt_list() {
+        let output = r#"
+Listing... Done
+cuda-toolkit-13-0/unknown 13.0.2-1 arm64
+cuda-toolkit-13-2/unknown 13.2.0-1 arm64
+cuda-toolkit-13-1/unknown 13.1.1-1 arm64
+cuda-toolkit-13-0-config-common/unknown 13.0.2-1 all
+"#;
+
+        assert_eq!(
+            latest_cuda_toolkit_package(output).as_deref(),
+            Some("cuda-toolkit-13-2")
+        );
     }
 
     #[test]

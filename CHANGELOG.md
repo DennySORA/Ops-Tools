@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CUDA ML builder now auto-enables detected build accelerators such as ccache, Ninja, clang, and mold/lld.
 - CUDA ML builder install mode now prefers user-site installs without sudo, resolves missing dependencies online, and pins PyTorch runtime installs to the detected CUDA backend.
 - CUDA ML builder install mode now installs cached wheel files by local path instead of package name, so cached artifacts are always reused and pip does not replace them from indexes.
+- System Updater now uses the DGX OS APT CUDA toolkit path on DGX Spark/GB10 and resolves the configured, installed, or latest APT toolkit package instead of auto-installing the latest NVIDIA runfile.
 - Refactored System Updater platform detection around OS-aware capabilities so Linux-only and macOS-only steps are selected cleanly at runtime.
 
 ### Fixed
