@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.
+- Clarified Codex skill restart and invocation guidance after Skill Installer installs.
 - Tailwind CSS MCP installs now use a stdio-safe wrapper so package startup logs do not corrupt MCP handshakes.
 - Skill Installer now enables Codex hooks with `[features].hooks` instead of deprecated `[features].codex_hooks`.
 - Codex loop-runner installs no longer create stale hook scripts now that the skill uses built-in cron tools.

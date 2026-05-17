@@ -86,6 +86,8 @@ Plugins are full-featured extensions that can include:
 Skills are simple markdown-based instructions:
 - `SKILL.md` - The skill definition file with YAML frontmatter
 
+**Codex note:** Codex loads the available skills list when a session starts. After installing a Codex skill, restart Codex before expecting the skill to appear in the available skills list. Codex skills are triggered by naming the skill (for example `$frontend-design`) or by asking for a task that matches the skill description; they are not slash commands.
+
 **Note:** Gemini does not use SKILL.md format. The installer automatically converts to Gemini's native TOML extension format.
 
 ## Adding New Extensions
@@ -892,8 +894,8 @@ Before submitting a new extension:
 | Plugin support | ✅ Full | ⚠️ Hooks only | ❌ None (uses extensions) |
 | Hook support | ✅ Full (25+ events) | ⚠️ Experimental (5 events) | ✅ Native |
 | Hook config | `settings.json` | `hooks.json` | Extension format |
-| Command invocation | `/skill-name` | `/skill-name` | `/extension:command` |
-| Registration | Automatic | Automatic + hooks.json | `extension-enablement.json` |
+| Command invocation | `/skill-name` | Skill name / `$skill-name` after session restart | `/extension:command` |
+| Registration | Automatic | Loaded at session startup + hooks.json | `extension-enablement.json` |
 
 ### Usage Examples
 
@@ -905,8 +907,8 @@ Before submitting a new extension:
 
 **Codex:**
 ```bash
-> /frontend-design
-> /loop-runner
+> Use $frontend-design to build a responsive dashboard.
+> Use loop-runner to schedule this verification every 30 minutes.
 ```
 
 **Gemini:**

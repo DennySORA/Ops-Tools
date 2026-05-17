@@ -453,6 +453,8 @@
 "skill_installer.remove_success" = "{name} 移除成功"
 "skill_installer.remove_failed" = "{name} 移除失败"
 "skill_installer.summary" = "扩展管理完成"
+"skill_installer.codex_restart_required" = "请重启 Codex，才能加载新安装的 skills。"
+"skill_installer.codex_usage_hint" = "Codex skills 不是 slash commands；请用 skill 名称（例如 $frontend-design）或符合描述的任务来触发。"
 "skill_installer.download_failed" = "下载失败: {error}"
 "skill_installer.extract_failed" = "解压失败: {error}"
 

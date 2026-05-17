@@ -453,6 +453,8 @@
 "skill_installer.remove_success" = "{name} の削除に成功しました"
 "skill_installer.remove_failed" = "{name} の削除に失敗しました"
 "skill_installer.summary" = "拡張機能管理完了"
+"skill_installer.codex_restart_required" = "新しくインストールした skills を読み込むには Codex を再起動してください。"
+"skill_installer.codex_usage_hint" = "Codex skills は slash commands ではありません。skill 名（例: $frontend-design）を明示するか、説明に合うタスクを依頼して起動してください。"
 "skill_installer.download_failed" = "ダウンロードに失敗しました: {error}"
 "skill_installer.extract_failed" = "解凍に失敗しました: {error}"
 

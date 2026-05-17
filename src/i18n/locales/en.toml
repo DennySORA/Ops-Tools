@@ -453,6 +453,8 @@
 "skill_installer.remove_success" = "{name} removed"
 "skill_installer.remove_failed" = "{name} remove failed"
 "skill_installer.summary" = "Extension management complete"
+"skill_installer.codex_restart_required" = "Restart Codex to load newly installed skills."
+"skill_installer.codex_usage_hint" = "Codex skills are not slash commands; invoke them by mentioning the skill name (for example, $frontend-design) or by asking for a matching task."
 "skill_installer.download_failed" = "Download failed: {error}"
 "skill_installer.extract_failed" = "Extract failed: {error}"
 

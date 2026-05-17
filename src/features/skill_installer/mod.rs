@@ -148,6 +148,7 @@ pub fn run() {
     // Execute installation and removal
     let mut success_count = 0;
     let mut failed_count = 0;
+    let mut successful_installs = 0;
     let total_operations = to_install.len() + to_remove.len();
 
     for (i, ext) in to_install.iter().enumerate() {
@@ -164,6 +165,7 @@ pub fn run() {
                     name = ext.display_name()
                 ));
                 success_count += 1;
+                successful_installs += 1;
             }
             Err(err) => {
                 console.error_item(
@@ -211,6 +213,12 @@ pub fn run() {
         success_count,
         failed_count,
     );
+
+    if cli == CliType::Codex && successful_installs > 0 {
+        console.blank_line();
+        console.warning(i18n::t(keys::SKILL_INSTALLER_CODEX_RESTART_REQUIRED));
+        console.info(i18n::t(keys::SKILL_INSTALLER_CODEX_USAGE_HINT));
+    }
 }
 
 #[cfg(test)]

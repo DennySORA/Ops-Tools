@@ -616,6 +616,9 @@ pub mod keys {
     pub const SKILL_INSTALLER_REMOVE_SUCCESS: &str = "skill_installer.remove_success";
     pub const SKILL_INSTALLER_REMOVE_FAILED: &str = "skill_installer.remove_failed";
     pub const SKILL_INSTALLER_SUMMARY: &str = "skill_installer.summary";
+    pub const SKILL_INSTALLER_CODEX_RESTART_REQUIRED: &str =
+        "skill_installer.codex_restart_required";
+    pub const SKILL_INSTALLER_CODEX_USAGE_HINT: &str = "skill_installer.codex_usage_hint";
     pub const SKILL_INSTALLER_DOWNLOAD_FAILED: &str = "skill_installer.download_failed";
     pub const SKILL_INSTALLER_EXTRACT_FAILED: &str = "skill_installer.extract_failed";
 
