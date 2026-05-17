@@ -1,6 +1,8 @@
 use super::config::ENV_CONFIG;
 use crate::i18n::{self, keys};
 
+const TAILWINDCSS_MCP_WRAPPER: &str = "TW=$(command -v tailwindcss-server); export TW; exec node -e 'console.log = console.error; console.warn = console.error; await import(process.env.TW);'";
+
 /// MCP 工具配置選項
 #[derive(Clone, Default)]
 pub struct McpToolOptions {
@@ -228,7 +230,11 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args.extend(vec![
                     "npx".to_string(),
                     "-y".to_string(),
-                    "tailwindcss-mcp-server@latest".to_string(),
+                    "--package=tailwindcss-mcp-server@latest".to_string(),
+                    "--".to_string(),
+                    "sh".to_string(),
+                    "-c".to_string(),
+                    TAILWINDCSS_MCP_WRAPPER.to_string(),
                 ]);
                 args
             },
@@ -248,7 +254,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                     "uv".to_string(),
                     "tool".to_string(),
                     "run".to_string(),
-                    "arxiv-mcp-server".to_string(),
+                    "arxiv-mcp-server@latest".to_string(),
                     "--storage-path".to_string(),
                     storage_path.to_string(),
                 ]);
@@ -406,7 +412,7 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 args.push("-e".to_string());
                 args.push("GITHUB_TOOLSETS".to_string());
             }
-            args.push("ghcr.io/github/github-mcp-server".to_string());
+            args.push("ghcr.io/github/github-mcp-server:latest".to_string());
             args
         };
 
@@ -449,6 +455,56 @@ mod tests {
                 // install_args[1] should be "npx"
                 assert_eq!(tool.install_args[1], "npx");
             }
+        }
+    }
+
+    #[test]
+    fn test_tailwindcss_uses_stdio_safe_wrapper() {
+        let tools = get_available_tools(CliType::Codex);
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name == "tailwindcss")
+            .expect("Missing tailwindcss tool");
+
+        assert!(tool.install_args.contains(&"--".to_string()));
+        assert!(
+            tool.install_args
+                .contains(&"--package=tailwindcss-mcp-server@latest".to_string())
+        );
+        assert!(
+            tool.install_args
+                .iter()
+                .any(|arg| arg.contains("console.log = console.error"))
+        );
+    }
+
+    #[test]
+    fn test_mcp_package_sources_use_latest() {
+        let tools = get_available_tools(CliType::Claude);
+
+        let arxiv = tools
+            .iter()
+            .find(|tool| tool.name == "arxiv-mcp-server")
+            .expect("Missing arxiv-mcp-server tool");
+        assert!(
+            arxiv
+                .install_args
+                .contains(&"arxiv-mcp-server@latest".to_string())
+        );
+
+        let github = get_available_tools(CliType::Claude)
+            .into_iter()
+            .find(|tool| tool.name == "github");
+        if let Some(github) = github {
+            assert!(
+                github
+                    .install_args
+                    .contains(&"ghcr.io/github/github-mcp-server:latest".to_string())
+                    || github
+                        .install_args
+                        .iter()
+                        .any(|arg| arg.starts_with("https://"))
+            );
         }
     }
 

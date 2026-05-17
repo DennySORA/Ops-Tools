@@ -101,7 +101,7 @@ Before adding a new extension, evaluate its structure:
 | Has `hooks/` only | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
 | Has `hooks/` + `commands/` | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
 | Requires marketplace root | Plugin (marketplace) | **Not supported** | Extension (convert) | `marketplace_name` |
-| Embedded (custom content) | Skill | Skill + hooks | Extension (TOML) | `is_embedded: true` |
+| Embedded (custom content) | Skill | Skill | Extension (TOML) | `is_embedded: true` |
 
 **Key insight:** Gemini uses a native extension format with TOML commands. The installer automatically converts Claude plugins to Gemini extensions.
 
@@ -206,7 +206,7 @@ Extension {
 
 **Behavior:**
 - Claude: Installs full plugin to `~/.claude/plugins/ralph-wiggum/`
-- Codex: Copies hooks to `~/.codex/plugins/ralph-wiggum/hooks/`, generates `hooks.json` entries, enables `codex_hooks` feature
+- Codex: Copies hooks to `~/.codex/plugins/ralph-wiggum/hooks/`, generates `hooks.json` entries, enables the `hooks` feature
 - Gemini: Creates extension at `~/.gemini/extensions/ralph-wiggum/` with hooks converted to native format
 
 #### Option D: Claude-only Plugin
@@ -675,12 +675,12 @@ The installer converts Claude plugin hooks to Codex's `hooks.json` format:
 3. Replace `${CLAUDE_PLUGIN_ROOT}` with the actual plugin path
 4. Generate entries in `~/.codex/hooks.json` for each event type
 5. Merge with existing hooks.json entries (preserving other plugins' hooks)
-6. Enable `codex_hooks = true` in `~/.codex/config.toml`
+6. Enable `hooks = true` in `~/.codex/config.toml`
 
 **Resulting directory structure:**
 ```
 ~/.codex/
-├── config.toml            # [features] codex_hooks = true
+├── config.toml            # [features] hooks = true
 ├── hooks.json             # Centralized hook registry
 ├── plugins/               # Hook-based plugin scripts
 │   └── ralph-wiggum/
@@ -728,16 +728,16 @@ The `loop-runner` extension provides periodic task scheduling:
 
 **For Claude:** Uses built-in CronCreate/CronList/CronDelete tools to schedule recurring tasks.
 
-**For Codex:** Uses background shell processes (`nohup` + `sleep` loop) to execute tasks periodically. Also installs a `SessionStart` hook that displays active loops when a new session starts. Loop scripts and logs are stored in `~/.codex/loops/`.
+**For Codex:** Uses Codex's built-in cron tools. No hook scripts, background processes, or loop files are installed.
 
-**For Gemini:** Uses background shell processes similar to Codex. Loop scripts and logs are stored in `~/.gemini/loops/`.
+**For Gemini:** Uses background shell processes. Loop scripts and logs are stored in `~/.gemini/loops/`.
 
 ### Behavior
 
 | CLI | Installation | Loop Management |
 |-----|-------------|-----------------|
 | Claude | `~/.claude/skills/loop-runner/SKILL.md` | Built-in cron tools |
-| Codex | `~/.codex/skills/loop-runner/SKILL.md` + SessionStart hook | Background processes + PID tracking |
+| Codex | `~/.codex/skills/loop-runner/SKILL.md` | Built-in cron tools |
 | Gemini | `~/.gemini/extensions/loop-runner/` (TOML) | Background processes + PID tracking |
 
 ## Limitations
@@ -748,7 +748,7 @@ The `loop-runner` extension provides periodic task scheduling:
    - Only 5 events supported (vs 25+ in Claude)
    - `PreToolUse`/`PostToolUse` only fire for Bash tool calls
    - Only `command` hook type supported
-   - Requires `codex_hooks = true` in `config.toml` (installer enables this automatically)
+   - Requires `hooks = true` in `config.toml` (installer enables this automatically)
 
 2. **Marketplace-based plugins** - Plugins requiring full repo structure
    - Codex cannot handle complex marketplace installations
@@ -872,8 +872,7 @@ Before submitting a new extension:
 | `~/.codex/plugins/` | Hook-based plugin scripts |
 | `~/.codex/plugins/<name>/hooks/` | Converted hook scripts |
 | `~/.codex/hooks.json` | Centralized hook registry |
-| `~/.codex/config.toml` | Feature flags (`codex_hooks`) |
-| `~/.codex/loops/` | Loop runner scripts, PIDs, and logs |
+| `~/.codex/config.toml` | Feature flags (`hooks`) |
 
 ## CLI Comparison Summary
 

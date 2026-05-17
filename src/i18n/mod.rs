@@ -623,7 +623,6 @@ pub mod keys {
     pub const SKILL_RALPH_WIGGUM: &str = "skill.ralph_wiggum";
     pub const SKILL_FRONTEND_DESIGN: &str = "skill.frontend_design";
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
-    pub const SKILL_PUA: &str = "skill.pua";
     pub const SKILL_LOOP_RUNNER: &str = "skill.loop_runner";
 
     // CUDA Builder - Menu

@@ -282,130 +282,6 @@ case "${1:-help}" in
 esac
 "#;
 
-/// SessionStart hook — shows active loops and cleans stale PIDs.
-const LOOP_RUNNER_HOOK_SESSION: &str = r#"#!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
-
-let buf = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', d => buf += d);
-process.stdin.on('end', () => {
-  const active = [];
-  try {
-    if (fs.existsSync(loopsDir)) {
-      for (const f of fs.readdirSync(loopsDir)) {
-        if (!f.endsWith('.pid')) continue;
-        const id = f.replace('.pid', '');
-        const pid = parseInt(fs.readFileSync(path.join(loopsDir, f), 'utf8').trim(), 10);
-        try {
-          process.kill(pid, 0);
-          const sh = path.join(loopsDir, id + '.sh');
-          if (fs.existsSync(sh)) {
-            const src = fs.readFileSync(sh, 'utf8');
-            const t = (src.match(/^# Task: (.+)$/m) || [])[1] || '?';
-            const i = (src.match(/^# Interval: (.+)$/m) || [])[1] || '?';
-            active.push({ id, task: t, interval: i });
-          }
-        } catch (_) {
-          try { fs.unlinkSync(path.join(loopsDir, f)); } catch (_) {}
-          try { fs.unlinkSync(path.join(loopsDir, id + '.pending')); } catch (_) {}
-        }
-      }
-    }
-  } catch (_) {}
-  const out = { continue: true };
-  if (active.length) {
-    out.systemMessage = 'Active loops:\n' +
-      active.map(l => `  [${l.id}] ${l.task} (every ${l.interval})`).join('\n') +
-      '\n\nUse /loop-runner to manage.';
-  }
-  process.stdout.write(JSON.stringify(out) + '\n');
-});
-"#;
-
-/// Stop hook — picks up .pending result files and injects them via systemMessage.
-/// If no pending results, outputs nothing so Codex stops normally.
-const LOOP_RUNNER_HOOK_STOP: &str = r#"#!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
-
-let buf = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', d => buf += d);
-process.stdin.on('end', () => {
-  const results = [];
-  try {
-    if (fs.existsSync(loopsDir)) {
-      for (const f of fs.readdirSync(loopsDir)) {
-        if (!f.endsWith('.pending')) continue;
-        const fp = path.join(loopsDir, f);
-        try {
-          const txt = fs.readFileSync(fp, 'utf8').trim();
-          if (txt) results.push(txt);
-          fs.unlinkSync(fp);
-        } catch (_) {}
-      }
-    }
-  } catch (_) {}
-  if (results.length) {
-    let msg = results.join('\n\n');
-    const MAX = 1500;
-    if (msg.length > MAX) {
-      msg = msg.slice(0, MAX) + '\n...(truncated, see full log)';
-    }
-    const prefix = '[LOOP RESULTS] The following loop check results are ready. ' +
-      'Summarize the key findings and present them to the user:\n\n';
-    process.stdout.write(JSON.stringify({
-      continue: true,
-      systemMessage: prefix + msg
-    }) + '\n');
-  }
-  // No pending results → no output → Codex stops normally
-});
-"#;
-
-/// UserPromptSubmit hook — when user types next message, prepend any pending loop results
-/// so the model naturally incorporates them into its response.
-/// This is the most reliable notification path: fires on every user interaction.
-const LOOP_RUNNER_HOOK_PROMPT: &str = r#"#!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const loopsDir = path.join(process.env.HOME || '', '.codex', 'loops');
-
-let buf = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', d => buf += d);
-process.stdin.on('end', () => {
-  const results = [];
-  try {
-    if (fs.existsSync(loopsDir)) {
-      for (const f of fs.readdirSync(loopsDir)) {
-        if (!f.endsWith('.pending')) continue;
-        const fp = path.join(loopsDir, f);
-        try {
-          const txt = fs.readFileSync(fp, 'utf8').trim();
-          if (txt) results.push(txt);
-          fs.unlinkSync(fp);
-        } catch (_) {}
-      }
-    }
-  } catch (_) {}
-  if (results.length) {
-    let msg = results.join('\n\n');
-    if (msg.length > 1500) {
-      msg = msg.slice(0, 1500) + '\n...(truncated, see full log)';
-    }
-    process.stdout.write(JSON.stringify({
-      continue: true,
-      systemMessage: '[LOOP UPDATE] Before responding, briefly note these loop results to the user:\n\n' + msg
-    }) + '\n');
-  }
-});
-"#;
-
 /// Check if a hooks.json entry contains a hook command matching the given path prefix
 fn entry_contains_plugin_path(entry: &serde_json::Value, path_prefix: &str) -> bool {
     entry
@@ -969,31 +845,17 @@ impl ExtensionExecutor {
         Ok(())
     }
 
-    /// Enable the codex_hooks feature in ~/.codex/config.toml
+    /// Enable the hooks feature in ~/.codex/config.toml.
     fn enable_codex_hooks_feature(&self) -> Result<()> {
         let config_file = self.codex_config_file();
 
-        let mut content = if config_file.exists() {
+        let content = if config_file.exists() {
             fs::read_to_string(&config_file).unwrap_or_default()
         } else {
             String::new()
         };
 
-        // Check if codex_hooks is already enabled
-        if content.contains("codex_hooks") {
-            // Update existing entry
-            let re = regex::Regex::new(r"codex_hooks\s*=\s*\w+").unwrap();
-            content = re.replace(&content, "codex_hooks = true").to_string();
-        } else if content.contains("[features]") {
-            // Add under existing [features] section
-            content = content.replace("[features]", "[features]\ncodex_hooks = true");
-        } else {
-            // Add new [features] section
-            if !content.is_empty() && !content.ends_with('\n') {
-                content.push('\n');
-            }
-            content.push_str("\n[features]\ncodex_hooks = true\n");
-        }
+        let content = enable_hooks_feature_config(content);
 
         if let Some(parent) = config_file.parent() {
             fs::create_dir_all(parent).map_err(|err| OperationError::Io {
@@ -1900,11 +1762,6 @@ prompt = """
             source: err,
         })?;
 
-        // For Codex loop-runner, also install SessionStart hook
-        if self.cli == CliType::Codex && ext.name == "loop-runner" {
-            self.install_loop_runner_hook()?;
-        }
-
         Ok(())
     }
 
@@ -2011,80 +1868,6 @@ prompt = """
             CliType::Codex => LOOP_RUNNER_CODEX.to_string(),
             CliType::Gemini => LOOP_RUNNER_GEMINI.to_string(),
         }
-    }
-
-    /// Install the SessionStart hook for loop-runner on Codex
-    fn install_loop_runner_hook(&self) -> Result<()> {
-        let plugin_dir = self.codex_plugins_dir().join("loop-runner");
-
-        // 1. Install launcher.sh (executable)
-        fs::create_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
-            path: plugin_dir.display().to_string(),
-            source: err,
-        })?;
-        let launcher_path = plugin_dir.join("launcher.sh");
-        // Adapt launcher for the CLI directory
-        let launcher_content = LOOP_RUNNER_LAUNCHER.replace(
-            "${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}",
-            &format!(
-                "${{LOOP_RUNNER_CLI_DIR:-$HOME/{}}}",
-                self.cli.config_dir_name()
-            ),
-        );
-        fs::write(&launcher_path, launcher_content).map_err(|err| OperationError::Io {
-            path: launcher_path.display().to_string(),
-            source: err,
-        })?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let _ = fs::set_permissions(&launcher_path, fs::Permissions::from_mode(0o755));
-        }
-
-        // 2. Install SessionStart hook
-        let session_hook_dir = plugin_dir.join("hooks").join("SessionStart");
-        fs::create_dir_all(&session_hook_dir).map_err(|err| OperationError::Io {
-            path: session_hook_dir.display().to_string(),
-            source: err,
-        })?;
-        let session_hook = session_hook_dir.join("check-loops.js");
-        fs::write(&session_hook, LOOP_RUNNER_HOOK_SESSION).map_err(|err| OperationError::Io {
-            path: session_hook.display().to_string(),
-            source: err,
-        })?;
-
-        // 3. Install Stop hook (picks up pending results)
-        let stop_hook_dir = plugin_dir.join("hooks").join("Stop");
-        fs::create_dir_all(&stop_hook_dir).map_err(|err| OperationError::Io {
-            path: stop_hook_dir.display().to_string(),
-            source: err,
-        })?;
-        let stop_hook = stop_hook_dir.join("check-results.js");
-        fs::write(&stop_hook, LOOP_RUNNER_HOOK_STOP).map_err(|err| OperationError::Io {
-            path: stop_hook.display().to_string(),
-            source: err,
-        })?;
-
-        // 4. Install UserPromptSubmit hook (catch-up on next user input)
-        let prompt_hook_dir = plugin_dir.join("hooks").join("UserPromptSubmit");
-        fs::create_dir_all(&prompt_hook_dir).map_err(|err| OperationError::Io {
-            path: prompt_hook_dir.display().to_string(),
-            source: err,
-        })?;
-        let prompt_hook = prompt_hook_dir.join("inject-results.js");
-        fs::write(&prompt_hook, LOOP_RUNNER_HOOK_PROMPT).map_err(|err| OperationError::Io {
-            path: prompt_hook.display().to_string(),
-            source: err,
-        })?;
-
-        // 5. Register all hooks in hooks.json
-        let hooks_dir = plugin_dir.join("hooks");
-        self.update_codex_hooks_json("loop-runner", &hooks_dir)?;
-
-        // 5. Enable hooks feature in config.toml
-        self.enable_codex_hooks_feature()?;
-
-        Ok(())
     }
 
     /// Remove an embedded extension
@@ -2549,6 +2332,31 @@ prompt = """
     }
 }
 
+fn enable_hooks_feature_config(content: String) -> String {
+    let deprecated_re = regex::Regex::new(r"(?m)^\s*codex_hooks\s*=\s*\w+\s*\n?").unwrap();
+    let mut content = deprecated_re.replace_all(&content, "").to_string();
+
+    let hooks_re = regex::Regex::new(r"(?m)^(\s*)hooks\s*=\s*\w+").unwrap();
+    if hooks_re.is_match(&content) {
+        return hooks_re.replace(&content, "${1}hooks = true").to_string();
+    }
+
+    if let Some(section_start) = content.find("[features]") {
+        let insert_pos = content[section_start..]
+            .find('\n')
+            .map(|offset| section_start + offset + 1)
+            .unwrap_or(content.len());
+        content.insert_str(insert_pos, "hooks = true\n");
+        return content;
+    }
+
+    if !content.is_empty() && !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push_str("\n[features]\nhooks = true\n");
+    content
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2658,6 +2466,24 @@ description: A description
         let name_line = result.lines().find(|l| l.starts_with("name:")).unwrap();
         let name = name_line.strip_prefix("name: ").unwrap();
         assert_eq!(name.len(), 64);
+    }
+
+    #[test]
+    fn test_enable_hooks_feature_migrates_deprecated_codex_hooks() {
+        let content = "[features]\ncodex_hooks = true\nimage_detail_original = true\n".to_string();
+        let result = enable_hooks_feature_config(content);
+
+        assert!(result.contains("[features]\nhooks = true\nimage_detail_original = true"));
+        assert!(!result.contains("codex_hooks"));
+    }
+
+    #[test]
+    fn test_enable_hooks_feature_updates_existing_hooks_entry() {
+        let content = "[features]\nhooks = false\n".to_string();
+        let result = enable_hooks_feature_config(content);
+
+        assert!(result.contains("hooks = true"));
+        assert!(!result.contains("hooks = false"));
     }
 }
 

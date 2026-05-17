@@ -159,23 +159,6 @@ const EXTENSIONS: &[Extension] = &[
         version: None,
         is_embedded: true,
     },
-    // Third-party plugins with extractable skills
-    // PUA: debugging motivator with skills/ subdirectory
-    Extension {
-        name: "pua",
-        display_name_key: keys::SKILL_PUA,
-        extension_type: ExtensionType::Plugin,
-        source_repo: "tanweai/pua",
-        source_path: ".",
-        cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
-        skill_subpath: Some("skills/pua-debugging"),
-        command_file: None,
-        has_hooks: false,
-        marketplace_name: None,
-        marketplace_plugin_path: None,
-        version: None,
-        is_embedded: false,
-    },
 ];
 
 /// Get available extensions for a specific CLI

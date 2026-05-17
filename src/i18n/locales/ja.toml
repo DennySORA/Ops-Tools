@@ -459,7 +459,6 @@
 "skill.ralph_wiggum" = "Ralph Wiggum (AI エージェントループ)"
 "skill.frontend_design" = "フロントエンドデザイン (UI コンポーネント設計)"
 "skill.claude_mem" = "Claude Mem (セッションメモリとコンテキスト永続化)"
-"skill.pua" = "PUA (デバッグモチベーターと体系的デバッグ)"
 "skill.loop_runner" = "Loop Runner (定期タスクスケジューラー)"
 
 # CUDA Builder

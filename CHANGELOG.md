@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
+- MCP package-based installs now use explicit latest selectors for uv and Docker sources.
+- Removed the PUA extension from the Skill Installer catalog.
 - Prompt generator spec now uses `verification_url` (empty allowed) instead of `int_url`.
 - Prompt generator templates now use verification-environment wording and status tokens (`P1_DONE_DEPLOYED`, `P3_REFACTORED_DEPLOYED`) while still accepting legacy INT tokens.
 - Renamed Claude Code prompt generator UI to LLM prompt generator in menus and docs.
@@ -34,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.
+- Tailwind CSS MCP installs now use a stdio-safe wrapper so package startup logs do not corrupt MCP handshakes.
+- Skill Installer now enables Codex hooks with `[features].hooks` instead of deprecated `[features].codex_hooks`.
+- Codex loop-runner installs no longer create stale hook scripts now that the skill uses built-in cron tools.
 - Added Gemini MCP settings migration to remove invalid `type` fields and map HTTP URLs.
 - Removed invalid `--env` option when adding Context7 MCP via Codex CLI.
 - Write Context7 HTTP headers into Codex config when a build-time API key is available.

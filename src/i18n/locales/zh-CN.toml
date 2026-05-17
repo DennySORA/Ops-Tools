@@ -459,7 +459,6 @@
 "skill.ralph_wiggum" = "Ralph Wiggum (AI 代理循环)"
 "skill.frontend_design" = "前端设计 (UI 组件设计)"
 "skill.claude_mem" = "Claude Mem (会话记忆与上下文持久化)"
-"skill.pua" = "PUA (调试激励器与系统化调试)"
 "skill.loop_runner" = "Loop Runner (周期性任务调度器)"
 
 # CUDA Builder

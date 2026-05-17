@@ -459,7 +459,6 @@
 "skill.ralph_wiggum" = "Ralph Wiggum (AI Agent Loop)"
 "skill.frontend_design" = "Frontend Design (UI Component Design)"
 "skill.claude_mem" = "Claude Mem (Session Memory & Context Persistence)"
-"skill.pua" = "PUA (Debugging Motivator & Systematic Debugging)"
 "skill.loop_runner" = "Loop Runner (Periodic Task Scheduler)"
 
 # CUDA Builder
