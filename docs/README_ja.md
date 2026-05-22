@@ -19,7 +19,6 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 | ビルド | CUDA ML ビルド | ML パッケージをソースからビルド（PyTorch、Flash Attention、xFormers） |
 | AI | MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
 | AI | スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex/Gemini） |
-| AI | プロンプト生成 | 4 ステップ LLM ワークフロー、進捗追跡対応 |
 | インフラ | Terraform クリーンアップ | `.terraform`、`.terragrunt-cache` およびロックファイルを削除 |
 | インフラ | Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
 | セキュリティ | セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
@@ -34,7 +33,7 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 
 カテゴリ
   ビルド          — Rust ビルド、コンテナビルド、CUDA ML ビルド
-  AI              — MCP 管理、スキルインストーラー、プロンプト生成
+  AI              — MCP 管理、スキルインストーラー
   アップグレード  — システム更新、AI ツール更新、Rust 更新、パッケージ管理
   インフラ        — Terraform クリーンアップ、Kubeconfig 管理
   セキュリティ    — セキュリティスキャン
@@ -120,12 +119,6 @@ AI CLI ツールの拡張機能をインストール：
 利用可能な拡張機能：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner など。
 
 詳細は [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開発ガイドを参照。
-
-### LLM プロンプトジェネレーター
-LLM ワークフロー用の 4 ステッププロンプトを生成・実行：
-- **コマンド**：生成、実行、ステータス、検証、YAML Prompt
-- **4 ステップ**：P1（実装・デプロイ）、P2（E2E 検証）、P3（リファクタリング・最適化）、P4（回帰テスト）
-- 進捗追跡、中断後の再開に対応
 
 ### Rust ビルダー
 クロスプラットフォーム Rust バイナリのビルド：

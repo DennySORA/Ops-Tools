@@ -19,7 +19,6 @@
 | 建構 | CUDA ML 建構 | 從原始碼建構 ML 套件（PyTorch、Flash Attention、xFormers） |
 | AI | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 伺服器 |
 | AI | 技能安裝器 | 安裝 AI CLI 擴充套件（Claude/Codex/Gemini） |
-| AI | Prompt 生成 | 4 步驟 LLM 工作流程，支援進度追蹤 |
 | 基礎設施 | Terraform 清理 | 移除 `.terraform`、`.terragrunt-cache` 及 lock 檔案 |
 | 基礎設施 | Kubeconfig 管理 | tmux 視窗隔離的 kubeconfig |
 | 安全 | 安全掃描 | 執行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
@@ -34,7 +33,7 @@
 
 分類
   建構      — Rust 編譯、容器建構、CUDA ML 建構
-  AI        — MCP 管理、技能安裝器、Prompt 生成
+  AI        — MCP 管理、技能安裝器
   升級      — 系統升級、AI 工具升級、Rust 升級、套件管理
   基礎設施  — Terraform 清理、Kubeconfig 管理
   安全      — 安全掃描
@@ -120,12 +119,6 @@
 可用擴充套件：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner 等。
 
 詳見 [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開發指南。
-
-### LLM Prompt 生成器
-為 LLM 工作流程生成並執行 4 步驟提示：
-- **指令**：生成、執行、狀態、驗證、YAML Prompt
-- **4 步驟流程**：P1（實作與部署）、P2（E2E 驗證）、P3（重構與優化）、P4（回歸測試）
-- 進度追蹤，支援中斷後繼續執行
 
 ### Rust 編譯器
 跨平台建置 Rust 可執行檔：

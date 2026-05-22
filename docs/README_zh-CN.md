@@ -19,7 +19,6 @@
 | 构建 | CUDA ML 构建 | 从源码构建 ML 套件（PyTorch、Flash Attention、xFormers） |
 | AI | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 服务器 |
 | AI | 技能安装器 | 安装 AI CLI 扩展（Claude/Codex/Gemini） |
-| AI | Prompt 生成 | 4 步骤 LLM 工作流程，支持进度追踪 |
 | 基础设施 | Terraform 清理 | 移除 `.terraform`、`.terragrunt-cache` 及 lock 文件 |
 | 基础设施 | Kubeconfig 管理 | tmux 窗口隔离的 kubeconfig |
 | 安全 | 安全扫描 | 运行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
@@ -34,7 +33,7 @@
 
 分类
   构建      — Rust 编译、容器构建、CUDA ML 构建
-  AI        — MCP 管理、技能安装器、Prompt 生成
+  AI        — MCP 管理、技能安装器
   升级      — 系统升级、AI 工具升级、Rust 升级、软件包管理
   基础设施  — Terraform 清理、Kubeconfig 管理
   安全      — 安全扫描
@@ -120,12 +119,6 @@
 可用扩展：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner 等。
 
 详见 [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 开发指南。
-
-### LLM Prompt 生成器
-为 LLM 工作流程生成并执行 4 步骤提示：
-- **命令**：生成、执行、状态、验证、YAML Prompt
-- **4 步骤流程**：P1（实现与部署）、P2（E2E 验证）、P3（重构与优化）、P4（回归测试）
-- 进度追踪，支持中断后继续执行
 
 ### Rust 编译器
 跨平台构建 Rust 可执行文件：

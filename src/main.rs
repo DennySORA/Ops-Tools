@@ -73,11 +73,6 @@ fn all_actions() -> Vec<MenuItem> {
             handler: features::mcp_manager::run,
         },
         MenuItem {
-            name_key: keys::MENU_PROMPT_GEN,
-            desc_key: keys::MENU_PROMPT_GEN_DESC,
-            handler: features::prompt_gen::run,
-        },
-        MenuItem {
             name_key: keys::MENU_KUBECONFIG_MANAGER,
             desc_key: keys::MENU_KUBECONFIG_MANAGER_DESC,
             handler: features::kubeconfig_manager::run,
@@ -144,7 +139,6 @@ fn build_categories(items: &[MenuItem]) -> Vec<Category> {
             items: vec![
                 find_action(items, keys::MENU_MCP_MANAGER),
                 find_action(items, keys::MENU_SKILL_INSTALLER),
-                find_action(items, keys::MENU_PROMPT_GEN),
             ],
         },
         Category {

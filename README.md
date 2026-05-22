@@ -19,7 +19,6 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 | Build | CUDA ML Builder | Source-build ML packages (PyTorch, Flash Attention, xFormers) |
 | AI | MCP Manager | Manage MCP servers for Claude/Codex/Gemini |
 | AI | Skill Installer | Install AI CLI extensions (Claude/Codex/Gemini) |
-| AI | Prompt Generator | 4-step LLM workflow with progress tracking |
 | Infra | Terraform Cleaner | Remove `.terraform`, `.terragrunt-cache` and lock files |
 | Infra | Kubeconfig Manager | tmux window-isolated kubeconfig |
 | Security | Security Scanner | Run gitleaks, trufflehog, git-secrets, trivy, semgrep |
@@ -34,7 +33,7 @@ Common (sorted by usage)
 
 Categories
   Build       — Rust Builder, Container Builder, CUDA ML Builder
-  AI          — MCP Manager, Skill Installer, Prompt Generator
+  AI          — MCP Manager, Skill Installer
   Upgrade     — System Updater, AI Tool Upgrader, Rust Upgrader, Package Manager
   Infra       — Terraform Cleaner, Kubeconfig Manager
   Security    — Security Scanner
@@ -120,12 +119,6 @@ Install extensions for AI CLI tools:
 Available extensions: ralph-wiggum, security-guidance, frontend-design, code-review, pr-review-toolkit, commit-commands, writing-rules, claude-mem, loop-runner, and more.
 
 See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for development guide.
-
-### LLM Prompt Generator
-Generate and execute 4-step prompts for LLM workflows:
-- **Commands**: Generate, Run, Status, Validate, YAML Prompt
-- **4-step workflow**: P1 (implement & deploy), P2 (E2E validation), P3 (refactor & optimize), P4 (regression test)
-- Progress tracking with resumable execution
 
 ### Rust Builder
 Build cross-platform Rust binaries:

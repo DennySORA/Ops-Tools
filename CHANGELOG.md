@@ -25,9 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
 - MCP package-based installs now use explicit latest selectors for uv and Docker sources.
 - Removed the PUA extension from the Skill Installer catalog.
-- Prompt generator spec now uses `verification_url` (empty allowed) instead of `int_url`.
-- Prompt generator templates now use verification-environment wording and status tokens (`P1_DONE_DEPLOYED`, `P3_REFACTORED_DEPLOYED`) while still accepting legacy INT tokens.
-- Renamed Claude Code prompt generator UI to LLM prompt generator in menus and docs.
 - Codex upgrades now use `bun install -g @openai/codex`.
 - CUDA ML builder now rebuilds selected packages from source, clears stale package artifacts before rebuilds, and reuses locally built torch wheels for dependent builds.
 - CUDA ML builder now auto-enables detected build accelerators such as ccache, Ninja, clang, and mold/lld.
@@ -35,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CUDA ML builder install mode now installs cached wheel files by local path instead of package name, so cached artifacts are always reused and pip does not replace them from indexes.
 - System Updater now uses the DGX OS APT CUDA toolkit path on DGX Spark/GB10 and resolves the configured, installed, or latest APT toolkit package instead of auto-installing the latest NVIDIA runfile.
 - Refactored System Updater platform detection around OS-aware capabilities so Linux-only and macOS-only steps are selected cleanly at runtime.
+
+### Removed
+- Removed the Prompt Generator / LLM prompt creation feature from the menu, codebase, localization strings, and documentation.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.

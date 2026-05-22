@@ -3,7 +3,6 @@ pub mod cuda_builder;
 pub mod kubeconfig_manager;
 pub mod mcp_manager;
 pub mod package_manager;
-pub mod prompt_gen;
 pub mod rust_builder;
 pub mod rust_upgrader;
 pub mod security_scanner;

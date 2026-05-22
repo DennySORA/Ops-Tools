@@ -157,8 +157,6 @@ pub mod keys {
     pub const MENU_SECURITY_SCANNER_DESC: &str = "menu.security_scanner.desc";
     pub const MENU_MCP_MANAGER: &str = "menu.mcp_manager.name";
     pub const MENU_MCP_MANAGER_DESC: &str = "menu.mcp_manager.desc";
-    pub const MENU_PROMPT_GEN: &str = "menu.prompt_gen.name";
-    pub const MENU_PROMPT_GEN_DESC: &str = "menu.prompt_gen.desc";
     pub const MENU_KUBECONFIG_MANAGER: &str = "menu.kubeconfig_manager.name";
     pub const MENU_KUBECONFIG_MANAGER_DESC: &str = "menu.kubeconfig_manager.desc";
     pub const MENU_RUST_BUILDER: &str = "menu.rust_builder.name";
@@ -522,46 +520,6 @@ pub mod keys {
     pub const KUBECONFIG_LIST_TITLE: &str = "kubeconfig.list_title";
     pub const KUBECONFIG_CONFIRM_CLEANUP_ALL: &str = "kubeconfig.confirm_cleanup_all";
     pub const KUBECONFIG_CLEANUP_ALL_SUMMARY: &str = "kubeconfig.cleanup_all_summary";
-
-    // Prompt Generator
-    pub const PROMPT_GEN_HEADER: &str = "prompt_gen.header";
-    pub const PROMPT_GEN_SELECT_ACTION: &str = "prompt_gen.select_action";
-    pub const PROMPT_GEN_ACTION_GENERATE: &str = "prompt_gen.action_generate";
-    pub const PROMPT_GEN_ACTION_RUN: &str = "prompt_gen.action_run";
-    pub const PROMPT_GEN_ACTION_STATUS: &str = "prompt_gen.action_status";
-    pub const PROMPT_GEN_CANCELLED: &str = "prompt_gen.cancelled";
-    pub const PROMPT_GEN_INPUT_SPEC_FILE: &str = "prompt_gen.input_spec_file";
-    pub const PROMPT_GEN_INPUT_OUTPUT_DIR: &str = "prompt_gen.input_output_dir";
-    pub const PROMPT_GEN_INPUT_FEATURES_DIR: &str = "prompt_gen.input_features_dir";
-    pub const PROMPT_GEN_CONFIRM_OVERWRITE: &str = "prompt_gen.confirm_overwrite";
-    pub const PROMPT_GEN_GENERATING: &str = "prompt_gen.generating";
-    pub const PROMPT_GEN_GENERATED: &str = "prompt_gen.generated";
-    pub const PROMPT_GEN_LOADED_FEATURES: &str = "prompt_gen.loaded_features";
-    pub const PROMPT_GEN_FEATURE_GENERATED: &str = "prompt_gen.feature_generated";
-    pub const PROMPT_GEN_RUNNING: &str = "prompt_gen.running";
-    pub const PROMPT_GEN_FILE_NOT_FOUND: &str = "prompt_gen.file_not_found";
-    pub const PROMPT_GEN_DIR_NOT_FOUND: &str = "prompt_gen.dir_not_found";
-    pub const PROMPT_GEN_STATUS_TOTAL: &str = "prompt_gen.status_total";
-    pub const PROMPT_GEN_STATUS_READY: &str = "prompt_gen.status_ready";
-    pub const PROMPT_GEN_STATUS_IN_PROGRESS: &str = "prompt_gen.status_in_progress";
-    pub const PROMPT_GEN_STATUS_NOT_STARTED: &str = "prompt_gen.status_not_started";
-    pub const PROMPT_GEN_SELECT_CLI: &str = "prompt_gen.select_cli";
-    pub const PROMPT_GEN_USING_CLI: &str = "prompt_gen.using_cli";
-    pub const PROMPT_GEN_ACTION_VALIDATE: &str = "prompt_gen.action_validate";
-    pub const PROMPT_GEN_VALIDATING: &str = "prompt_gen.validating";
-    pub const PROMPT_GEN_VALIDATE_SUCCESS: &str = "prompt_gen.validate_success";
-    pub const PROMPT_GEN_VALIDATE_FAILED: &str = "prompt_gen.validate_failed";
-
-    // YAML Prompt 生成
-    pub const PROMPT_GEN_ACTION_YAML_PROMPT: &str = "prompt_gen.action_yaml_prompt";
-    pub const PROMPT_GEN_SELECT_PROJECT_TYPE: &str = "prompt_gen.select_project_type";
-    pub const PROMPT_GEN_HAS_VERIFICATION_ENV: &str = "prompt_gen.has_verification_env";
-    pub const PROMPT_GEN_NEEDS_DEPLOYMENT: &str = "prompt_gen.needs_deployment";
-    pub const PROMPT_GEN_CUSTOM_VALIDATION: &str = "prompt_gen.custom_validation";
-    pub const PROMPT_GEN_YAML_PROMPT_GENERATED: &str = "prompt_gen.yaml_prompt_generated";
-    #[allow(dead_code)] // 預留給未來剪貼簿功能
-    pub const PROMPT_GEN_YAML_PROMPT_COPIED: &str = "prompt_gen.yaml_prompt_copied";
-    pub const PROMPT_GEN_INPUT_OUTPUT_FILE: &str = "prompt_gen.input_output_file";
 
     // Container Builder
     pub const MENU_CONTAINER_BUILDER: &str = "menu.container_builder.name";
