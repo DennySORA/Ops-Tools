@@ -154,7 +154,9 @@ tmux ウィンドウ分離の kubeconfig で安全なマルチクラスター操
 Git リポジトリを厳格モードでスキャン：
 - `gitleaks`、`trufflehog`、`git-secrets`（履歴 + ワーキングツリー）
 - `trivy`（SCA + misconfig）、`semgrep`（SAST）
-- 自動インストール、Git 追跡ファイルのみスキャン
+- 組み込みサプライチェーンヒューリスティックで、サブフォルダー内の npm、Python、Rust パッケージファイルを再帰的に検出
+- npm install scripts、リモート/ローカル依存関係、lockfile 不足、Python lockfile の URL/index ソース、Rust 代替 registry、git/path 依存関係、integrity/checksum 不足を検出
+- 自動インストール、Git 追跡ファイルと ignore されていない未追跡ファイルをスキャンし、`.gitignore` を尊重
 
 ## インストール
 

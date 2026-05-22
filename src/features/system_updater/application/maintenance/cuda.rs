@@ -160,7 +160,10 @@ where
             selection.package, selection.source
         );
         println!("  [dry-run] would run: sudo apt update");
-        println!("  [dry-run] would run: sudo apt install {}", selection.package);
+        println!(
+            "  [dry-run] would run: sudo apt install {}",
+            selection.package
+        );
         if context.config.cuda.configure_zshrc {
             configure_cuda_zshrc(context, None)?;
         }
@@ -180,9 +183,9 @@ where
         "  CUDA toolkit package: {} ({})",
         selection.package, selection.source
     );
-    context.executor.run(
-        &CommandSpec::new("apt", ["-y", "install", selection.package.as_str()]).with_sudo(),
-    )?;
+    context
+        .executor
+        .run(&CommandSpec::new("apt", ["-y", "install", selection.package.as_str()]).with_sudo())?;
 
     if context.config.cuda.configure_zshrc {
         configure_cuda_zshrc(context, None)?;
@@ -874,7 +877,11 @@ export EDITOR="vim"
         let commands = executor.commands();
         assert!(commands.contains(&"sudo apt update".to_string()));
         assert!(commands.contains(&"sudo apt -y install cuda-toolkit-13-0".to_string()));
-        assert!(!commands.iter().any(|command| command.contains("local_installers")));
+        assert!(
+            !commands
+                .iter()
+                .any(|command| command.contains("local_installers"))
+        );
     }
 
     #[test]

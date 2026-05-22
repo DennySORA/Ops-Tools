@@ -207,10 +207,8 @@ impl Progress {
                 let value = value.trim().trim_matches('"');
 
                 match key {
-                    "SESSION_ID" => {
-                        if !value.is_empty() {
-                            session_id = Some(value.to_string());
-                        }
+                    "SESSION_ID" if !value.is_empty() => {
+                        session_id = Some(value.to_string());
                     }
                     "LAST_DONE" => {
                         last_done = Step::from_str(value).unwrap_or(Step::None);

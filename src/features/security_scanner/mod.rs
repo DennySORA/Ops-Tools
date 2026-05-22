@@ -1,5 +1,6 @@
 mod installer;
 mod scanner;
+mod supply_chain;
 mod tools;
 
 use crate::core::{OperationError, Result};
@@ -10,6 +11,7 @@ use scanner::{ScanStatus, run_scans};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
+use supply_chain::{Severity, SupplyChainReport, scan_supply_chain};
 use tools::all_tools;
 
 /// Execute Security Scanner
@@ -57,6 +59,14 @@ pub fn run() {
 
     let tools = all_tools();
     console.info(i18n::t(keys::SECURITY_SCANNER_TOOLS_INTRO));
+    console.list_item(
+        "🔎",
+        &format!(
+            "{} ({})",
+            i18n::t(keys::SECURITY_SCANNER_SUPPLY_CHAIN_TOOL),
+            i18n::t(keys::SECURITY_SCANNER_STATUS_BUILTIN)
+        ),
+    );
     for tool in &tools {
         let status = if resolve_tool_path(*tool).is_some() {
             i18n::t(keys::SECURITY_SCANNER_STATUS_INSTALLED)
@@ -145,6 +155,27 @@ pub fn run() {
     let mut scan_success = 0;
     let mut scan_failed = 0;
     let mut has_findings = false;
+
+    console.info(i18n::t(keys::SECURITY_SCANNER_SUPPLY_CHAIN_START));
+    match scan_supply_chain(worktree_snapshot.root()) {
+        Ok(report) => {
+            print_supply_chain_report(&console, &report);
+            if report.findings.is_empty() {
+                scan_success += 1;
+            } else {
+                has_findings = true;
+                scan_failed += 1;
+            }
+        }
+        Err(err) => {
+            console.error_item(
+                i18n::t(keys::SECURITY_SCANNER_SUPPLY_CHAIN_FAILED),
+                &err.to_string(),
+            );
+            scan_failed += 1;
+        }
+    }
+    console.blank_line();
 
     for tool in &tools {
         let Some(_) = resolve_tool_path(*tool) else {
@@ -236,6 +267,65 @@ pub fn run() {
     }
 }
 
+fn print_supply_chain_report(console: &Console, report: &SupplyChainReport) {
+    console.separator();
+
+    if report.package_files.is_empty() {
+        console.success_item(i18n::t(
+            keys::SECURITY_SCANNER_SUPPLY_CHAIN_NO_PACKAGE_FILES,
+        ));
+        return;
+    }
+
+    console.info(&crate::tr!(
+        keys::SECURITY_SCANNER_SUPPLY_CHAIN_DETECTED,
+        count = report.package_files.len(),
+        ecosystems = report.ecosystem_summary()
+    ));
+
+    if report.findings.is_empty() {
+        console.success_item(i18n::t(keys::SECURITY_SCANNER_SUPPLY_CHAIN_NO_FINDINGS));
+        return;
+    }
+
+    console.error_item(
+        &crate::tr!(
+            keys::SECURITY_SCANNER_SUPPLY_CHAIN_FINDINGS_TITLE,
+            count = report.findings.len()
+        ),
+        i18n::t(keys::SECURITY_SCANNER_SUPPLY_CHAIN_REVIEW_REQUIRED),
+    );
+
+    for finding in &report.findings {
+        let severity = severity_label(finding.severity);
+        console.raw(&crate::tr!(
+            keys::SECURITY_SCANNER_SUPPLY_CHAIN_FINDING_LINE,
+            severity = severity,
+            ecosystem = finding.ecosystem.display_name(),
+            path = finding.path.display(),
+            title = finding.title(),
+            detail = finding.detail
+        ));
+        console.raw(&format!(
+            "    {}\n",
+            crate::tr!(
+                keys::SECURITY_SCANNER_SUPPLY_CHAIN_RECOMMENDATION,
+                recommendation = finding.recommendation()
+            )
+        ));
+    }
+}
+
+fn severity_label(severity: Severity) -> &'static str {
+    match severity {
+        Severity::Critical => i18n::t(keys::SECURITY_SCANNER_SEVERITY_CRITICAL),
+        Severity::High => i18n::t(keys::SECURITY_SCANNER_SEVERITY_HIGH),
+        Severity::Medium => i18n::t(keys::SECURITY_SCANNER_SEVERITY_MEDIUM),
+        Severity::Low => i18n::t(keys::SECURITY_SCANNER_SEVERITY_LOW),
+        Severity::Info => i18n::t(keys::SECURITY_SCANNER_SEVERITY_INFO),
+    }
+}
+
 fn format_exit_code(exit_code: Option<i32>) -> String {
     match exit_code {
         Some(code) => crate::tr!(keys::SECURITY_SCANNER_EXIT_CODE, code = code),
@@ -275,8 +365,8 @@ impl Drop for WorktreeSnapshot {
 fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<WorktreeSnapshot> {
     let snapshot_root = create_temp_dir()?;
 
-    let tracked = git_list_tracked(repo_root)?;
-    if tracked.is_empty() {
+    let scan_files = git_list_scan_files(repo_root)?;
+    if scan_files.is_empty() {
         console.warning(i18n::t(keys::SECURITY_SCANNER_NO_TRACKED_FILES));
         return Ok(WorktreeSnapshot {
             root: snapshot_root.clone(),
@@ -284,8 +374,8 @@ fn build_worktree_snapshot(repo_root: &Path, console: &Console) -> Result<Worktr
         });
     }
 
-    let ignored = git_list_ignored(repo_root, &tracked)?;
-    let filtered: Vec<String> = tracked
+    let ignored = git_list_ignored(repo_root, &scan_files)?;
+    let filtered: Vec<String> = scan_files
         .into_iter()
         .filter(|path| !ignored.contains(path))
         .collect();
@@ -347,9 +437,17 @@ fn create_temp_dir() -> Result<PathBuf> {
     Ok(dir)
 }
 
-fn git_list_tracked(repo_root: &Path) -> Result<Vec<String>> {
+fn git_list_scan_files(repo_root: &Path) -> Result<Vec<String>> {
     let output = Command::new("git")
-        .args(["-C", &repo_root.display().to_string(), "ls-files", "-z"])
+        .args([
+            "-C",
+            &repo_root.display().to_string(),
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+        ])
         .output()
         .map_err(|err| OperationError::Command {
             command: "git ls-files".to_string(),
@@ -451,6 +549,7 @@ fn ensure_trailing_newline(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_find_git_root_current_dir() {
@@ -475,5 +574,46 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let result = find_git_root(dir.path());
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_worktree_snapshot_includes_untracked_non_ignored_files() {
+        if is_command_available("git").is_none() {
+            return;
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        assert!(
+            Command::new("git")
+                .args(["init"])
+                .current_dir(dir.path())
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+
+        fs::create_dir_all(dir.path().join("tracked")).unwrap();
+        fs::write(dir.path().join("tracked/package.json"), "{}").unwrap();
+        assert!(
+            Command::new("git")
+                .args(["add", "tracked/package.json"])
+                .current_dir(dir.path())
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+
+        fs::create_dir_all(dir.path().join("untracked")).unwrap();
+        fs::write(dir.path().join("untracked/package.json"), "{}").unwrap();
+        fs::write(dir.path().join(".gitignore"), "ignored/\n").unwrap();
+        fs::create_dir_all(dir.path().join("ignored")).unwrap();
+        fs::write(dir.path().join("ignored/package.json"), "{}").unwrap();
+
+        let snapshot = build_worktree_snapshot(dir.path(), &Console::new()).unwrap();
+        assert!(snapshot.root().join("tracked/package.json").is_file());
+        assert!(snapshot.root().join("untracked/package.json").is_file());
+        assert!(!snapshot.root().join("ignored/package.json").exists());
     }
 }

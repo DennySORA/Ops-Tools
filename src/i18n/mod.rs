@@ -368,6 +368,7 @@ pub mod keys {
     pub const SECURITY_SCANNER_TOOLS_INTRO: &str = "security_scanner.tools_intro";
     pub const SECURITY_SCANNER_STATUS_INSTALLED: &str = "security_scanner.status_installed";
     pub const SECURITY_SCANNER_STATUS_MISSING: &str = "security_scanner.status_missing";
+    pub const SECURITY_SCANNER_STATUS_BUILTIN: &str = "security_scanner.status_builtin";
     pub const SECURITY_SCANNER_CONFIRM_INSTALL: &str = "security_scanner.confirm_install";
     pub const SECURITY_SCANNER_CANCELLED: &str = "security_scanner.cancelled";
     pub const SECURITY_SCANNER_INSTALLING: &str = "security_scanner.installing";
@@ -409,6 +410,28 @@ pub mod keys {
     pub const SECURITY_SCANNER_TAR_MISSING: &str = "security_scanner.tar_missing";
     pub const SECURITY_SCANNER_UNZIP_MISSING: &str = "security_scanner.unzip_missing";
     pub const SECURITY_SCANNER_INSTALL_DIR_MISSING: &str = "security_scanner.install_dir_missing";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_TOOL: &str = "security_scanner.supply_chain.tool";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_START: &str = "security_scanner.supply_chain.start";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_FAILED: &str = "security_scanner.supply_chain.failed";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_NO_PACKAGE_FILES: &str =
+        "security_scanner.supply_chain.no_package_files";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_DETECTED: &str =
+        "security_scanner.supply_chain.detected";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_NO_FINDINGS: &str =
+        "security_scanner.supply_chain.no_findings";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_FINDINGS_TITLE: &str =
+        "security_scanner.supply_chain.findings_title";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_REVIEW_REQUIRED: &str =
+        "security_scanner.supply_chain.review_required";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_FINDING_LINE: &str =
+        "security_scanner.supply_chain.finding_line";
+    pub const SECURITY_SCANNER_SUPPLY_CHAIN_RECOMMENDATION: &str =
+        "security_scanner.supply_chain.recommendation";
+    pub const SECURITY_SCANNER_SEVERITY_CRITICAL: &str = "security_scanner.severity.critical";
+    pub const SECURITY_SCANNER_SEVERITY_HIGH: &str = "security_scanner.severity.high";
+    pub const SECURITY_SCANNER_SEVERITY_MEDIUM: &str = "security_scanner.severity.medium";
+    pub const SECURITY_SCANNER_SEVERITY_LOW: &str = "security_scanner.severity.low";
+    pub const SECURITY_SCANNER_SEVERITY_INFO: &str = "security_scanner.severity.info";
 
     pub const MCP_MANAGER_HEADER: &str = "mcp_manager.header";
     pub const MCP_MANAGER_SELECT_CLI: &str = "mcp_manager.select_cli";

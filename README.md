@@ -154,8 +154,10 @@ tmux window-isolated kubeconfig for safe parallel cluster work:
 Installs and runs strict security scans against the current Git repo:
 - `gitleaks`, `trufflehog`, `git-secrets` (history + working tree)
 - `trivy` (SCA + misconfig), `semgrep` (SAST)
+- Built-in supply chain heuristics for nested npm, Python, and Rust package files
+- Flags npm install scripts, remote/local dependencies, missing lockfiles, Python lockfile URL/index sources, alternate Rust registries, git/path dependencies, and missing integrity/checksum data
 - Auto-install via package managers or GitHub releases
-- Scans only git-tracked files, respects `.gitignore`
+- Scans Git tracked plus untracked non-ignored files, respects `.gitignore`
 
 ## Installation
 

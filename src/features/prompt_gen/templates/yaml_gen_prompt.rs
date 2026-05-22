@@ -260,10 +260,8 @@ pub fn get_verification_requirements(
 
     // 專案類型特定驗證
     match project_type {
-        ProjectType::Frontend | ProjectType::Fullstack => {
-            if has_verification_env {
-                requirements.push_str("\n  - For frontend features: Chrome DevTools console 0 error AND network 0 failure.");
-            }
+        ProjectType::Frontend | ProjectType::Fullstack if has_verification_env => {
+            requirements.push_str("\n  - For frontend features: Chrome DevTools console 0 error AND network 0 failure.");
         }
         ProjectType::Algorithm => {
             requirements.push_str("\n  - Benchmark results must be captured in features/<feature_key>/BENCHMARK_REPORT.md");

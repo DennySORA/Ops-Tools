@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added built-in supply chain heuristics to Security Scanner for nested npm, Python, and Rust package files.
+- Security Scanner worktree snapshots now include untracked non-ignored files so active scans cover newly created package manifests before they are added to Git.
 - Added a Git secret scanner that installs and runs Gitleaks, TruffleHog, and Git-Secrets in strict mode.
 - Git worktree scans now only include tracked, non-ignored files and print raw logs per scan.
 - Added Cloudflare MCP tools gated by `enable_cloudflare_mcp`.

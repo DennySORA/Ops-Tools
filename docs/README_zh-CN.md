@@ -154,7 +154,9 @@ tmux 窗口隔离的 kubeconfig，安全进行多集群操作：
 安装并以严格模式扫描 Git 项目：
 - `gitleaks`、`trufflehog`、`git-secrets`（历史 + 工作树）
 - `trivy`（SCA + misconfig）、`semgrep`（SAST）
-- 自动安装，仅扫描 Git 追踪的文件
+- 内建供应链启发式扫描，递归检测子文件夹内的 npm、Python、Rust 套件文件
+- 标记 npm install scripts、远端/本机依赖、缺少 lockfile、Python lockfile URL/index 来源、Rust 替代 registry、git/path 依赖、缺少 integrity/checksum 资料
+- 自动安装，扫描 Git 追踪与未被忽略的未追踪文件，并遵守 `.gitignore`
 
 ## 安装
 
