@@ -367,7 +367,6 @@
 
 "mcp.tool.sequential_thinking" = "Sequential Thinking (Reasoning)"
 "mcp.tool.chrome_devtools" = "Chrome DevTools (Browser DevTools)"
-"mcp.tool.kubernetes" = "Kubernetes (K8s management)"
 "mcp.tool.context7" = "Context7 (Documentation query)"
 "mcp.tool.github" = "GitHub (GitHub integration)"
 "mcp.tool.cloudflare_docs" = "Cloudflare Docs (Documentation)"
@@ -385,8 +384,6 @@
 "mcp.tool.cloudflare_dex" = "Cloudflare DEX"
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
-"mcp.tool.tailwindcss" = "Tailwind CSS (Utility-first CSS)"
-"mcp.tool.arxiv" = "arXiv (Academic Paper Search & Download)"
 
 "kubeconfig.header" = "Kubeconfig Window Isolation Manager"
 "kubeconfig.select_action" = "Select action"

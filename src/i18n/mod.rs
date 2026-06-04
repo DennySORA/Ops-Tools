@@ -468,7 +468,6 @@ pub mod keys {
 
     pub const MCP_TOOL_SEQUENTIAL_THINKING: &str = "mcp.tool.sequential_thinking";
     pub const MCP_TOOL_CHROME_DEVTOOLS: &str = "mcp.tool.chrome_devtools";
-    pub const MCP_TOOL_KUBERNETES: &str = "mcp.tool.kubernetes";
     pub const MCP_TOOL_CONTEXT7: &str = "mcp.tool.context7";
     pub const MCP_TOOL_GITHUB: &str = "mcp.tool.github";
     pub const MCP_TOOL_CLOUDFLARE_DOCS: &str = "mcp.tool.cloudflare_docs";
@@ -486,9 +485,6 @@ pub mod keys {
     pub const MCP_TOOL_CLOUDFLARE_DEX: &str = "mcp.tool.cloudflare_dex";
     pub const MCP_TOOL_CLOUDFLARE_CASB: &str = "mcp.tool.cloudflare_casb";
     pub const MCP_TOOL_CLOUDFLARE_GRAPHQL: &str = "mcp.tool.cloudflare_graphql";
-    pub const MCP_TOOL_TAILWINDCSS: &str = "mcp.tool.tailwindcss";
-    pub const MCP_TOOL_ARXIV: &str = "mcp.tool.arxiv";
-
     // Kubeconfig Manager
     pub const KUBECONFIG_HEADER: &str = "kubeconfig.header";
     pub const KUBECONFIG_SELECT_ACTION: &str = "kubeconfig.select_action";

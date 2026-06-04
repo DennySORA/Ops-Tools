@@ -16,13 +16,12 @@ pub fn run() {
     console.header(i18n::t(keys::MCP_MANAGER_HEADER));
 
     // 選擇 CLI 類型
-    let cli_options = ["Anthropic Claude", "OpenAI Codex", "Google Gemini"];
+    let cli_options = ["Anthropic Claude", "OpenAI Codex"];
     let cli_selection = prompts.select(i18n::t(keys::MCP_MANAGER_SELECT_CLI), &cli_options);
 
     let cli = match cli_selection {
         Some(0) => CliType::Claude,
         Some(1) => CliType::Codex,
-        Some(2) => CliType::Gemini,
         _ => {
             console.warning(i18n::t(keys::MCP_MANAGER_CANCELLED));
             return;

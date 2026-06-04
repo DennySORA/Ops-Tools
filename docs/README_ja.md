@@ -11,14 +11,14 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 | カテゴリ | 機能 | 説明 |
 |---------|------|------|
 | アップグレード | システム更新 | クロスプラットフォーム保守（Linux APT / macOS Homebrew + ツール） |
-| アップグレード | AI ツール更新 | Claude Code、Codex、Gemini CLI を一括更新 |
+| アップグレード | AI ツール更新 | Claude Code、Codex CLI を一括更新 |
 | アップグレード | Rust 更新 | Rust ツールチェーン + Cargo ツールのアップグレード |
 | アップグレード | パッケージ管理 | nvm、pnpm、Rust、Go、kubectl、k9s、tmux などをインストール/更新 |
 | ビルド | Rust ビルド | クロスプラットフォーム Rust バイナリ（cargo/cross、30+ ターゲット） |
 | ビルド | コンテナビルド | Docker/Buildah マルチアーキビルド（x86、arm64、armv7、Jetson） |
 | ビルド | CUDA ML ビルド | ML パッケージをソースからビルド（PyTorch、Flash Attention、xFormers） |
-| AI | MCP 管理 | Claude/Codex/Gemini の MCP サーバーを管理 |
-| AI | スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex/Gemini） |
+| AI | MCP 管理 | Claude/Codex の MCP サーバーを管理 |
+| AI | スキルインストーラー | AI CLI 拡張機能をインストール（Claude/Codex） |
 | インフラ | Terraform クリーンアップ | `.terraform`、`.terragrunt-cache` およびロックファイルを削除 |
 | インフラ | Kubeconfig 管理 | tmux ウィンドウ分離の kubeconfig |
 | セキュリティ | セキュリティスキャン | gitleaks、trufflehog、git-secrets、trivy、semgrep を実行 |
@@ -60,7 +60,6 @@ DevOps ワークフローの効率化のために設計された、堅牢な Rus
 AI コードアシスタントの一括アップグレード：
 - `Claude Code` (@anthropic-ai/claude-code)
 - `OpenAI Codex` (@openai/codex) — ローカルリポジトリからのソースビルド対応
-- `Google Gemini CLI` (@google/gemini-cli)
 
 ### パッケージ管理（macOS / Linux）
 対話式チェックリストでインストール・削除・更新：
@@ -83,16 +82,13 @@ GPU に合わせて CUDA 対応 ML パッケージをソースからビルド：
 - 隔離ビルド環境：`~/.ml-packages/`
 
 ### MCP 管理
-Claude、Codex、Gemini CLI 用の MCP サーバー管理：
+Claude、Codex CLI 用の MCP サーバー管理：
 
 | MCP ツール | 説明 |
 |------------|------|
 | `sequential-thinking` | シーケンシャル・シンキング |
 | `context7` | ドキュメント検索 |
 | `chrome-devtools` | Chrome 開発者ツール |
-| `kubernetes` | K8s 管理 |
-| `tailwindcss` | Tailwind CSS |
-| `arxiv-mcp-server` | arXiv 論文検索・ダウンロード |
 | `github` | GitHub 統合 |
 | `cloudflare-*` | Cloudflare MCP サーバー |
 
@@ -105,7 +101,6 @@ Claude、Codex、Gemini CLI 用の MCP サーバー管理：
 - **Context7**：`CONTEXT7_API_KEY` を設定
 - **GitHub**：`GITHUB_PERSONAL_ACCESS_TOKEN`（必須）、オプションで `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
 - **Cloudflare**：`enable_cloudflare_mcp=true` を設定（インストール時 OAuth）
-- **arXiv**：`ARXIV_STORAGE_PATH` を設定（デフォルト `~/.arxiv-papers`）
 
 ### スキルインストーラー
 AI CLI ツールの拡張機能をインストール：
@@ -114,7 +109,6 @@ AI CLI ツールの拡張機能をインストール：
 |-----|---------|-----------------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
 | OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
-| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
 
 利用可能な拡張機能：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner など。
 

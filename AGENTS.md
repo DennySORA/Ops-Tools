@@ -29,7 +29,7 @@
 - For MCP features, copy `.env.example` to `.env` and set build-time variables (e.g., `GITHUB_PERSONAL_ACCESS_TOKEN`, `GITHUB_HOST`, `CONTEXT7_API_KEY`); `.env` should not be committed.
 
 ## Agent Notes (Optional)
-- See `CLAUDE.md` and `GEMINI.md` for AI-specific development guidance.
+- See `CLAUDE.md` for AI-specific development guidance.
 
 ## Skill Installer Development（必須參考文件）
 
@@ -38,7 +38,7 @@
 該文件是 Skill Installer 開發的完整參考，包含：
 - Extension 定義格式與所有欄位說明
 - Marketplace-based 插件安裝架構（git clone、symlink、JSON registries）
-- `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制（Claude → Gemini）
+- `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制（Claude → Codex）
 - Hooks 轉換流程
 - npm/bun 依賴安裝流程
 - JSON registries（known_marketplaces.json、installed_plugins.json）
@@ -46,13 +46,13 @@
 
 ### CLI 相容性速查表
 
-| Plugin Structure | Claude | Codex | Gemini | Configuration |
-|-----------------|--------|-------|--------|---------------|
-| Has `skills/` subdirectory | Plugin | Skill (extract) | Extension (TOML) | `skill_subpath` |
-| Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
-| Has `hooks/` only | Plugin | ❌ Not supported | Extension (TOML) | `has_hooks: true` |
-| Has `hooks/` + `commands/` | Plugin | Skill (convert) | Extension (TOML) | `has_hooks: true` |
-| Requires marketplace root | Plugin (marketplace) | ❌ Not supported | Extension (variable conversion) | `marketplace_name` |
+| Plugin Structure | Claude | Codex | Configuration |
+|-----------------|--------|-------|---------------|
+| Has `skills/` subdirectory | Plugin | Skill (extract) | `skill_subpath` |
+| Has `commands/` only | Plugin | Skill (convert) | `command_file` |
+| Has `hooks/` only | Plugin | ❌ Not supported | `has_hooks: true` |
+| Has `hooks/` + `commands/` | Plugin | Skill (convert) | `has_hooks: true` |
+| Requires marketplace root | Plugin (marketplace) | ❌ Not supported | `marketplace_name` |
 
 ### Marketplace 插件
 
@@ -76,11 +76,11 @@ Extension {
 
 ### 轉換限制
 
-| 功能 | Claude | Codex | Gemini |
-|-----|--------|-------|--------|
-| Hooks | ✅ | ❌ | ✅（轉換後）|
-| Marketplace | ✅ | ❌ | ✅（變數轉換）|
-| `${CLAUDE_PLUGIN_ROOT}` | ✅ | ❌ | ⚠️ 轉為絕對路徑 |
-| `allowed-tools` | ✅ | ❌ 移除 | ❌ 移除 |
+| 功能 | Claude | Codex |
+|-----|--------|-------|
+| Hooks | ✅ | ❌ |
+| Marketplace | ✅ | ❌ |
+| `${CLAUDE_PLUGIN_ROOT}` | ✅ | ❌ |
+| `allowed-tools` | ✅ | ❌ 移除 |
 
 詳細說明請參閱 [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md)。

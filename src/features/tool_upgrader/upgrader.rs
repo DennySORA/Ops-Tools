@@ -260,26 +260,6 @@ mod tests {
     use crate::features::tool_upgrader::tools::{AI_TOOLS, UpgradeCommand};
 
     #[test]
-    fn test_build_command_for_npm_package() {
-        let upgrader = PackageUpgrader::new();
-        let gemini = AI_TOOLS
-            .iter()
-            .find(|t| {
-                matches!(
-                    t.command,
-                    UpgradeCommand::PackageManager { manager, package }
-                        if manager == "npm" && package == "@google/gemini-cli"
-                )
-            })
-            .unwrap();
-
-        let (program, args) = upgrader.build_command(gemini);
-        assert_eq!(program, "npm");
-        assert!(args.contains(&"install".to_string()));
-        assert!(args.iter().any(|a| a.contains("@google/gemini-cli@latest")));
-    }
-
-    #[test]
     fn test_build_command_for_codex_bun() {
         let upgrader = PackageUpgrader::new();
         let codex = AI_TOOLS.iter().find(|t| t.name == "OpenAI Codex").unwrap();
@@ -306,7 +286,7 @@ mod tests {
 
         let (program, args) = upgrader.build_command(claude);
         assert_eq!(program, "claude");
-        assert_eq!(args, vec!["install".to_string()]);
+        assert_eq!(args, vec!["install".to_string(), "--global".to_string()]);
     }
 
     #[test]

@@ -58,15 +58,19 @@ impl AiTool {
 
 /// 預設的 AI 工具清單
 pub const AI_TOOLS: &[AiTool] = &[
-    // Claude 官方建議使用內建安裝指令進行更新
-    AiTool::with_custom_command("Claude Code", "claude install", "claude", &["install"]),
+    // Claude Code: global install (not project-scoped)
+    AiTool::with_custom_command(
+        "Claude Code",
+        "claude install --global",
+        "claude",
+        &["install", "--global"],
+    ),
     AiTool::with_custom_command(
         "OpenAI Codex",
         "bun install -g @openai/codex",
         "bun",
         &["install", "-g", "@openai/codex"],
     ),
-    AiTool::from_package_with_manager("Google Gemini CLI", "@google/gemini-cli", "npm"),
 ];
 
 #[cfg(test)]

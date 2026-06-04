@@ -11,14 +11,13 @@
 | 分类 | 功能 | 说明 |
 |------|------|------|
 | 升级 | 系统升级 | 跨平台系统维护（Linux APT / macOS Homebrew + 工具） |
-| 升级 | AI 工具升级 | 批量更新 Claude Code、Codex、Gemini CLI |
 | 升级 | Rust 升级 | 升级 Rust 工具链 + Cargo 工具 |
 | 升级 | 软件包管理 | 安装/更新 nvm、pnpm、Rust、Go、kubectl、k9s、tmux 等 |
 | 构建 | Rust 编译 | 跨平台 Rust 可执行文件（cargo/cross，30+ 目标） |
 | 构建 | 容器构建 | Docker/Buildah 多架构构建（x86、arm64、armv7、Jetson） |
 | 构建 | CUDA ML 构建 | 从源码构建 ML 套件（PyTorch、Flash Attention、xFormers） |
-| AI | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 服务器 |
-| AI | 技能安装器 | 安装 AI CLI 扩展（Claude/Codex/Gemini） |
+| AI | MCP 管理 | 管理 Claude/Codex 的 MCP 服务器 |
+| AI | 技能安装器 | 安装 AI CLI 扩展（Claude/Codex） |
 | 基础设施 | Terraform 清理 | 移除 `.terraform`、`.terragrunt-cache` 及 lock 文件 |
 | 基础设施 | Kubeconfig 管理 | tmux 窗口隔离的 kubeconfig |
 | 安全 | 安全扫描 | 运行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
@@ -60,7 +59,6 @@
 批量升级 AI 代码助手工具：
 - `Claude Code` (@anthropic-ai/claude-code)
 - `OpenAI Codex` (@openai/codex) — 支持从本地 repo 源码构建
-- `Google Gemini CLI` (@google/gemini-cli)
 
 ### 软件包管理（macOS / Linux）
 通过交互勾选安装、移除与更新常用工具：
@@ -83,16 +81,13 @@
 - 隔离构建环境于 `~/.ml-packages/`
 
 ### MCP 管理
-管理 Claude、Codex 和 Gemini CLI 的 MCP 服务器：
+管理 Claude 和 Codex CLI 的 MCP 服务器：
 
 | MCP 工具 | 说明 |
 |----------|------|
 | `sequential-thinking` | 循序思考 |
 | `context7` | 文档查询 |
 | `chrome-devtools` | 浏览器开发工具 |
-| `kubernetes` | K8s 管理 |
-| `tailwindcss` | Tailwind CSS |
-| `arxiv-mcp-server` | arXiv 论文搜索与下载 |
 | `github` | GitHub 整合 |
 | `cloudflare-*` | Cloudflare MCP 服务器 |
 
@@ -105,7 +100,6 @@
 - **Context7**：设置 `CONTEXT7_API_KEY`
 - **GitHub**：设置 `GITHUB_PERSONAL_ACCESS_TOKEN`（必需），可选 `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
 - **Cloudflare**：设置 `enable_cloudflare_mcp=true`（安装时 OAuth）
-- **arXiv**：设置 `ARXIV_STORAGE_PATH`（默认 `~/.arxiv-papers`）
 
 ### 技能安装器
 安装 AI CLI 工具的扩展：
@@ -114,7 +108,6 @@
 |-----|---------|---------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
 | OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
-| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
 
 可用扩展：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner 等。
 

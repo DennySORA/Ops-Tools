@@ -11,14 +11,14 @@ A robust Rust-based CLI toolset designed for efficient DevOps workflows.
 | Category | Feature | Description |
 |----------|---------|-------------|
 | Upgrade | System Updater | Cross-platform system maintenance (Linux APT / macOS Homebrew + tooling) |
-| Upgrade | AI Tool Upgrader | Batch update Claude Code, Codex, Gemini CLI |
+| Upgrade | AI Tool Upgrader | Batch update Claude Code, Codex CLI |
 | Upgrade | Rust Upgrader | Upgrade Rust toolchain + cargo tools |
 | Upgrade | Package Manager | Install/update nvm, pnpm, Rust, Go, kubectl, k9s, tmux, etc. |
 | Build | Rust Builder | Cross-platform Rust binaries (cargo/cross, 30+ targets) |
 | Build | Container Builder | Docker/Buildah multi-arch builds (x86, arm64, armv7, Jetson) |
 | Build | CUDA ML Builder | Source-build ML packages (PyTorch, Flash Attention, xFormers) |
-| AI | MCP Manager | Manage MCP servers for Claude/Codex/Gemini |
-| AI | Skill Installer | Install AI CLI extensions (Claude/Codex/Gemini) |
+| AI | MCP Manager | Manage MCP servers for Claude/Codex |
+| AI | Skill Installer | Install AI CLI extensions (Claude/Codex) |
 | Infra | Terraform Cleaner | Remove `.terraform`, `.terragrunt-cache` and lock files |
 | Infra | Kubeconfig Manager | tmux window-isolated kubeconfig |
 | Security | Security Scanner | Run gitleaks, trufflehog, git-secrets, trivy, semgrep |
@@ -60,7 +60,6 @@ Cross-platform system maintenance with platform-aware workflows:
 Batch upgrades for AI code assistants:
 - `Claude Code` (@anthropic-ai/claude-code)
 - `OpenAI Codex` (@openai/codex) — supports source build from local repo
-- `Google Gemini CLI` (@google/gemini-cli)
 
 ### Package Manager (macOS / Linux)
 Install, remove, and update common tools with an interactive checklist:
@@ -83,16 +82,13 @@ Source-build CUDA-accelerated ML packages for your exact GPU:
 - Isolated build venv at `~/.ml-packages/`
 
 ### MCP Manager
-Manages MCP servers for Claude, Codex, and Gemini CLI:
+Manages MCP servers for Claude and Codex CLI:
 
 | MCP Tool | Description |
 |----------|-------------|
 | `sequential-thinking` | Sequential Thinking |
 | `context7` | Documentation Query |
 | `chrome-devtools` | Chrome DevTools |
-| `kubernetes` | K8s Management |
-| `tailwindcss` | Tailwind CSS |
-| `arxiv-mcp-server` | arXiv Paper Search & Download |
 | `github` | GitHub Integration |
 | `cloudflare-*` | Cloudflare MCP Servers |
 
@@ -105,7 +101,6 @@ Available options:
 - **Context7**: set `CONTEXT7_API_KEY`
 - **GitHub**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required), optional `GITHUB_MCP_MODE`, `GITHUB_HOST`, `GITHUB_TOOLSETS`
 - **Cloudflare**: set `enable_cloudflare_mcp=true` (OAuth during install)
-- **arXiv**: set `ARXIV_STORAGE_PATH` (default `~/.arxiv-papers`)
 
 ### Skill Installer
 Install extensions for AI CLI tools:
@@ -114,12 +109,10 @@ Install extensions for AI CLI tools:
 |-----|-----------------|--------------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`, `~/.claude/skills/` |
 | OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
-| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
 
 Available extensions: ralph-wiggum, security-guidance, frontend-design, code-review, pr-review-toolkit, commit-commands, writing-rules, claude-mem, loop-runner, and more.
 
 See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for development guide.
-
 ### Rust Builder
 Build cross-platform Rust binaries:
 - **Engines**: cargo (native) or cross (containerized cross-compilation)

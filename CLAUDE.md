@@ -81,7 +81,7 @@
 - 完整的 Extension 定義格式與欄位說明
 - Marketplace-based 插件安裝架構（git clone、symlink、JSON registries）
 - `${CLAUDE_PLUGIN_ROOT}` 變數轉換機制
-- Hooks 轉換流程（Claude → Codex/Gemini）
+- Hooks 轉換流程（Claude → Codex）
 - 嵌入式擴充功能（Embedded Extensions）
 - 依賴安裝（npm/bun）流程
 - CLI 相容性矩陣與限制說明
@@ -96,13 +96,13 @@
 
 ### 重要限制
 
-| 功能 | Claude | Codex | Gemini |
-|-----|--------|-------|--------|
-| Hooks | ✅ 完整支援 (25+ 事件) | ⚠️ 實驗性 (5 事件, 僅 Bash) | ✅ 轉換支援 |
-| Marketplace plugins | ✅ 完整支援 | ❌ 不支援 | ✅ 變數轉換 |
-| `${CLAUDE_PLUGIN_ROOT}` | ✅ 原生支援 | ⚠️ 轉為絕對路徑 | ⚠️ 轉為絕對路徑 |
-| `allowed-tools` | ✅ 支援 | ❌ 移除 | ❌ 移除 |
-| Embedded extensions | ✅ SKILL.md | ✅ SKILL.md + hooks | ✅ TOML 擴充 |
+| 功能 | Claude | Codex |
+|-----|--------|-------|
+| Hooks | ✅ 完整支援 (25+ 事件) | ⚠️ 實驗性 (5 事件, 僅 Bash) |
+| Marketplace plugins | ✅ 完整支援 | ❌ 不支援 |
+| `${CLAUDE_PLUGIN_ROOT}` | ✅ 原生支援 | ⚠️ 轉為絕對路徑 |
+| `allowed-tools` | ✅ 支援 | ❌ 移除 |
+| Embedded extensions | ✅ SKILL.md | ✅ SKILL.md + hooks |
 
 ### 測試驗證
 

@@ -116,172 +116,6 @@ When the user says "cancel loop xxx" or "stop that loop" — pass the job ID.
 - No files, no residue, no cleanup needed
 "#;
 
-/// Loop Runner content for Gemini CLI
-const LOOP_RUNNER_GEMINI: &str = r#"# Loop Runner
-
-Schedule recurring tasks using the launcher at `~/.gemini/extensions/loop-runner/launcher.sh`.
-
-## All operations MUST go through the launcher script. Do NOT use nohup or & directly.
-
-### Start a loop
-```bash
-ID=$(date +%s%N | md5sum | head -c 8)
-~/.gemini/extensions/loop-runner/launcher.sh start "$ID" <interval_seconds> <command>
-```
-
-### List / Cancel / Results
-```bash
-~/.gemini/extensions/loop-runner/launcher.sh list
-~/.gemini/extensions/loop-runner/launcher.sh cancel <id>
-~/.gemini/extensions/loop-runner/launcher.sh cancel-all
-~/.gemini/extensions/loop-runner/launcher.sh results <id>
-```
-
-## How It Works
-
-- Loops run as `setsid` daemon processes.
-- Each daemon monitors the parent CLI process — when the CLI exits, loops self-terminate.
-- Interval: `10s`→10, `5m`→300, `1h`→3600, `1d`→86400. No unit → minutes.
-"#;
-
-/// Launcher script for loop-runner (installed as executable bash script).
-/// Handles daemon lifecycle: setsid + PPID monitoring + trap cleanup.
-const LOOP_RUNNER_LAUNCHER: &str = r#"#!/usr/bin/env bash
-set -euo pipefail
-
-CLI_DIR="${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}"
-LOOPS_DIR="$CLI_DIR/loops"
-mkdir -p "$LOOPS_DIR"
-
-start_loop() {
-    local ID="$1" INTERVAL="$2"; shift 2
-    local TASK_CMD="$*"
-    local SCRIPT="$LOOPS_DIR/$ID.sh"
-    local LOG="$LOOPS_DIR/$ID.log"
-    local PIDFILE="$LOOPS_DIR/$ID.pid"
-
-    # Detect the CLI process: grandparent of this script
-    local CLI_PID=""
-    CLI_PID=$(ps -o ppid= -p "$PPID" 2>/dev/null | tr -d ' ' || true)
-
-    # Save Codex terminal for bell notification
-    local CLI_TTY=""
-    if [ -n "$CLI_PID" ]; then
-        CLI_TTY=$(ps -o tty= -p "$CLI_PID" 2>/dev/null | tr -d ' ' || true)
-        [ "$CLI_TTY" = "?" ] && CLI_TTY=""
-    fi
-
-    cat > "$SCRIPT" << INNER
-#!/usr/bin/env bash
-CLI_PID="${CLI_PID}"
-CLI_TTY="${CLI_TTY}"
-INTERVAL=${INTERVAL}
-LOG="${LOG}"
-PIDFILE="${PIDFILE}"
-PENDING="${LOOPS_DIR}/${ID}.pending"
-# Loop ID: ${ID}
-# Task: ${TASK_CMD}
-# Interval: ${INTERVAL}s
-# Created: $(date -Iseconds)
-
-cleanup() { rm -f "\$PIDFILE" "\$PENDING"; exit 0; }
-trap cleanup SIGTERM SIGINT
-
-while true; do
-    if [ -n "\$CLI_PID" ] && ! kill -0 "\$CLI_PID" 2>/dev/null; then
-        cleanup
-    fi
-    TS=\$(date -Iseconds)
-    OUTPUT=\$(eval ${TASK_CMD} 2>&1) || true
-    printf '=== %s ===\n%s\n---\n\n' "\$TS" "\$OUTPUT" >> "\$LOG"
-    BRIEF=\$(printf '%s' "\$OUTPUT" | tail -20)
-    LINES=\$(printf '%s' "\$OUTPUT" | wc -l)
-    if [ "\$LINES" -gt 20 ]; then
-        BRIEF="(...\$LINES lines, showing last 20)\n\$BRIEF"
-    fi
-    printf '[%s] Loop ${ID}:\n%b\n(full log: %s)\n' "\$TS" "\$BRIEF" "\$LOG" > "\$PENDING"
-    # Ring terminal bell to alert user
-    if [ -n "\$CLI_TTY" ] && [ -e "/dev/\$CLI_TTY" ]; then
-        printf '\a' > "/dev/\$CLI_TTY" 2>/dev/null || true
-    fi
-    sleep "\$INTERVAL"
-done
-INNER
-    chmod +x "$SCRIPT"
-
-    setsid bash "$SCRIPT" </dev/null &>/dev/null &
-    local PID=$!
-    echo "$PID" > "$PIDFILE"
-
-    sleep 0.3
-    if kill -0 "$PID" 2>/dev/null; then
-        echo "Loop $ID started (PID $PID): $TASK_CMD every ${INTERVAL}s"
-    else
-        rm -f "$PIDFILE" "$SCRIPT"
-        echo "ERROR: Loop $ID failed to start" >&2; exit 1
-    fi
-}
-
-list_loops() {
-    local FOUND=0
-    for pf in "$LOOPS_DIR"/*.pid; do
-        [ -f "$pf" ] || continue
-        local ID; ID=$(basename "$pf" .pid)
-        local PID; PID=$(cat "$pf" 2>/dev/null || echo "")
-        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-            local SH="$LOOPS_DIR/$ID.sh"
-            local TASK; TASK=$(grep '^# Task:' "$SH" 2>/dev/null | head -1 | sed 's/^# Task: //' || echo "?")
-            local INT;  INT=$(grep  '^# Interval:' "$SH" 2>/dev/null | head -1 | sed 's/^# Interval: //' || echo "?")
-            echo "[$ID] $TASK (every $INT) - running (PID $PID)"
-            FOUND=1
-        else
-            rm -f "$pf" "$LOOPS_DIR/$ID.pending"
-        fi
-    done
-    if [ "$FOUND" = 0 ]; then echo "No active loops."; fi
-}
-
-cancel_loop() {
-    local ID="$1" PF="$LOOPS_DIR/$1.pid"
-    if [ -f "$PF" ]; then
-        local P; P=$(cat "$PF" 2>/dev/null || echo "")
-        # Kill entire process group (setsid makes PID = PGID)
-        [ -n "$P" ] && { kill -- -"$P" 2>/dev/null || kill -9 "$P" 2>/dev/null || true; }
-        sleep 0.2
-        rm -f "$PF" "$LOOPS_DIR/$ID.sh" "$LOOPS_DIR/$ID.pending"
-        echo "Loop $ID cancelled. Log kept at $LOOPS_DIR/$ID.log"
-    else echo "Loop $ID not found." >&2; exit 1; fi
-}
-
-cancel_all() {
-    local N=0
-    for pf in "$LOOPS_DIR"/*.pid; do
-        [ -f "$pf" ] || continue
-        local ID; ID=$(basename "$pf" .pid)
-        local P; P=$(cat "$pf" 2>/dev/null || echo "")
-        [ -n "$P" ] && { kill -- -"$P" 2>/dev/null || kill -9 "$P" 2>/dev/null || true; }
-        rm -f "$pf" "$LOOPS_DIR/$ID.sh" "$LOOPS_DIR/$ID.pending"
-        N=$((N+1))
-    done
-    echo "Cancelled $N loop(s)."
-}
-
-show_results() {
-    local LOG="$LOOPS_DIR/$1.log"
-    if [ -f "$LOG" ]; then tail -"${2:-50}" "$LOG"
-    else echo "No results for loop $1."; fi
-}
-
-case "${1:-help}" in
-    start)     shift; start_loop "$@" ;;
-    list)      list_loops ;;
-    cancel)    shift; cancel_loop "$@" ;;
-    cancel-all) cancel_all ;;
-    results)   shift; show_results "$@" ;;
-    *)         echo "Usage: launcher.sh {start|list|cancel|cancel-all|results} [args]" ;;
-esac
-"#;
-
 /// Check if a hooks.json entry contains a hook command matching the given path prefix
 fn entry_contains_plugin_path(entry: &serde_json::Value, path_prefix: &str) -> bool {
     entry
@@ -314,125 +148,91 @@ impl ExtensionExecutor {
         let cli_dir = home.join(self.cli.config_dir_name());
 
         match (self.cli, ext_type) {
-            // Gemini uses extensions/ for everything (not skills/)
-            (CliType::Gemini, _) => cli_dir.join("extensions"),
             (_, ExtensionType::Skill) => cli_dir.join("skills"),
             (_, ExtensionType::Plugin) => cli_dir.join("plugins"),
         }
-    }
-
-    /// Get the Gemini extension enablement file path
-    fn gemini_enablement_file(&self) -> PathBuf {
-        let home = dirs::home_dir().expect("Cannot find home directory");
-        home.join(".gemini/extensions/extension-enablement.json")
     }
 
     /// List installed extensions (returns a map of name -> extension type)
     pub fn list_installed(&self) -> Result<HashMap<String, ExtensionType>> {
         let mut installed = HashMap::new();
 
-        if self.cli == CliType::Gemini {
-            // Gemini: scan extensions directory for directories with gemini-extension.json
-            let extensions_dir = self.install_dir(ExtensionType::Skill); // returns ~/.gemini/extensions/
-            if extensions_dir.exists()
-                && let Ok(entries) = fs::read_dir(&extensions_dir)
+        // Claude/Codex: scan skills directory
+        let skills_dir = self.install_dir(ExtensionType::Skill);
+        if skills_dir.exists()
+            && let Ok(entries) = fs::read_dir(&skills_dir)
+        {
+            for entry in entries.flatten() {
+                if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    installed.insert(name, ExtensionType::Skill);
+                }
+            }
+        }
+
+        // For Codex, also scan plugins directory (hook-based plugins)
+        if self.cli == CliType::Codex {
+            let plugins_dir = self.codex_plugins_dir();
+            if plugins_dir.exists()
+                && let Ok(entries) = fs::read_dir(&plugins_dir)
             {
                 for entry in entries.flatten() {
                     if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                         let name = entry.file_name().to_string_lossy().to_string();
-                        // Check if it has gemini-extension.json (our installed extensions)
-                        let manifest = entry.path().join("gemini-extension.json");
-                        if manifest.exists() {
-                            // Check if it has hooks/ directory -> Plugin, otherwise Skill
-                            let hooks_dir = entry.path().join("hooks");
-                            if hooks_dir.exists() {
-                                installed.insert(name, ExtensionType::Plugin);
-                            } else {
-                                installed.insert(name, ExtensionType::Skill);
-                            }
+                        // Check if it has a hooks/ subdirectory
+                        let hooks_dir = entry.path().join("hooks");
+                        if hooks_dir.exists() {
+                            installed.insert(name, ExtensionType::Plugin);
                         }
                     }
                 }
             }
-        } else {
-            // Claude/Codex: scan skills directory
-            let skills_dir = self.install_dir(ExtensionType::Skill);
-            if skills_dir.exists()
-                && let Ok(entries) = fs::read_dir(&skills_dir)
+        }
+
+        // For Claude, also scan plugins directory and cache directory
+        if self.cli == CliType::Claude {
+            let plugins_dir = self.install_dir(ExtensionType::Plugin);
+            if plugins_dir.exists()
+                && let Ok(entries) = fs::read_dir(&plugins_dir)
             {
                 for entry in entries.flatten() {
                     if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                         let name = entry.file_name().to_string_lossy().to_string();
-                        installed.insert(name, ExtensionType::Skill);
-                    }
-                }
-            }
-
-            // For Codex, also scan plugins directory (hook-based plugins)
-            if self.cli == CliType::Codex {
-                let plugins_dir = self.codex_plugins_dir();
-                if plugins_dir.exists()
-                    && let Ok(entries) = fs::read_dir(&plugins_dir)
-                {
-                    for entry in entries.flatten() {
-                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            // Check if it has a hooks/ subdirectory
-                            let hooks_dir = entry.path().join("hooks");
-                            if hooks_dir.exists() {
-                                installed.insert(name, ExtensionType::Plugin);
-                            }
+                        // Skip cache and marketplaces directories
+                        if name != "cache" && name != "marketplaces" {
+                            installed.insert(name, ExtensionType::Plugin);
                         }
                     }
                 }
             }
 
-            // For Claude, also scan plugins directory and cache directory
-            if self.cli == CliType::Claude {
-                let plugins_dir = self.install_dir(ExtensionType::Plugin);
-                if plugins_dir.exists()
-                    && let Ok(entries) = fs::read_dir(&plugins_dir)
-                {
-                    for entry in entries.flatten() {
-                        if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                            let name = entry.file_name().to_string_lossy().to_string();
-                            // Skip cache and marketplaces directories
-                            if name != "cache" && name != "marketplaces" {
-                                installed.insert(name, ExtensionType::Plugin);
-                            }
-                        }
-                    }
-                }
-
-                // Also scan cache directory for marketplace-based plugins
-                let cache_dir = plugins_dir.join("cache");
-                if cache_dir.exists() {
-                    // Structure: cache/<marketplace>/<plugin>/<version>/
-                    if let Ok(marketplaces) = fs::read_dir(&cache_dir) {
-                        for marketplace in marketplaces.flatten() {
-                            if marketplace
-                                .file_type()
-                                .map(|ft| ft.is_dir())
-                                .unwrap_or(false)
-                                && let Ok(plugins) = fs::read_dir(marketplace.path())
-                            {
-                                for plugin in plugins.flatten() {
-                                    if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                                        let plugin_name =
-                                            plugin.file_name().to_string_lossy().to_string();
-                                        // Check if any version directory exists with plugin.json
-                                        if let Ok(versions) = fs::read_dir(plugin.path()) {
-                                            for version in versions.flatten() {
-                                                let plugin_json = version
-                                                    .path()
-                                                    .join(".claude-plugin/plugin.json");
-                                                if plugin_json.exists() {
-                                                    installed.insert(
-                                                        plugin_name.clone(),
-                                                        ExtensionType::Plugin,
-                                                    );
-                                                    break;
-                                                }
+            // Also scan cache directory for marketplace-based plugins
+            let cache_dir = plugins_dir.join("cache");
+            if cache_dir.exists() {
+                // Structure: cache/<marketplace>/<plugin>/<version>/
+                if let Ok(marketplaces) = fs::read_dir(&cache_dir) {
+                    for marketplace in marketplaces.flatten() {
+                        if marketplace
+                            .file_type()
+                            .map(|ft| ft.is_dir())
+                            .unwrap_or(false)
+                            && let Ok(plugins) = fs::read_dir(marketplace.path())
+                        {
+                            for plugin in plugins.flatten() {
+                                if plugin.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                                    let plugin_name =
+                                        plugin.file_name().to_string_lossy().to_string();
+                                    // Check if any version directory exists with plugin.json
+                                    if let Ok(versions) = fs::read_dir(plugin.path()) {
+                                        for version in versions.flatten() {
+                                            let plugin_json =
+                                                version.path().join(".claude-plugin/plugin.json");
+                                            if plugin_json.exists() {
+                                                installed.insert(
+                                                    plugin_name.clone(),
+                                                    ExtensionType::Plugin,
+                                                );
+                                                break;
                                             }
                                         }
                                     }
@@ -470,11 +270,6 @@ impl ExtensionExecutor {
         // Handle embedded extensions first (content generated by executor)
         if ext.is_embedded {
             return self.install_embedded(ext);
-        }
-
-        // Gemini has completely different extension format
-        if self.cli == CliType::Gemini {
-            return self.install_for_gemini(ext);
         }
 
         // Codex with hooks → install plugin with hook conversion
@@ -1011,533 +806,6 @@ impl ExtensionExecutor {
         Ok(())
     }
 
-    /// Install extension for Gemini CLI (uses extension format, not skill format)
-    fn install_for_gemini(&self, ext: &Extension) -> Result<()> {
-        let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-
-        // Create extension directory
-        fs::create_dir_all(&dest).map_err(|err| OperationError::Io {
-            path: dest.display().to_string(),
-            source: err,
-        })?;
-
-        // Check if this is a marketplace-based plugin requiring special handling
-        if ext.marketplace_name.is_some() {
-            return self.install_marketplace_plugin_for_gemini(ext, &dest);
-        }
-
-        // Determine what to download based on extension configuration
-        if ext.has_hooks {
-            // For plugins with hooks: download full plugin and convert to Gemini format
-            self.install_plugin_for_gemini(ext, &dest)?;
-        } else if ext.skill_subpath.is_some() {
-            // For plugins with skills/: extract skill and convert to Gemini extension
-            self.install_skill_for_gemini(ext, &dest)?;
-        } else if ext.command_file.is_some() {
-            // For plugins with commands/: convert command to Gemini extension
-            self.install_command_for_gemini(ext, &dest)?;
-        } else {
-            // Fallback: download as-is
-            self.download_and_extract(ext.source_repo, ext.source_path, &dest)?;
-        }
-
-        // Register in extension-enablement.json
-        self.register_gemini_extension(ext.name)?;
-
-        Ok(())
-    }
-
-    /// Install a plugin with hooks for Gemini
-    fn install_plugin_for_gemini(&self, ext: &Extension, dest: &Path) -> Result<()> {
-        // Download the full plugin
-        self.download_and_extract(ext.source_repo, ext.source_path, dest)?;
-
-        // Create gemini-extension.json manifest
-        let manifest = format!(
-            r#"{{
-  "name": "{}",
-  "version": "1.0.0",
-  "contextFileName": "GEMINI.md"
-}}"#,
-            ext.name
-        );
-        let manifest_path = dest.join("gemini-extension.json");
-        fs::write(&manifest_path, manifest).map_err(|err| OperationError::Io {
-            path: manifest_path.display().to_string(),
-            source: err,
-        })?;
-
-        // Create GEMINI.md from plugin description or README
-        let gemini_md_path = dest.join("GEMINI.md");
-        if !gemini_md_path.exists() {
-            let readme_path = dest.join("README.md");
-            if readme_path.exists() {
-                fs::copy(&readme_path, &gemini_md_path).map_err(|err| OperationError::Io {
-                    path: readme_path.display().to_string(),
-                    source: err,
-                })?;
-            } else {
-                let content = format!("# {}\n\nExtension for Gemini CLI.", ext.name);
-                fs::write(&gemini_md_path, content).map_err(|err| OperationError::Io {
-                    path: gemini_md_path.display().to_string(),
-                    source: err,
-                })?;
-            }
-        }
-
-        // Convert commands/ from .md to .toml format if they exist
-        let commands_dir = dest.join("commands");
-        if commands_dir.exists() {
-            self.convert_commands_to_toml(&commands_dir)?;
-        }
-
-        Ok(())
-    }
-
-    /// Install a marketplace-based plugin for Gemini
-    /// This handles plugins like claude-mem that need full repo clone and dependency installation
-    fn install_marketplace_plugin_for_gemini(&self, ext: &Extension, dest: &Path) -> Result<()> {
-        let plugin_path = ext.marketplace_plugin_path.unwrap_or(".");
-
-        // 1. Git clone the full repo to a temp directory
-        let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
-            path: "tempdir".to_string(),
-            source: err,
-        })?;
-        let repo_dir = temp_dir.path().join("repo");
-
-        let repo_url = format!("https://github.com/{}.git", ext.source_repo);
-        let status = Command::new("git")
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                &repo_url,
-                repo_dir.to_str().unwrap(),
-            ])
-            .status()
-            .map_err(|e| OperationError::Command {
-                command: "git".to_string(),
-                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-            })?;
-
-        if !status.success() {
-            return Err(OperationError::Command {
-                command: "git clone".to_string(),
-                message: crate::tr!(
-                    keys::SKILL_INSTALLER_DOWNLOAD_FAILED,
-                    error = "git clone failed"
-                ),
-            });
-        }
-
-        // 2. Copy the plugin directory to destination
-        let plugin_source = repo_dir.join(plugin_path);
-        self.copy_dir_recursive(&plugin_source, dest)?;
-
-        // 3. Run installation script if it exists (install dependencies)
-        let install_script = dest.join("scripts/smart-install.js");
-        if install_script.exists() {
-            // We need to also copy the root package.json for smart-install.js
-            let root_package_json = repo_dir.join("package.json");
-            if root_package_json.exists() {
-                // Create a parent directory structure for the install script
-                let parent_dir = dest.parent().unwrap().join(format!("{}-root", ext.name));
-                fs::create_dir_all(&parent_dir).ok();
-                fs::copy(&root_package_json, parent_dir.join("package.json")).ok();
-
-                // Run smart-install from the plugin directory
-                let _ = Command::new("node")
-                    .arg(&install_script)
-                    .current_dir(dest)
-                    .env("GEMINI_PLUGIN_ROOT", dest.to_str().unwrap())
-                    .status();
-            }
-        }
-
-        // 4. Install npm dependencies if package.json exists in plugin
-        let package_json = dest.join("package.json");
-        if package_json.exists() {
-            // Try bun first, fall back to npm
-            let bun_status = Command::new("bun")
-                .args(["install"])
-                .current_dir(dest)
-                .status();
-
-            if bun_status.is_err() || !bun_status.unwrap().success() {
-                let _ = Command::new("npm")
-                    .args(["install", "--silent"])
-                    .current_dir(dest)
-                    .status();
-            }
-        }
-
-        // 5. Convert hooks.json - replace ${CLAUDE_PLUGIN_ROOT} with actual path
-        let hooks_json = dest.join("hooks/hooks.json");
-        if hooks_json.exists()
-            && let Ok(content) = fs::read_to_string(&hooks_json)
-        {
-            let converted = content.replace("${CLAUDE_PLUGIN_ROOT}", dest.to_str().unwrap_or(""));
-            let _ = fs::write(&hooks_json, converted);
-        }
-
-        // 6. Create gemini-extension.json manifest
-        let version = ext.version.unwrap_or("1.0.0");
-        let manifest = format!(
-            r#"{{
-  "name": "{}",
-  "version": "{}",
-  "contextFileName": "GEMINI.md"
-}}"#,
-            ext.name, version
-        );
-        let manifest_path = dest.join("gemini-extension.json");
-        fs::write(&manifest_path, manifest).map_err(|err| OperationError::Io {
-            path: manifest_path.display().to_string(),
-            source: err,
-        })?;
-
-        // 7. Create GEMINI.md from README or plugin description
-        let gemini_md_path = dest.join("GEMINI.md");
-        if !gemini_md_path.exists() {
-            let readme_path = dest.join("README.md");
-            let claude_md_path = dest.join("CLAUDE.md");
-            if readme_path.exists() {
-                fs::copy(&readme_path, &gemini_md_path).ok();
-            } else if claude_md_path.exists() {
-                fs::copy(&claude_md_path, &gemini_md_path).ok();
-            } else {
-                let content = format!("# {}\n\nExtension for Gemini CLI.", ext.name);
-                fs::write(&gemini_md_path, content).ok();
-            }
-        }
-
-        // 8. Convert commands/ to TOML format if they exist
-        let commands_dir = dest.join("commands");
-        if commands_dir.exists() {
-            self.convert_commands_to_toml(&commands_dir)?;
-        }
-
-        // Register in extension-enablement.json
-        self.register_gemini_extension(ext.name)?;
-
-        Ok(())
-    }
-
-    /// Install a skill for Gemini (from skill_subpath)
-    fn install_skill_for_gemini(&self, ext: &Extension, dest: &Path) -> Result<()> {
-        let skill_subpath = ext.skill_subpath.unwrap();
-        let source_path = format!("{}/{}", ext.source_path, skill_subpath);
-
-        // Download the skill subdirectory to a temp location
-        let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
-            path: "tempdir".to_string(),
-            source: err,
-        })?;
-        let temp_skill = temp_dir.path().join("skill");
-        self.download_and_extract(ext.source_repo, &source_path, &temp_skill)?;
-
-        // Read SKILL.md
-        let skill_md_path = temp_skill.join("SKILL.md");
-        let skill_content = if skill_md_path.exists() {
-            fs::read_to_string(&skill_md_path).map_err(|err| OperationError::Io {
-                path: skill_md_path.display().to_string(),
-                source: err,
-            })?
-        } else {
-            String::new()
-        };
-
-        let (frontmatter, body) = self.parse_skill_md(&skill_content);
-        let description = frontmatter
-            .get("description")
-            .cloned()
-            .unwrap_or_else(|| format!("{} extension", ext.name));
-
-        // Create gemini-extension.json
-        let manifest = format!(
-            r#"{{
-  "name": "{}",
-  "version": "1.0.0",
-  "contextFileName": "GEMINI.md"
-}}"#,
-            ext.name
-        );
-        fs::write(dest.join("gemini-extension.json"), manifest).map_err(|err| {
-            OperationError::Io {
-                path: dest.join("gemini-extension.json").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        // Create GEMINI.md with skill content
-        let gemini_md = format!("# {}\n\n{}\n\n{}", ext.name, description, body);
-        fs::write(dest.join("GEMINI.md"), gemini_md).map_err(|err| OperationError::Io {
-            path: dest.join("GEMINI.md").display().to_string(),
-            source: err,
-        })?;
-
-        // Create commands/<name>/invoke.toml
-        let commands_dir = dest.join("commands").join(ext.name);
-        fs::create_dir_all(&commands_dir).map_err(|err| OperationError::Io {
-            path: commands_dir.display().to_string(),
-            source: err,
-        })?;
-
-        let invoke_toml = format!(
-            r#"description = "{}"
-prompt = """
-{}
-"""
-"#,
-            description.lines().next().unwrap_or(&description),
-            body.trim()
-        );
-        fs::write(commands_dir.join("invoke.toml"), invoke_toml).map_err(|err| {
-            OperationError::Io {
-                path: commands_dir.join("invoke.toml").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        Ok(())
-    }
-
-    /// Install a command for Gemini (from command_file)
-    fn install_command_for_gemini(&self, ext: &Extension, dest: &Path) -> Result<()> {
-        let command_file = ext.command_file.unwrap();
-
-        // Download the command file
-        let url = format!(
-            "https://github.com/{}/archive/refs/heads/main.tar.gz",
-            ext.source_repo
-        );
-
-        let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
-            path: "tempdir".to_string(),
-            source: err,
-        })?;
-        let archive = temp_dir.path().join("archive.tar.gz");
-
-        // Download
-        let status = Command::new("curl")
-            .args(["-L", "-s", "-o", archive.to_str().unwrap(), &url])
-            .status()
-            .map_err(|e| OperationError::Command {
-                command: "curl".to_string(),
-                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-            })?;
-
-        if !status.success() {
-            return Err(OperationError::Command {
-                command: "curl".to_string(),
-                message: crate::tr!(keys::SKILL_INSTALLER_DOWNLOAD_FAILED, error = "curl failed"),
-            });
-        }
-
-        // Extract command file
-        let repo_name = ext
-            .source_repo
-            .split('/')
-            .next_back()
-            .unwrap_or(ext.source_repo);
-        let extract_path = format!("{}-main/{}/{}", repo_name, ext.source_path, command_file);
-
-        let status = Command::new("tar")
-            .args([
-                "-xzf",
-                archive.to_str().unwrap(),
-                "-C",
-                temp_dir.path().to_str().unwrap(),
-                &extract_path,
-            ])
-            .status()
-            .map_err(|e| OperationError::Command {
-                command: "tar".to_string(),
-                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
-            })?;
-
-        if !status.success() {
-            return Err(OperationError::Command {
-                command: "tar".to_string(),
-                message: crate::tr!(keys::SKILL_INSTALLER_EXTRACT_FAILED, error = "tar failed"),
-            });
-        }
-
-        // Read command content
-        let command_path = temp_dir.path().join(&extract_path);
-        let command_content =
-            fs::read_to_string(&command_path).map_err(|err| OperationError::Io {
-                path: command_path.display().to_string(),
-                source: err,
-            })?;
-
-        let (frontmatter, body) = self.parse_skill_md(&command_content);
-        let description = frontmatter
-            .get("description")
-            .cloned()
-            .unwrap_or_else(|| format!("{} command", ext.name));
-
-        // Create gemini-extension.json
-        let manifest = format!(
-            r#"{{
-  "name": "{}",
-  "version": "1.0.0",
-  "contextFileName": "GEMINI.md"
-}}"#,
-            ext.name
-        );
-        fs::write(dest.join("gemini-extension.json"), manifest).map_err(|err| {
-            OperationError::Io {
-                path: dest.join("gemini-extension.json").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        // Create GEMINI.md
-        let gemini_md = format!("# {}\n\n{}", ext.name, description);
-        fs::write(dest.join("GEMINI.md"), gemini_md).map_err(|err| OperationError::Io {
-            path: dest.join("GEMINI.md").display().to_string(),
-            source: err,
-        })?;
-
-        // Create commands/<name>/invoke.toml
-        let commands_dir = dest.join("commands").join(ext.name);
-        fs::create_dir_all(&commands_dir).map_err(|err| OperationError::Io {
-            path: commands_dir.display().to_string(),
-            source: err,
-        })?;
-
-        let invoke_toml = format!(
-            r#"description = "{}"
-prompt = """
-{}
-"""
-"#,
-            description.lines().next().unwrap_or(&description),
-            body.trim()
-        );
-        fs::write(commands_dir.join("invoke.toml"), invoke_toml).map_err(|err| {
-            OperationError::Io {
-                path: commands_dir.join("invoke.toml").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        Ok(())
-    }
-
-    /// Convert markdown command files to TOML format for Gemini
-    fn convert_commands_to_toml(&self, commands_dir: &Path) -> Result<()> {
-        if let Ok(entries) = fs::read_dir(commands_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().map(|e| e == "md").unwrap_or(false) {
-                    // Read markdown command
-                    let content = fs::read_to_string(&path).map_err(|err| OperationError::Io {
-                        path: path.display().to_string(),
-                        source: err,
-                    })?;
-
-                    let (frontmatter, body) = self.parse_skill_md(&content);
-                    let description = frontmatter
-                        .get("description")
-                        .cloned()
-                        .unwrap_or_else(|| "Command".to_string());
-
-                    // Create TOML version
-                    let toml_content = format!(
-                        r#"description = "{}"
-prompt = """
-{}
-"""
-"#,
-                        description.lines().next().unwrap_or(&description),
-                        body.trim()
-                    );
-
-                    // Write as .toml with same name
-                    let toml_path = path.with_extension("toml");
-                    fs::write(&toml_path, toml_content).map_err(|err| OperationError::Io {
-                        path: toml_path.display().to_string(),
-                        source: err,
-                    })?;
-
-                    // Remove original .md file
-                    fs::remove_file(&path).map_err(|err| OperationError::Io {
-                        path: path.display().to_string(),
-                        source: err,
-                    })?;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Register extension in Gemini's extension-enablement.json
-    fn register_gemini_extension(&self, name: &str) -> Result<()> {
-        let enablement_path = self.gemini_enablement_file();
-
-        // Read existing content or create new
-        let mut enablement: serde_json::Value = if enablement_path.exists() {
-            let content =
-                fs::read_to_string(&enablement_path).map_err(|err| OperationError::Io {
-                    path: enablement_path.display().to_string(),
-                    source: err,
-                })?;
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-        } else {
-            serde_json::json!({})
-        };
-
-        // Add/update extension entry with wildcard override
-        let home = dirs::home_dir().expect("Cannot find home directory");
-        let override_path = format!("{}/*", home.display());
-        enablement[name] = serde_json::json!({
-            "overrides": [override_path]
-        });
-
-        // Write back
-        let content = serde_json::to_string_pretty(&enablement).unwrap_or_default();
-        fs::write(&enablement_path, content).map_err(|err| OperationError::Io {
-            path: enablement_path.display().to_string(),
-            source: err,
-        })?;
-
-        Ok(())
-    }
-
-    /// Unregister extension from Gemini's extension-enablement.json
-    fn unregister_gemini_extension(&self, name: &str) -> Result<()> {
-        let enablement_path = self.gemini_enablement_file();
-
-        if !enablement_path.exists() {
-            return Ok(());
-        }
-
-        let content = fs::read_to_string(&enablement_path).map_err(|err| OperationError::Io {
-            path: enablement_path.display().to_string(),
-            source: err,
-        })?;
-
-        let mut enablement: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-
-        // Remove extension entry
-        if let Some(obj) = enablement.as_object_mut() {
-            obj.remove(name);
-        }
-
-        // Write back
-        let content = serde_json::to_string_pretty(&enablement).unwrap_or_default();
-        fs::write(&enablement_path, content).map_err(|err| OperationError::Io {
-            path: enablement_path.display().to_string(),
-            source: err,
-        })?;
-
-        Ok(())
-    }
-
     /// Install extension by converting command file to SKILL.md
     fn install_from_command(&self, ext: &Extension, dest: &Path) -> Result<()> {
         let command_file = ext.command_file.unwrap();
@@ -1637,18 +905,7 @@ prompt = """
             .unwrap_or_else(|| format!("{} skill", name));
 
         // Format name based on target CLI
-        let formatted_name = match self.cli {
-            CliType::Claude => name.to_string(),
-            CliType::Codex => name.to_string(),
-            CliType::Gemini => {
-                let normalized = name.to_lowercase().replace(' ', "-");
-                if normalized.len() > 64 {
-                    normalized[..64].to_string()
-                } else {
-                    normalized
-                }
-            }
-        };
+        let formatted_name = name.to_string();
 
         // Format description based on target CLI (Codex needs single line)
         let formatted_desc = match self.cli {
@@ -1672,19 +929,6 @@ prompt = """
         // Handle embedded extensions
         if ext.is_embedded {
             return self.remove_embedded(ext);
-        }
-
-        if self.cli == CliType::Gemini {
-            // Gemini: remove from extensions/ directory and unregister
-            let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-            if dest.exists() {
-                fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
-                    path: dest.display().to_string(),
-                    source: err,
-                })?;
-            }
-            self.unregister_gemini_extension(ext.name)?;
-            return Ok(());
         }
 
         // Codex hook-based plugins
@@ -1740,10 +984,7 @@ prompt = """
 
     /// Install an embedded extension (content generated by executor)
     fn install_embedded(&self, ext: &Extension) -> Result<()> {
-        match self.cli {
-            CliType::Claude | CliType::Codex => self.install_embedded_skill(ext),
-            CliType::Gemini => self.install_embedded_for_gemini(ext),
-        }
+        self.install_embedded_skill(ext)
     }
 
     /// Install an embedded extension as SKILL.md for Claude/Codex
@@ -1765,91 +1006,6 @@ prompt = """
         Ok(())
     }
 
-    /// Install an embedded extension as Gemini TOML extension
-    fn install_embedded_for_gemini(&self, ext: &Extension) -> Result<()> {
-        let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-        fs::create_dir_all(&dest).map_err(|err| OperationError::Io {
-            path: dest.display().to_string(),
-            source: err,
-        })?;
-
-        let content = self.generate_embedded_content(ext.name);
-
-        // Create gemini-extension.json
-        let manifest = format!(
-            r#"{{
-  "name": "{}",
-  "version": "1.0.0",
-  "contextFileName": "GEMINI.md"
-}}"#,
-            ext.name
-        );
-        fs::write(dest.join("gemini-extension.json"), manifest).map_err(|err| {
-            OperationError::Io {
-                path: dest.join("gemini-extension.json").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        // Create GEMINI.md
-        let gemini_md = format!("# {}\n\n{}", ext.name, content);
-        fs::write(dest.join("GEMINI.md"), gemini_md).map_err(|err| OperationError::Io {
-            path: dest.join("GEMINI.md").display().to_string(),
-            source: err,
-        })?;
-
-        // Create commands/<name>/invoke.toml
-        let commands_dir = dest.join("commands").join(ext.name);
-        fs::create_dir_all(&commands_dir).map_err(|err| OperationError::Io {
-            path: commands_dir.display().to_string(),
-            source: err,
-        })?;
-
-        let description = match ext.name {
-            "loop-runner" => "Schedule periodic task execution at specified intervals",
-            _ => "Embedded extension",
-        };
-        let invoke_toml = format!(
-            r#"description = "{}"
-prompt = """
-{}
-"""
-"#,
-            description,
-            content.trim()
-        );
-        fs::write(commands_dir.join("invoke.toml"), invoke_toml).map_err(|err| {
-            OperationError::Io {
-                path: commands_dir.join("invoke.toml").display().to_string(),
-                source: err,
-            }
-        })?;
-
-        // Install launcher.sh for loop-runner
-        if ext.name == "loop-runner" {
-            let launcher_content = LOOP_RUNNER_LAUNCHER.replace(
-                "${LOOP_RUNNER_CLI_DIR:-$HOME/.codex}",
-                &format!(
-                    "${{LOOP_RUNNER_CLI_DIR:-$HOME/{}}}",
-                    self.cli.config_dir_name()
-                ),
-            );
-            let launcher_path = dest.join("launcher.sh");
-            fs::write(&launcher_path, launcher_content).map_err(|err| OperationError::Io {
-                path: launcher_path.display().to_string(),
-                source: err,
-            })?;
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let _ = fs::set_permissions(&launcher_path, fs::Permissions::from_mode(0o755));
-            }
-        }
-
-        self.register_gemini_extension(ext.name)?;
-        Ok(())
-    }
-
     /// Generate embedded content for a specific extension and CLI
     fn generate_embedded_content(&self, name: &str) -> String {
         match name {
@@ -1866,23 +1022,12 @@ prompt = """
         match self.cli {
             CliType::Claude => LOOP_RUNNER_CLAUDE.to_string(),
             CliType::Codex => LOOP_RUNNER_CODEX.to_string(),
-            CliType::Gemini => LOOP_RUNNER_GEMINI.to_string(),
         }
     }
 
     /// Remove an embedded extension
     fn remove_embedded(&self, ext: &Extension) -> Result<()> {
         match self.cli {
-            CliType::Gemini => {
-                let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-                if dest.exists() {
-                    fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
-                        path: dest.display().to_string(),
-                        source: err,
-                    })?;
-                }
-                self.unregister_gemini_extension(ext.name)?;
-            }
             CliType::Codex => {
                 // Kill all running loop processes before removal
                 let home = dirs::home_dir().expect("Cannot find home directory");
@@ -2243,10 +1388,6 @@ prompt = """
                 // Codex only recognizes name/description (single line)
                 self.format_codex_skill(&content)
             }
-            CliType::Gemini => {
-                // Gemini: name must be lowercase + dash, max 64 chars
-                self.format_gemini_skill(&content)
-            }
         };
 
         fs::write(&skill_md, converted).map_err(|err| OperationError::Io {
@@ -2306,30 +1447,6 @@ prompt = """
             name, desc, body
         )
     }
-
-    /// Format skill for Gemini (lowercase name, max 64 chars)
-    fn format_gemini_skill(&self, content: &str) -> String {
-        let (frontmatter, body) = self.parse_skill_md(content);
-
-        let name = frontmatter
-            .get("name")
-            .map(|s| {
-                let normalized = s.to_lowercase().replace(' ', "-");
-                if normalized.len() > 64 {
-                    normalized[..64].to_string()
-                } else {
-                    normalized
-                }
-            })
-            .unwrap_or_default();
-
-        let desc = frontmatter.get("description").cloned().unwrap_or_default();
-
-        format!(
-            "---\nname: {}\ndescription: {}\n---\n\n{}",
-            name, desc, body
-        )
-    }
 }
 
 fn enable_hooks_feature_config(content: String) -> String {
@@ -2383,16 +1500,6 @@ mod tests {
     }
 
     #[test]
-    fn test_install_dir_gemini_extension() {
-        let executor = ExtensionExecutor::new(CliType::Gemini);
-        // Gemini uses extensions/ directory for everything
-        let dir = executor.install_dir(ExtensionType::Skill);
-        assert!(dir.to_string_lossy().contains(".gemini/extensions"));
-        let dir = executor.install_dir(ExtensionType::Plugin);
-        assert!(dir.to_string_lossy().contains(".gemini/extensions"));
-    }
-
-    #[test]
     fn test_parse_skill_md() {
         let executor = ExtensionExecutor::new(CliType::Claude);
         let content = r#"---
@@ -2434,41 +1541,6 @@ custom_field: value
     }
 
     #[test]
-    fn test_format_gemini_skill() {
-        let executor = ExtensionExecutor::new(CliType::Gemini);
-        let content = r#"---
-name: Test Skill Name
-description: A description
----
-
-# Body
-"#;
-        let result = executor.format_gemini_skill(content);
-        assert!(result.contains("name: test-skill-name"));
-    }
-
-    #[test]
-    fn test_format_gemini_skill_long_name() {
-        let executor = ExtensionExecutor::new(CliType::Gemini);
-        let long_name = "a".repeat(100);
-        let content = format!(
-            r#"---
-name: {}
-description: A description
----
-
-# Body
-"#,
-            long_name
-        );
-        let result = executor.format_gemini_skill(&content);
-        // Name should be truncated to 64 chars
-        let name_line = result.lines().find(|l| l.starts_with("name:")).unwrap();
-        let name = name_line.strip_prefix("name: ").unwrap();
-        assert_eq!(name.len(), 64);
-    }
-
-    #[test]
     fn test_enable_hooks_feature_migrates_deprecated_codex_hooks() {
         let content = "[features]\ncodex_hooks = true\nimage_detail_original = true\n".to_string();
         let result = enable_hooks_feature_config(content);
@@ -2484,45 +1556,5 @@ description: A description
 
         assert!(result.contains("hooks = true"));
         assert!(!result.contains("hooks = false"));
-    }
-}
-
-#[cfg(test)]
-mod integration_tests {
-    use super::*;
-
-    #[test]
-    fn test_gemini_extension_structure() {
-        // Create a mock skill content
-        let skill_content = r#"---
-name: Test Skill
-description: A test skill for Gemini
----
-
-# Test Skill
-
-This is a test skill.
-"#;
-
-        let executor = ExtensionExecutor::new(CliType::Gemini);
-        let (frontmatter, body) = executor.parse_skill_md(skill_content);
-
-        // Verify parsing
-        assert_eq!(frontmatter.get("name"), Some(&"Test Skill".to_string()));
-        assert!(body.contains("This is a test skill"));
-
-        // Verify TOML generation format
-        let description = frontmatter.get("description").unwrap();
-        let toml_content = format!(
-            r#"description = "{}"
-prompt = """
-{}
-"""
-"#,
-            description.lines().next().unwrap_or(description),
-            body.trim()
-        );
-        assert!(toml_content.contains("description = \"A test skill for Gemini\""));
-        assert!(toml_content.contains("prompt = \"\"\""));
     }
 }

@@ -3,7 +3,7 @@ use crate::i18n::{self, keys};
 /// Extension type
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionType {
-    /// Skill: has SKILL.md, supported by all three CLIs
+    /// Skill: has SKILL.md, supported by Claude and Codex
     Skill,
     /// Plugin: has .claude-plugin/, only supported by Claude
     Plugin,
@@ -23,7 +23,6 @@ impl ExtensionType {
 pub enum CliType {
     Claude,
     Codex,
-    Gemini,
 }
 
 impl CliType {
@@ -31,7 +30,6 @@ impl CliType {
         match self {
             CliType::Claude => "Anthropic Claude",
             CliType::Codex => "OpenAI Codex",
-            CliType::Gemini => "Google Gemini",
         }
     }
 
@@ -39,7 +37,6 @@ impl CliType {
         match self {
             CliType::Claude => ".claude",
             CliType::Codex => ".codex",
-            CliType::Gemini => ".gemini",
         }
     }
 }
@@ -54,15 +51,15 @@ pub struct Extension {
     pub source_path: &'static str,
     pub cli_support: &'static [CliType],
     /// For plugins with extractable skills, this is the skill subpath (e.g., "skills/frontend-design")
-    /// When installing for Codex/Gemini, this path will be extracted instead of the full plugin
+    /// When installing for Codex, this path will be extracted instead of the full plugin
     pub skill_subpath: Option<&'static str>,
     /// For plugins with commands but no skills, this is the command file to convert to skill
     /// (e.g., "commands/code-review.md")
-    /// When installing for Codex/Gemini, this file will be converted to SKILL.md format
+    /// When installing for Codex, this file will be converted to SKILL.md format
     pub command_file: Option<&'static str>,
     /// Whether this plugin uses hooks
     /// When true for Claude: installs full plugin with hooks
-    /// When true for Gemini: installs full plugin with hooks converted to native format
+    /// When true: installs full plugin with hooks
     /// When true for Codex: converts hooks to hooks.json format (experimental, Bash-only)
     pub has_hooks: bool,
     /// Marketplace name for plugins that require full marketplace structure.
@@ -89,9 +86,8 @@ impl Extension {
 
 /// All available extensions
 const EXTENSIONS: &[Extension] = &[
-    // Plugins with hooks - all three CLIs support hooks
+    // Plugins with hooks
     // Claude: installs full plugin with native hook support
-    // Gemini: installs full plugin with hooks converted to native format
     // Codex: converts hooks to hooks.json format (experimental, Bash-only)
     Extension {
         name: "ralph-wiggum",
@@ -99,7 +95,7 @@ const EXTENSIONS: &[Extension] = &[
         extension_type: ExtensionType::Plugin,
         source_repo: "anthropics/claude-code",
         source_path: "plugins/ralph-wiggum",
-        cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
+        cli_support: &[CliType::Claude, CliType::Codex],
         skill_subpath: None,
         command_file: None,
         has_hooks: true,
@@ -110,14 +106,14 @@ const EXTENSIONS: &[Extension] = &[
     },
     // Plugins with extractable skills (all CLIs supported)
     // For Claude: installs as plugin
-    // For Codex/Gemini: extracts skill subdirectory and converts SKILL.md format
+    // For Codex: extracts skill subdirectory and converts SKILL.md format
     Extension {
         name: "frontend-design",
         display_name_key: keys::SKILL_FRONTEND_DESIGN,
         extension_type: ExtensionType::Plugin,
         source_repo: "anthropics/claude-code",
         source_path: "plugins/frontend-design",
-        cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
+        cli_support: &[CliType::Claude, CliType::Codex],
         skill_subpath: Some("skills/frontend-design"),
         command_file: None,
         has_hooks: false,
@@ -133,8 +129,8 @@ const EXTENSIONS: &[Extension] = &[
         display_name_key: keys::SKILL_CLAUDE_MEM,
         extension_type: ExtensionType::Plugin,
         source_repo: "thedotmack/claude-mem",
-        source_path: "plugin", // Not used for marketplace installs
-        cli_support: &[CliType::Claude, CliType::Gemini], // Full marketplace support
+        source_path: "plugin",           // Not used for marketplace installs
+        cli_support: &[CliType::Claude], // Full marketplace support
         skill_subpath: None,
         command_file: None,
         has_hooks: true,
@@ -150,7 +146,7 @@ const EXTENSIONS: &[Extension] = &[
         extension_type: ExtensionType::Skill,
         source_repo: "",
         source_path: "",
-        cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
+        cli_support: &[CliType::Claude, CliType::Codex],
         skill_subpath: None,
         command_file: None,
         has_hooks: false,
@@ -179,14 +175,12 @@ mod tests {
     fn test_cli_type_display_name() {
         assert_eq!(CliType::Claude.display_name(), "Anthropic Claude");
         assert_eq!(CliType::Codex.display_name(), "OpenAI Codex");
-        assert_eq!(CliType::Gemini.display_name(), "Google Gemini");
     }
 
     #[test]
     fn test_cli_type_config_dir() {
         assert_eq!(CliType::Claude.config_dir_name(), ".claude");
         assert_eq!(CliType::Codex.config_dir_name(), ".codex");
-        assert_eq!(CliType::Gemini.config_dir_name(), ".gemini");
     }
 
     #[test]
@@ -230,19 +224,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_available_extensions_gemini() {
-        let extensions = get_available_extensions(CliType::Gemini);
-        assert!(!extensions.is_empty());
-        // Gemini extensions must have: skill_subpath, command_file, has_hooks, or is_embedded
-        assert!(extensions.iter().all(|ext| ext.skill_subpath.is_some()
-            || ext.command_file.is_some()
-            || ext.has_hooks
-            || ext.is_embedded));
-    }
-
-    #[test]
     fn test_embedded_extension_available_for_all_clis() {
-        for cli in &[CliType::Claude, CliType::Codex, CliType::Gemini] {
+        for cli in &[CliType::Claude, CliType::Codex] {
             let extensions = get_available_extensions(*cli);
             assert!(
                 extensions.iter().any(|ext| ext.is_embedded),

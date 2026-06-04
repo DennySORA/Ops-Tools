@@ -10,30 +10,26 @@ The Skill Installer manages extensions (skills and plugins) for three AI CLI pla
 |-----|-----------------|------------------|--------------|
 | Claude Code | `~/.claude/` | Plugins (`plugins/`), Skills (`skills/`) | ✅ Full (25+ events) |
 | OpenAI Codex | `~/.codex/` | Skills (`skills/`), Plugins (`plugins/`) | ⚠️ Experimental (5 events, Bash-only) |
-| Google Gemini | `~/.gemini/` | Extensions (`extensions/`) with TOML commands | ✅ Full (native) |
 
-### Gemini Extension Format
 
-**Important:** Gemini CLI uses a completely different extension format than Claude/Codex.
 
-Gemini extensions are installed to `~/.gemini/extensions/<name>/` with this structure:
 
 ```
 ~/.gemini/extensions/<extension-name>/
-├── gemini-extension.json    # Required manifest
-├── GEMINI.md                # Context file (like README)
+├── manifest.json    # Required manifest
+├── SKILL.md                # Context file (like README)
 └── commands/
     └── <extension-name>/
         └── <command>.toml   # Commands in TOML format
 ```
 
-#### gemini-extension.json
+#### manifest.json
 
 ```json
 {
   "name": "extension-name",
   "version": "1.0.0",
-  "contextFileName": "GEMINI.md"
+  "contextFileName": "SKILL.md"
 }
 ```
 
@@ -58,12 +54,10 @@ Extensions must be registered in `~/.gemini/extensions/extension-enablement.json
 }
 ```
 
-#### Using Gemini Extensions
 
 Invoke commands with `/<extension>:<command>`:
 
 ```bash
-# In Gemini CLI
 > /frontend-design:invoke
 > /conductor:status
 ```
@@ -79,7 +73,6 @@ Plugins are full-featured extensions that can include:
 - `agents/` - Sub-agent definitions
 - `skills/` - Embedded skills
 
-**Plugins are Claude-specific and cannot be directly used by Codex or Gemini.**
 
 ### Skill (Claude/Codex)
 
@@ -88,7 +81,6 @@ Skills are simple markdown-based instructions:
 
 **Codex note:** Codex loads the available skills list when a session starts. After installing a Codex skill, restart Codex before expecting the skill to appear in the available skills list. Codex skills are triggered by naming the skill (for example `$frontend-design`) or by asking for a task that matches the skill description; they are not slash commands.
 
-**Note:** Gemini does not use SKILL.md format. The installer automatically converts to Gemini's native TOML extension format.
 
 ## Adding New Extensions
 
@@ -96,7 +88,6 @@ Skills are simple markdown-based instructions:
 
 Before adding a new extension, evaluate its structure:
 
-| Plugin Structure | Claude | Codex | Gemini | Configuration |
 |-----------------|--------|-------|--------|---------------|
 | Has `skills/` subdirectory | Plugin | Skill (extract) | Extension (TOML) | `skill_subpath` |
 | Has `commands/` only | Plugin | Skill (convert) | Extension (TOML) | `command_file` |
@@ -105,7 +96,6 @@ Before adding a new extension, evaluate its structure:
 | Requires marketplace root | Plugin (marketplace) | **Not supported** | Extension (convert) | `marketplace_name` |
 | Embedded (custom content) | Skill | Skill | Extension (TOML) | `is_embedded: true` |
 
-**Key insight:** Gemini uses a native extension format with TOML commands. The installer automatically converts Claude plugins to Gemini extensions.
 
 **Marketplace plugins:** Some third-party plugins (like `claude-mem`) have scripts that reference the marketplace root directory. These require full marketplace installation with git clone.
 
@@ -120,7 +110,6 @@ Extension {
     extension_type: ExtensionType::Plugin,          // Always Plugin for GitHub plugins
     source_repo: "anthropics/claude-code",          // GitHub repo
     source_path: "plugins/my-extension",            // Path within repo
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],  // Supported CLIs
     skill_subpath: Some("skills/my-skill"),         // If has skills/ subdirectory
     command_file: None,                             // Or specify command file
     has_hooks: false,                               // Set true if plugin uses hooks
@@ -144,7 +133,6 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "anthropics/claude-code",
     source_path: "plugins/frontend-design",
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
     skill_subpath: Some("skills/frontend-design"),  // Path to skill within plugin
     command_file: None,
     has_hooks: false,
@@ -158,7 +146,6 @@ Extension {
 **Behavior:**
 - Claude: Installs full plugin to `~/.claude/plugins/frontend-design/`
 - Codex: Extracts skill to `~/.codex/skills/frontend-design/SKILL.md`
-- Gemini: Creates extension at `~/.gemini/extensions/frontend-design/` with TOML commands
 
 #### Option B: Plugin with `commands/` only (no skills/)
 
@@ -171,7 +158,6 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "owner/repo",
     source_path: "plugins/my-command-plugin",
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
     skill_subpath: None,
     command_file: Some("commands/my-command.md"),  // Command file to convert
     has_hooks: false,
@@ -185,7 +171,6 @@ Extension {
 **Behavior:**
 - Claude: Installs full plugin to `~/.claude/plugins/my-command-plugin/`
 - Codex: Converts command to `~/.codex/skills/my-command-plugin/SKILL.md`
-- Gemini: Creates extension at `~/.gemini/extensions/my-command-plugin/` with TOML commands
 
 #### Option C: Plugin with Hooks (All CLIs)
 
@@ -198,10 +183,8 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "anthropics/claude-code",
     source_path: "plugins/ralph-wiggum",
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],  // All support hooks
     skill_subpath: None,
     command_file: None,
-    has_hooks: true,  // Enables hook conversion for Codex/Gemini
     is_embedded: false,
 },
 ```
@@ -209,7 +192,6 @@ Extension {
 **Behavior:**
 - Claude: Installs full plugin to `~/.claude/plugins/ralph-wiggum/`
 - Codex: Copies hooks to `~/.codex/plugins/ralph-wiggum/hooks/`, generates `hooks.json` entries, enables the `hooks` feature
-- Gemini: Creates extension at `~/.gemini/extensions/ralph-wiggum/` with hooks converted to native format
 
 #### Option D: Claude-only Plugin
 
@@ -235,7 +217,6 @@ Extension {
 
 **Behavior:**
 - Claude: Installs full plugin
-- Codex/Gemini: Extension not available (filtered out)
 
 #### Option E: Marketplace-based Plugin (Third-party)
 
@@ -248,7 +229,6 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "thedotmack/claude-mem",
     source_path: "plugin",  // Not used for marketplace installs
-    cli_support: &[CliType::Claude, CliType::Gemini],
     skill_subpath: None,
     command_file: None,
     has_hooks: true,
@@ -265,13 +245,11 @@ Extension {
   3. Runs `npm install` or `bun install` for dependencies
   4. Updates `known_marketplaces.json` and `installed_plugins.json`
   5. Updates `settings.json` with `enabledPlugins`
-- Gemini: Extended marketplace installation with variable conversion:
   1. Git clones repo to temp directory
   2. Copies plugin to `~/.gemini/extensions/<name>/`
   3. Runs `npm install` or `bun install` for dependencies
   4. **Converts `${CLAUDE_PLUGIN_ROOT}` to absolute path** (see Variable Conversion below)
-  5. Creates `gemini-extension.json` manifest
-  6. Converts hooks to native Gemini format
+  5. Creates `manifest.json` manifest
   7. Registers in `extension-enablement.json`
 - Codex: Not supported (marketplace plugins require Claude-specific features or hooks)
 
@@ -301,13 +279,12 @@ Marketplace-based plugins have a more complex installation structure because the
 └── installed_plugins.json            # Registry of installed plugins
 ```
 
-### Directory Structure (Gemini)
 
 ```
 ~/.gemini/extensions/
 └── <plugin_name>/
-    ├── gemini-extension.json         # Required manifest
-    ├── GEMINI.md                     # Context file
+    ├── manifest.json         # Required manifest
+    ├── SKILL.md                     # Context file
     ├── hooks/                        # Converted from Claude hooks
     ├── commands/
     │   └── <plugin_name>/
@@ -374,15 +351,12 @@ Enables the plugin for use:
 
 Claude plugins can use the `${CLAUDE_PLUGIN_ROOT}` variable in their scripts and configurations. This variable points to the plugin's installation directory.
 
-**Problem:** This variable is Claude-specific and won't work in Gemini or other CLIs.
 
-**Solution:** The installer automatically converts this variable to an absolute path when installing for Gemini:
 
 ```javascript
 // Original (Claude hook script)
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '${CLAUDE_PLUGIN_ROOT}';
 
-// Converted (Gemini)
 const pluginRoot = '/Users/username/.gemini/extensions/claude-mem';
 ```
 
@@ -523,14 +497,12 @@ Instructions here...
 - Remove all fields except `name` and `description`
 - Description is truncated to first line only
 
-### Gemini Format (Converted to TOML)
 
-Gemini uses native extension format with TOML commands:
 
 ```
 ~/.gemini/extensions/my-skill/
-├── gemini-extension.json
-├── GEMINI.md
+├── manifest.json
+├── SKILL.md
 └── commands/
     └── my-skill/
         └── invoke.toml
@@ -546,8 +518,8 @@ Instructions here...
 ```
 
 **Conversion rules:**
-- Creates `gemini-extension.json` manifest
-- Creates `GEMINI.md` context file
+- Creates `manifest.json` manifest
+- Creates `SKILL.md` context file
 - Converts skill body to TOML `prompt` field
 - Registers in `extension-enablement.json`
 - Command invoked via `/<extension>:invoke`
@@ -607,9 +579,7 @@ Claude plugins can define hooks that trigger on specific events:
 | `Stop` | When the agent stops or completes |
 | `Notification` | On various events |
 
-### Gemini Hook Support
 
-Gemini CLI has native hook support that mirrors Claude's system. The installer converts Claude hooks to Gemini's format:
 
 **Claude hook structure:**
 ```
@@ -621,7 +591,6 @@ Gemini CLI has native hook support that mirrors Claude's system. The installer c
         └── cleanup.js
 ```
 
-**Converted Gemini structure:**
 ```
 hooks/
 ├── PreToolUse/
@@ -630,7 +599,6 @@ hooks/
     └── cleanup.js      # Script converted with variable replacement
 ```
 
-### Gemini Hook Conversion Process
 
 1. Copy hook directory structure
 2. Convert `${CLAUDE_PLUGIN_ROOT}` to absolute path in all scripts
@@ -697,7 +665,6 @@ The installer converts Claude plugin hooks to Codex's `hooks.json` format:
 
 ### Hook Compatibility Matrix
 
-| Feature | Claude | Codex | Gemini |
 |---------|--------|-------|--------|
 | Hook events | 25+ | 5 (experimental) | Mirrors Claude |
 | Tool coverage | All tools | Bash only | Via conversion |
@@ -718,7 +685,6 @@ Extension {
     extension_type: ExtensionType::Skill,
     source_repo: "",           // Not used
     source_path: "",           // Not used
-    cli_support: &[CliType::Claude, CliType::Codex, CliType::Gemini],
     is_embedded: true,         // Content generated by executor
     // ... other fields
 }
@@ -732,7 +698,6 @@ The `loop-runner` extension provides periodic task scheduling:
 
 **For Codex:** Uses Codex's built-in cron tools. No hook scripts, background processes, or loop files are installed.
 
-**For Gemini:** Uses background shell processes. Loop scripts and logs are stored in `~/.gemini/loops/`.
 
 ### Behavior
 
@@ -740,7 +705,6 @@ The `loop-runner` extension provides periodic task scheduling:
 |-----|-------------|-----------------|
 | Claude | `~/.claude/skills/loop-runner/SKILL.md` | Built-in cron tools |
 | Codex | `~/.codex/skills/loop-runner/SKILL.md` | Built-in cron tools |
-| Gemini | `~/.gemini/extensions/loop-runner/` (TOML) | Background processes + PID tracking |
 
 ## Limitations
 
@@ -758,7 +722,6 @@ The `loop-runner` extension provides periodic task scheduling:
 
 ### Marketplace Plugin Limitations
 
-1. **Gemini variable conversion** - Not all Claude-specific features can be converted:
    - `${CLAUDE_PLUGIN_ROOT}` is converted to absolute path
    - Other Claude-specific environment variables may not work
    - Plugin-specific APIs (e.g., Claude memory APIs) are not available
@@ -767,16 +730,13 @@ The `loop-runner` extension provides periodic task scheduling:
    - Scripts may look for `package.json` in parent directories
    - Relative imports may reference marketplace root files
 
-### Gemini Extension Format
 
-Gemini uses a native extension format that differs from Claude/Codex:
 - Extensions are installed to `~/.gemini/extensions/<name>/`
 - Commands are TOML files (not Markdown)
 - Extensions must be registered in `extension-enablement.json`
 - Invoke commands with `/<extension>:<command>` syntax
 
-The installer automatically converts Claude plugins to Gemini extension format:
-- Creates `gemini-extension.json` manifest
+- Creates `manifest.json` manifest
 - Converts commands to TOML format
 - Registers in `extension-enablement.json`
 
@@ -790,7 +750,6 @@ The following features may have limited functionality:
 
 3. **Tool Restrictions** - `allowed-tools` field
    - Claude uses this for security sandboxing
-   - Codex/Gemini don't support tool restrictions in skills
 
 4. **Sub-agents** - Complex multi-agent orchestration
    - Commands that launch sub-agents may not work as expected
@@ -815,7 +774,6 @@ Before submitting a new extension:
 - [ ] Conversion method configured:
   - `skill_subpath` for plugins with skills/ subdirectory
   - `command_file` for command-based conversion
-  - `has_hooks: true` for plugins with hooks (enables Gemini support)
 
 ### Marketplace Plugin Requirements
 
@@ -832,7 +790,6 @@ Before submitting a new extension:
 - [ ] Format passes: `cargo fmt --all -- --check`
 - [ ] Manual test: Install on all supported CLIs and verify functionality
 - [ ] Verify JSON registries are updated correctly (Claude)
-- [ ] Verify extension-enablement.json is updated (Gemini)
 
 ## File Locations
 
@@ -856,14 +813,13 @@ Before submitting a new extension:
 | `~/.claude/plugins/installed_plugins.json` | Installed plugins registry |
 | `~/.claude/settings.json` | Plugin enablement config |
 
-### Gemini Installation Files
 
 | File | Purpose |
 |------|---------|
 | `~/.gemini/extensions/` | Installed extensions |
 | `~/.gemini/extensions/extension-enablement.json` | Extension enablement config |
-| `~/.gemini/extensions/<name>/gemini-extension.json` | Extension manifest |
-| `~/.gemini/extensions/<name>/GEMINI.md` | Extension context file |
+| `~/.gemini/extensions/<name>/manifest.json` | Extension manifest |
+| `~/.gemini/extensions/<name>/SKILL.md` | Extension context file |
 
 ### Codex Installation Files
 
@@ -884,11 +840,9 @@ Before submitting a new extension:
 |-----|----------------------|--------------|
 | Claude | `~/.claude/skills/` | `~/.claude/plugins/` |
 | Codex | `~/.codex/skills/` | `~/.codex/plugins/` |
-| Gemini | `~/.gemini/extensions/` | N/A |
 
 ### Format Comparison
 
-| Feature | Claude | Codex | Gemini |
 |---------|--------|-------|--------|
 | Skill format | `SKILL.md` (YAML frontmatter) | `SKILL.md` (simplified) | `invoke.toml` |
 | Plugin support | ✅ Full | ⚠️ Hooks only | ❌ None (uses extensions) |
@@ -911,7 +865,6 @@ Before submitting a new extension:
 > Use loop-runner to schedule this verification every 30 minutes.
 ```
 
-**Gemini:**
 ```bash
 > /frontend-design:invoke
 > /loop-runner:invoke

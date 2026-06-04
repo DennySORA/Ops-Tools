@@ -367,7 +367,6 @@
 
 "mcp.tool.sequential_thinking" = "Sequential Thinking (逐次思考)"
 "mcp.tool.chrome_devtools" = "Chrome DevTools (ブラウザ開発ツール)"
-"mcp.tool.kubernetes" = "Kubernetes (K8s 管理)"
 "mcp.tool.context7" = "Context7 (ドキュメント検索)"
 "mcp.tool.github" = "GitHub (GitHub 連携)"
 "mcp.tool.cloudflare_docs" = "Cloudflare Docs (ドキュメント検索)"
@@ -385,8 +384,6 @@
 "mcp.tool.cloudflare_dex" = "Cloudflare DEX"
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
-"mcp.tool.tailwindcss" = "Tailwind CSS (CSS フレームワーク)"
-"mcp.tool.arxiv" = "arXiv (学術論文検索・ダウンロード)"
 
 "kubeconfig.header" = "Kubeconfig ウィンドウ分離マネージャー"
 "kubeconfig.select_action" = "操作を選択"

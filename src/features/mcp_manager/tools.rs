@@ -1,8 +1,6 @@
 use super::config::ENV_CONFIG;
 use crate::i18n::{self, keys};
 
-const TAILWINDCSS_MCP_WRAPPER: &str = "TW=$(command -v tailwindcss-server); export TW; exec node -e 'console.log = console.error; console.warn = console.error; await import(process.env.TW);'";
-
 /// MCP 工具配置選項
 #[derive(Clone, Default)]
 pub struct McpToolOptions {
@@ -134,7 +132,6 @@ const CLOUDFLARE_TOOLS: &[CloudflareTool] = &[
 pub enum CliType {
     Claude,
     Codex,
-    Gemini,
 }
 
 impl CliType {
@@ -142,7 +139,6 @@ impl CliType {
         match self {
             CliType::Claude => "claude",
             CliType::Codex => "codex",
-            CliType::Gemini => "gemini",
         }
     }
 
@@ -150,18 +146,14 @@ impl CliType {
         match self {
             CliType::Claude => "Anthropic Claude",
             CliType::Codex => "OpenAI Codex",
-            CliType::Gemini => "Google Gemini",
         }
     }
 }
 
 /// 取得可用的 MCP 工具清單
 pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
-    let separator = if cli_type == CliType::Gemini {
-        None
-    } else {
-        Some("--")
-    };
+    // All supported CLIs use "--" as separator between name and transport args
+    let separator = Some("--");
 
     let mut tools = vec![
         McpTool {
@@ -201,68 +193,6 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             requires_interactive: false,
             has_options: true,
         },
-        McpTool {
-            name: "kubernetes",
-            display_name_key: keys::MCP_TOOL_KUBERNETES,
-            install_args: {
-                let mut args = vec!["kubernetes".to_string()];
-                if let Some(sep) = separator {
-                    args.push(sep.to_string());
-                }
-                args.extend(vec![
-                    "npx".to_string(),
-                    "-y".to_string(),
-                    "kubernetes-mcp-server@latest".to_string(),
-                ]);
-                args
-            },
-            requires_interactive: false,
-            has_options: false,
-        },
-        McpTool {
-            name: "tailwindcss",
-            display_name_key: keys::MCP_TOOL_TAILWINDCSS,
-            install_args: {
-                let mut args = vec!["tailwindcss".to_string()];
-                if let Some(sep) = separator {
-                    args.push(sep.to_string());
-                }
-                args.extend(vec![
-                    "npx".to_string(),
-                    "-y".to_string(),
-                    "--package=tailwindcss-mcp-server@latest".to_string(),
-                    "--".to_string(),
-                    "sh".to_string(),
-                    "-c".to_string(),
-                    TAILWINDCSS_MCP_WRAPPER.to_string(),
-                ]);
-                args
-            },
-            requires_interactive: false,
-            has_options: false,
-        },
-        McpTool {
-            name: "arxiv-mcp-server",
-            display_name_key: keys::MCP_TOOL_ARXIV,
-            install_args: {
-                let storage_path = ENV_CONFIG.arxiv_storage_path.unwrap_or("~/.arxiv-papers");
-                let mut args = vec!["arxiv-mcp-server".to_string()];
-                if let Some(sep) = separator {
-                    args.push(sep.to_string());
-                }
-                args.extend(vec![
-                    "uv".to_string(),
-                    "tool".to_string(),
-                    "run".to_string(),
-                    "arxiv-mcp-server@latest".to_string(),
-                    "--storage-path".to_string(),
-                    storage_path.to_string(),
-                ]);
-                args
-            },
-            requires_interactive: false,
-            has_options: false,
-        },
     ];
 
     // 只有在環境變數存在時才加入特定工具
@@ -280,14 +210,6 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                 "context7".to_string(),
                 "--url".to_string(),
                 "https://mcp.context7.com/mcp".to_string(),
-            ],
-            CliType::Gemini => vec![
-                "context7".to_string(),
-                "https://mcp.context7.com/mcp".to_string(),
-                "--transport".to_string(),
-                "http".to_string(),
-                "--header".to_string(),
-                format!("CONTEXT7_API_KEY: {}", key),
             ],
         };
         tools.push(McpTool {
@@ -312,12 +234,6 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                     tool.name.to_string(),
                     "--url".to_string(),
                     tool.url.to_string(),
-                ],
-                CliType::Gemini => vec![
-                    tool.name.to_string(),
-                    tool.url.to_string(),
-                    "--transport".to_string(),
-                    "http".to_string(),
                 ],
             };
             tools.push(McpTool {
@@ -359,21 +275,6 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
                     "--url".to_string(),
                     "https://api.githubcopilot.com/mcp/".to_string(),
                 ],
-                CliType::Gemini => {
-                    let mut args = vec![
-                        "github".to_string(),
-                        "https://api.githubcopilot.com/mcp/".to_string(),
-                        "--transport".to_string(),
-                        "http".to_string(),
-                        "--header".to_string(),
-                        format!("Authorization: Bearer {}", token),
-                    ];
-                    if host != "github.com" {
-                        args.push("--header".to_string());
-                        args.push(format!("X-GitHub-Host: {}", host));
-                    }
-                    args
-                }
             }
         } else {
             // Docker 本地模式
@@ -446,52 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn test_gemini_tools_no_separator() {
-        let tools = get_available_tools(CliType::Gemini);
-        for tool in tools {
-            if tool.name == "sequential-thinking" {
-                // Ensure the second argument (index 1) is NOT "--"
-                // install_args[0] is name
-                // install_args[1] should be "npx"
-                assert_eq!(tool.install_args[1], "npx");
-            }
-        }
-    }
-
-    #[test]
-    fn test_tailwindcss_uses_stdio_safe_wrapper() {
-        let tools = get_available_tools(CliType::Codex);
-        let tool = tools
-            .iter()
-            .find(|tool| tool.name == "tailwindcss")
-            .expect("Missing tailwindcss tool");
-
-        assert!(tool.install_args.contains(&"--".to_string()));
-        assert!(
-            tool.install_args
-                .contains(&"--package=tailwindcss-mcp-server@latest".to_string())
-        );
-        assert!(
-            tool.install_args
-                .iter()
-                .any(|arg| arg.contains("console.log = console.error"))
-        );
-    }
-
-    #[test]
     fn test_mcp_package_sources_use_latest() {
-        let tools = get_available_tools(CliType::Claude);
-
-        let arxiv = tools
-            .iter()
-            .find(|tool| tool.name == "arxiv-mcp-server")
-            .expect("Missing arxiv-mcp-server tool");
-        assert!(
-            arxiv
-                .install_args
-                .contains(&"arxiv-mcp-server@latest".to_string())
-        );
-
         let github = get_available_tools(CliType::Claude)
             .into_iter()
             .find(|tool| tool.name == "github");

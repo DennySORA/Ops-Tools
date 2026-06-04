@@ -367,7 +367,6 @@
 
 "mcp.tool.sequential_thinking" = "Sequential Thinking (循序思考)"
 "mcp.tool.chrome_devtools" = "Chrome DevTools (瀏覽器開發工具)"
-"mcp.tool.kubernetes" = "Kubernetes (K8s 管理)"
 "mcp.tool.context7" = "Context7 (文檔查詢)"
 "mcp.tool.github" = "GitHub (GitHub 整合)"
 "mcp.tool.cloudflare_docs" = "Cloudflare Docs (文件查詢)"
@@ -385,8 +384,6 @@
 "mcp.tool.cloudflare_dex" = "Cloudflare DEX"
 "mcp.tool.cloudflare_casb" = "Cloudflare One CASB"
 "mcp.tool.cloudflare_graphql" = "Cloudflare GraphQL"
-"mcp.tool.tailwindcss" = "Tailwind CSS (CSS 框架)"
-"mcp.tool.arxiv" = "arXiv (學術論文搜尋與下載)"
 
 "kubeconfig.header" = "Kubeconfig 視窗隔離管理器"
 "kubeconfig.select_action" = "請選擇操作"

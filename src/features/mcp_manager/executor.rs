@@ -2,8 +2,6 @@ use super::config::ENV_CONFIG;
 use super::tools::{CliType, McpTool, McpToolOptions};
 use crate::core::{OperationError, Result};
 use crate::i18n::{self, keys};
-use serde_json::Value;
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -120,24 +118,8 @@ impl McpExecutor {
     }
 
     fn maybe_migrate_cli_settings(&self) -> Result<()> {
-        self.maybe_migrate_gemini_settings()?;
         self.maybe_configure_codex_context7_headers()?;
         self.maybe_configure_codex_github_env()?;
-        Ok(())
-    }
-
-    fn maybe_migrate_gemini_settings(&self) -> Result<()> {
-        if self.cli != CliType::Gemini {
-            return Ok(());
-        }
-
-        for path in gemini_settings_paths() {
-            if !path.exists() {
-                continue;
-            }
-            migrate_gemini_settings_file(&path)?;
-        }
-
         Ok(())
     }
 
@@ -230,82 +212,9 @@ fn parse_mcp_list(output: &str) -> Vec<String> {
     names
 }
 
-fn gemini_settings_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-
-    if let Ok(cwd) = env::current_dir() {
-        paths.push(cwd.join(".gemini").join("settings.json"));
-    }
-
-    if let Ok(home) = env::var("HOME") {
-        let home_path = PathBuf::from(home);
-        paths.push(home_path.join(".gemini").join("settings.json"));
-        paths.push(
-            home_path
-                .join(".config")
-                .join("gemini")
-                .join("settings.json"),
-        );
-        paths.push(
-            home_path
-                .join(".config")
-                .join("gemini-cli")
-                .join("settings.json"),
-        );
-    }
-
-    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
-        let xdg_path = PathBuf::from(xdg);
-        paths.push(xdg_path.join("gemini").join("settings.json"));
-        paths.push(xdg_path.join("gemini-cli").join("settings.json"));
-    }
-
-    let mut unique = Vec::new();
-    for path in paths {
-        if !unique.contains(&path) {
-            unique.push(path);
-        }
-    }
-
-    unique
-}
-
 fn codex_config_path() -> Option<PathBuf> {
-    let home = env::var("HOME").ok()?;
+    let home = std::env::var("HOME").ok()?;
     Some(PathBuf::from(home).join(".codex").join("config.toml"))
-}
-
-fn migrate_gemini_settings_file(path: &Path) -> Result<bool> {
-    let raw = fs::read_to_string(path).map_err(|err| OperationError::Io {
-        path: path.display().to_string(),
-        source: err,
-    })?;
-
-    if !raw.contains("\"type\"") {
-        return Ok(false);
-    }
-
-    let sanitized = strip_json_comments(&raw);
-    let mut root: Value =
-        serde_json::from_str(&sanitized).map_err(|err| OperationError::Config {
-            key: path.display().to_string(),
-            message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_PARSE_FAILED, error = err),
-        })?;
-
-    let changed = migrate_gemini_mcp_servers(&mut root);
-    if changed {
-        let formatted =
-            serde_json::to_string_pretty(&root).map_err(|err| OperationError::Config {
-                key: path.display().to_string(),
-                message: crate::tr!(keys::MCP_EXECUTOR_CONFIG_SERIALIZE_FAILED, error = err),
-            })?;
-        fs::write(path, format!("{}\n", formatted)).map_err(|err| OperationError::Io {
-            path: path.display().to_string(),
-            source: err,
-        })?;
-    }
-
-    Ok(changed)
 }
 
 fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
@@ -463,45 +372,6 @@ fn update_codex_github_config(path: &Path, token: &str, host: &str) -> Result<bo
     Ok(changed)
 }
 
-fn migrate_gemini_mcp_servers(root: &mut Value) -> bool {
-    let Some(servers) = root
-        .get_mut("mcpServers")
-        .and_then(|value| value.as_object_mut())
-    else {
-        return false;
-    };
-
-    let mut changed = false;
-
-    for server in servers.values_mut() {
-        let Some(server_obj) = server.as_object_mut() else {
-            continue;
-        };
-
-        let transport = match server_obj.remove("type") {
-            Some(value) => {
-                changed = true;
-                value.as_str().unwrap_or("").to_ascii_lowercase()
-            }
-            None => continue,
-        };
-
-        if transport == "http" {
-            if server_obj.get("httpUrl").is_none()
-                && let Some(url_value) = server_obj.remove("url")
-            {
-                server_obj.insert("httpUrl".to_string(), url_value);
-                changed = true;
-            }
-            if server_obj.get("httpUrl").is_some() {
-                server_obj.remove("url");
-            }
-        }
-    }
-
-    changed
-}
-
 fn is_ignored_token(token: &str) -> bool {
     matches!(
         token,
@@ -534,63 +404,6 @@ fn strip_ansi_codes(input: &str) -> String {
             }
             continue;
         }
-        output.push(ch);
-    }
-
-    output
-}
-
-fn strip_json_comments(input: &str) -> String {
-    let mut output = String::with_capacity(input.len());
-    let mut chars = input.chars().peekable();
-    let mut in_string = false;
-    let mut escaped = false;
-
-    while let Some(ch) = chars.next() {
-        if in_string {
-            if escaped {
-                escaped = false;
-            } else if ch == '\\' {
-                escaped = true;
-            } else if ch == '"' {
-                in_string = false;
-            }
-            output.push(ch);
-            continue;
-        }
-
-        if ch == '"' {
-            in_string = true;
-            output.push(ch);
-            continue;
-        }
-
-        if ch == '/' {
-            match chars.peek() {
-                Some('/') => {
-                    chars.next();
-                    for next in chars.by_ref() {
-                        if next == '\n' {
-                            output.push('\n');
-                            break;
-                        }
-                    }
-                    continue;
-                }
-                Some('*') => {
-                    chars.next();
-                    while let Some(next) = chars.next() {
-                        if next == '*' && matches!(chars.peek(), Some('/')) {
-                            chars.next();
-                            break;
-                        }
-                    }
-                    continue;
-                }
-                _ => {}
-            }
-        }
-
         output.push(ch);
     }
 
@@ -634,42 +447,6 @@ mod tests {
         );
         let result = parse_mcp_list(output);
         assert_eq!(result, vec!["sequential-thinking".to_string()]);
-    }
-
-    #[test]
-    fn test_migrate_gemini_settings_http_type() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("settings.json");
-        let content = r#"{"mcpServers":{"context7":{"url":"https://example.com","type":"http"}}}"#;
-
-        fs::write(&path, content).unwrap();
-
-        let changed = migrate_gemini_settings_file(&path).unwrap();
-        assert!(changed);
-
-        let value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-        let server = &value["mcpServers"]["context7"];
-        assert_eq!(server["httpUrl"], "https://example.com");
-        assert!(server.get("url").is_none());
-        assert!(server.get("type").is_none());
-    }
-
-    #[test]
-    fn test_migrate_gemini_settings_sse_type() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("settings.json");
-        let content = r#"{"mcpServers":{"context7":{"url":"https://example.com","type":"sse"}}}"#;
-
-        fs::write(&path, content).unwrap();
-
-        let changed = migrate_gemini_settings_file(&path).unwrap();
-        assert!(changed);
-
-        let value: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
-        let server = &value["mcpServers"]["context7"];
-        assert_eq!(server["url"], "https://example.com");
-        assert!(server.get("httpUrl").is_none());
-        assert!(server.get("type").is_none());
     }
 
     #[test]

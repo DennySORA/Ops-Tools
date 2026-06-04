@@ -11,14 +11,13 @@
 | 分類 | 功能 | 說明 |
 |------|------|------|
 | 升級 | 系統升級 | 跨平台系統維護（Linux APT / macOS Homebrew + 工具） |
-| 升級 | AI 工具升級 | 批次更新 Claude Code、Codex、Gemini CLI |
 | 升級 | Rust 升級 | 升級 Rust 工具鏈 + Cargo 工具 |
 | 升級 | 套件管理 | 安裝/更新 nvm、pnpm、Rust、Go、kubectl、k9s、tmux 等 |
 | 建構 | Rust 編譯 | 跨平台 Rust 可執行檔（cargo/cross，30+ 目標） |
 | 建構 | 容器建構 | Docker/Buildah 多架構建構（x86、arm64、armv7、Jetson） |
 | 建構 | CUDA ML 建構 | 從原始碼建構 ML 套件（PyTorch、Flash Attention、xFormers） |
-| AI | MCP 管理 | 管理 Claude/Codex/Gemini 的 MCP 伺服器 |
-| AI | 技能安裝器 | 安裝 AI CLI 擴充套件（Claude/Codex/Gemini） |
+| AI | MCP 管理 | 管理 Claude/Codex 的 MCP 伺服器 |
+| AI | 技能安裝器 | 安裝 AI CLI 擴充套件（Claude/Codex） |
 | 基礎設施 | Terraform 清理 | 移除 `.terraform`、`.terragrunt-cache` 及 lock 檔案 |
 | 基礎設施 | Kubeconfig 管理 | tmux 視窗隔離的 kubeconfig |
 | 安全 | 安全掃描 | 執行 gitleaks、trufflehog、git-secrets、trivy、semgrep |
@@ -60,7 +59,6 @@
 批次升級 AI 程式碼助手工具：
 - `Claude Code` (@anthropic-ai/claude-code)
 - `OpenAI Codex` (@openai/codex) — 支援從本地 repo 原始碼建構
-- `Google Gemini CLI` (@google/gemini-cli)
 
 ### 套件管理（macOS / Linux）
 透過互動勾選安裝、移除與更新常用工具：
@@ -83,16 +81,13 @@
 - 隔離建構環境於 `~/.ml-packages/`
 
 ### MCP 管理
-管理 Claude、Codex 和 Gemini CLI 的 MCP 伺服器：
+管理 Claude 和 Codex CLI 的 MCP 伺服器：
 
 | MCP 工具 | 說明 |
 |----------|------|
 | `sequential-thinking` | 循序思考 |
 | `context7` | 文檔查詢 |
 | `chrome-devtools` | 瀏覽器開發工具 |
-| `kubernetes` | K8s 管理 |
-| `tailwindcss` | Tailwind CSS |
-| `arxiv-mcp-server` | arXiv 論文搜尋與下載 |
 | `github` | GitHub 整合 |
 | `cloudflare-*` | Cloudflare MCP 伺服器 |
 
@@ -105,7 +100,6 @@
 - **Context7**：設定 `CONTEXT7_API_KEY`
 - **GitHub**：設定 `GITHUB_PERSONAL_ACCESS_TOKEN`（必要），選用 `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
 - **Cloudflare**：設定 `enable_cloudflare_mcp=true`（安裝時 OAuth）
-- **arXiv**：設定 `ARXIV_STORAGE_PATH`（預設 `~/.arxiv-papers`）
 
 ### 技能安裝器
 安裝 AI CLI 工具的擴充套件：
@@ -114,7 +108,6 @@
 |-----|---------|---------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
 | OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
-| Google Gemini | Extensions (TOML) | `~/.gemini/extensions/` |
 
 可用擴充套件：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner 等。
 
