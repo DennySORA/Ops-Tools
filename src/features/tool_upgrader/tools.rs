@@ -58,12 +58,12 @@ impl AiTool {
 
 /// 預設的 AI 工具清單
 pub const AI_TOOLS: &[AiTool] = &[
-    // Claude Code: global install (not project-scoped)
+    // Claude Code: use built-in updater
     AiTool::with_custom_command(
         "Claude Code",
-        "claude install --global",
+        "claude update",
         "claude",
-        &["install", "--global"],
+        &["update"],
     ),
     AiTool::with_custom_command(
         "OpenAI Codex",

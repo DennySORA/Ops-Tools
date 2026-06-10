@@ -286,7 +286,7 @@ mod tests {
 
         let (program, args) = upgrader.build_command(claude);
         assert_eq!(program, "claude");
-        assert_eq!(args, vec!["install".to_string(), "--global".to_string()]);
+        assert_eq!(args, vec!["update".to_string()]);
     }
 
     #[test]
