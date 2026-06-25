@@ -468,6 +468,7 @@ pub mod keys {
 
     pub const MCP_TOOL_SEQUENTIAL_THINKING: &str = "mcp.tool.sequential_thinking";
     pub const MCP_TOOL_CHROME_DEVTOOLS: &str = "mcp.tool.chrome_devtools";
+    pub const MCP_TOOL_PLAYWRIGHT: &str = "mcp.tool.playwright";
     pub const MCP_TOOL_CONTEXT7: &str = "mcp.tool.context7";
     pub const MCP_TOOL_GITHUB: &str = "mcp.tool.github";
     pub const MCP_TOOL_CLOUDFLARE_DOCS: &str = "mcp.tool.cloudflare_docs";
@@ -571,6 +572,9 @@ pub mod keys {
     // Skill Installer - UI
     pub const SKILL_INSTALLER_HEADER: &str = "skill_installer.header";
     pub const SKILL_INSTALLER_SELECT_CLI: &str = "skill_installer.select_cli";
+    pub const SKILL_INSTALLER_SELECT_SCOPE: &str = "skill_installer.select_scope";
+    pub const SKILL_INSTALLER_SCOPE_LOCAL: &str = "skill_installer.scope_local";
+    pub const SKILL_INSTALLER_SCOPE_GLOBAL: &str = "skill_installer.scope_global";
     pub const SKILL_INSTALLER_CANCELLED: &str = "skill_installer.cancelled";
     pub const SKILL_INSTALLER_USING_CLI: &str = "skill_installer.using_cli";
     pub const SKILL_INSTALLER_SCANNING: &str = "skill_installer.scanning";
@@ -600,10 +604,26 @@ pub mod keys {
     pub const SKILL_INSTALLER_EXTRACT_FAILED: &str = "skill_installer.extract_failed";
 
     // Extension names
-    pub const SKILL_RALPH_WIGGUM: &str = "skill.ralph_wiggum";
     pub const SKILL_FRONTEND_DESIGN: &str = "skill.frontend_design";
     pub const SKILL_CLAUDE_MEM: &str = "skill.claude_mem";
-    pub const SKILL_LOOP_RUNNER: &str = "skill.loop_runner";
+    pub const SKILL_FRONTEND_UI_ENGINEERING: &str = "skill.frontend_ui_engineering";
+    pub const SKILL_ANTFU_NUXT: &str = "skill.antfu_nuxt";
+    pub const SKILL_NUXT_UI: &str = "skill.nuxt_ui";
+    pub const SKILL_ONMAX_NUXT: &str = "skill.onmax_nuxt";
+    pub const SKILL_NEXTLEVEL_UI_UX_PRO_MAX: &str = "skill.nextlevel_ui_ux_pro_max";
+    pub const SKILL_FRONTEND_DESIGN_SYSTEM: &str = "skill.frontend_design_system";
+    pub const SKILL_WEB_DESIGN_REVIEWER: &str = "skill.web_design_reviewer";
+    pub const SKILL_KIMNY_UI_UX_PRO_MAX: &str = "skill.kimny_ui_ux_pro_max";
+    pub const SKILL_IMPECCABLE_FRONTEND_DESIGN: &str = "skill.impeccable_frontend_design";
+    pub const SKILL_THREEJS_ANIMATION: &str = "skill.threejs_animation";
+    pub const SKILL_UI_ANIMATION: &str = "skill.ui_animation";
+    pub const SKILL_FRAMER_MOTION_ANIMATOR: &str = "skill.framer_motion_animator";
+    pub const SKILL_CODE_REVIEW_EXPERT: &str = "skill.code_review_expert";
+    pub const SKILL_PLAYWRIGHT_GENERATE_TEST: &str = "skill.playwright_generate_test";
+    pub const SKILL_PLAYWRIGHT_EXPLORE_WEBSITE: &str = "skill.playwright_explore_website";
+    pub const SKILL_TYPESCRIPT_CLEAN_CODE: &str = "skill.typescript_clean_code";
+    pub const SKILL_TYPESCRIPT_UNIT_TESTING: &str = "skill.typescript_unit_testing";
+    pub const SKILL_MASTERING_TYPESCRIPT: &str = "skill.mastering_typescript";
 
     // CUDA Builder - Menu
     pub const MENU_CUDA_BUILDER: &str = "menu.cuda_builder.name";

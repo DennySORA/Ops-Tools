@@ -242,6 +242,10 @@ fn update_codex_context7_config(path: &Path, api_key: &str) -> Result<bool> {
         return Ok(false);
     };
 
+    if !context7.contains_key("url") {
+        return Ok(false);
+    }
+
     let mut changed = false;
     let mut headers = match context7.get("http_headers") {
         Some(value) => match value.as_table() {
@@ -488,6 +492,26 @@ command = "npx"
 
         let changed = update_codex_context7_config(&path, "test-key").unwrap();
         assert!(!changed);
+    }
+
+    #[test]
+    fn test_update_codex_context7_config_skips_stdio_server() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let content = r#"[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+"#;
+
+        fs::write(&path, content).unwrap();
+
+        let changed = update_codex_context7_config(&path, "test-key").unwrap();
+        assert!(!changed);
+
+        let root: toml::Table = toml::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let servers = root.get("mcp_servers").unwrap().as_table().unwrap();
+        let context7 = servers.get("context7").unwrap().as_table().unwrap();
+        assert!(context7.get("http_headers").is_none());
     }
 
     #[test]

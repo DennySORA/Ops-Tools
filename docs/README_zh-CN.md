@@ -88,6 +88,7 @@
 | `sequential-thinking` | 循序思考 |
 | `context7` | 文档查询 |
 | `chrome-devtools` | 浏览器开发工具 |
+| `playwright` | Playwright 浏览器自动化 |
 | `github` | GitHub 整合 |
 | `cloudflare-*` | Cloudflare MCP 服务器 |
 
@@ -97,7 +98,7 @@
 3. 使用 `cargo build --release` 编译
 
 可用选项：
-- **Context7**：设置 `CONTEXT7_API_KEY`
+- **Context7**：可选设置 `CONTEXT7_API_KEY` 以提高限制
 - **GitHub**：设置 `GITHUB_PERSONAL_ACCESS_TOKEN`（必需），可选 `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
 - **Cloudflare**：设置 `enable_cloudflare_mcp=true`（安装时 OAuth）
 
@@ -107,9 +108,9 @@
 | CLI | 扩展格式 | 安装路径 |
 |-----|---------|---------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
-| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| OpenAI Codex | Skills (SKILL.md) + Skills CLI | `.agents/skills/`、`~/.codex/skills/` |
 
-可用扩展：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner 等。
+可用扩展：Claude Code 支持 frontend-design、claude-mem；OpenAI Codex 支持 frontend-design 以及精选前端/测试 skills。
 
 详见 [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 开发指南。
 

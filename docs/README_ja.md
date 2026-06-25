@@ -89,6 +89,7 @@ Claude、Codex CLI 用の MCP サーバー管理：
 | `sequential-thinking` | シーケンシャル・シンキング |
 | `context7` | ドキュメント検索 |
 | `chrome-devtools` | Chrome 開発者ツール |
+| `playwright` | Playwright ブラウザ自動化 |
 | `github` | GitHub 統合 |
 | `cloudflare-*` | Cloudflare MCP サーバー |
 
@@ -98,7 +99,7 @@ Claude、Codex CLI 用の MCP サーバー管理：
 3. `cargo build --release` でビルド
 
 利用可能なオプション：
-- **Context7**：`CONTEXT7_API_KEY` を設定
+- **Context7**：上限を上げる場合は任意で `CONTEXT7_API_KEY` を設定
 - **GitHub**：`GITHUB_PERSONAL_ACCESS_TOKEN`（必須）、オプションで `GITHUB_MCP_MODE`、`GITHUB_HOST`、`GITHUB_TOOLSETS`
 - **Cloudflare**：`enable_cloudflare_mcp=true` を設定（インストール時 OAuth）
 
@@ -108,9 +109,9 @@ AI CLI ツールの拡張機能をインストール：
 | CLI | 拡張形式 | インストールパス |
 |-----|---------|-----------------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`、`~/.claude/skills/` |
-| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| OpenAI Codex | Skills (SKILL.md) + Skills CLI | `.agents/skills/`、`~/.codex/skills/` |
 
-利用可能な拡張機能：ralph-wiggum、security-guidance、frontend-design、code-review、pr-review-toolkit、commit-commands、writing-rules、claude-mem、loop-runner など。
+利用可能な拡張機能：Claude Code は frontend-design、claude-mem、OpenAI Codex は frontend-design と厳選されたフロントエンド/テスト skills に対応しています。
 
 詳細は [docs/SKILL_INSTALLER.md](SKILL_INSTALLER.md) 開発ガイドを参照。
 

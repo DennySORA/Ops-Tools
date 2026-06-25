@@ -1,120 +1,11 @@
-use super::tools::{CliType, Extension, ExtensionType};
+use super::tools::{CliType, Extension, ExtensionType, InstallScope, SkillsCliSpec};
 use crate::core::{OperationError, Result};
 use crate::i18n::keys;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-/// Loop Runner SKILL.md content for Claude Code
-/// Claude has built-in /loop support via CronCreate/CronList/CronDelete tools.
-const LOOP_RUNNER_CLAUDE: &str = r#"---
-name: loop-runner
-description: Schedule periodic task execution with customizable intervals
----
-
-# Loop Runner
-
-Schedule recurring tasks to run at specified intervals.
-
-## Usage
-
-When the user requests periodic execution (e.g., "every 5 minutes check if tests pass"),
-parse their request and use the built-in cron tools.
-
-## Commands
-- `loop <interval> <task>` - Start a new periodic task
-- `loop list` - List all active loops
-- `loop cancel <id>` - Cancel a specific loop
-- `loop results <id>` - Check results of a loop
-
-## Interval Parsing
-
-Convert the user's interval to a cron expression:
-- `Ns` or `N seconds` → Round up to 1 minute minimum: `*/1 * * * *`
-- `Nm` or `N minutes` → `*/N * * * *`
-- `Nh` or `N hours` → `0 */N * * *`
-- `Nd` or `N days` → `0 0 */N * *`
-
-## Implementation
-
-1. **Start a loop**: Parse interval and task, call CronCreate with the cron expression and the task as the prompt. Set recurring to true.
-2. **List loops**: Call CronList to show all active scheduled tasks.
-3. **Cancel a loop**: Call CronDelete with the task ID.
-4. **Check results**: The cron system handles execution automatically. Results appear in the conversation.
-
-## Examples
-- "loop every 5m to check build status" → CronCreate with `*/5 * * * *`
-- "loop hourly to run tests" → CronCreate with `0 * * * *`
-- "loop daily to check dependencies" → CronCreate with `0 0 * * *`
-"#;
-
-/// Loop Runner SKILL.md content for Codex CLI
-/// Uses built-in cron_create/cron_list/cron_delete tools (in-process scheduler).
-const LOOP_RUNNER_CODEX: &str = r#"---
-name: loop-runner
-description: Schedule periodic task execution with customizable intervals
----
-
-# Loop Runner
-
-Use the built-in cron tools to schedule periodic tasks.
-
-## Critical: What cron_create does
-
-`cron_create` does exactly ONE thing: **re-injects the prompt as a user message when the interval elapses**.
-
-- Do NOT create scripts, files, daemons, or background processes
-- Do NOT use Bash to run nohup, sleep, cron, or any scheduler
-- Do NOT write anything to disk
-- When the prompt fires, you receive it like the user typed it — just respond normally
-
-## Usage
-
-### Create a schedule → `cron_create`
-
-When the user asks for periodic execution (e.g., "every 5 minutes check build", "loop every 1h check training"):
-
-```
-cron_create(
-  prompt = "Check build status and report the results",
-  interval_seconds = 300,
-  recurring = true
-)
-```
-
-- `prompt`: the message you will receive when the timer fires — describe the task clearly
-- `interval_seconds`: time between firings in seconds
-- `recurring`: true to repeat, false for one-shot
-
-Interval conversion:
-- `10s` → 10
-- `5m` → 300
-- `1h` → 3600
-- `1d` → 86400
-- No unit → treat as minutes
-
-### List schedules → `cron_list`
-
-When the user asks "show active loops" or "list scheduled tasks".
-
-### Cancel a schedule → `cron_delete`
-
-When the user says "cancel loop xxx" or "stop that loop" — pass the job ID.
-
-## What happens when a schedule fires
-
-1. You receive the prompt as if the user typed it
-2. You respond normally — run commands, check status, report back
-3. Nothing extra is needed
-4. The next cycle fires automatically
-
-## Lifecycle
-
-- Schedules live in Codex process memory (in-process)
-- Codex exits → all schedules vanish automatically
-- No files, no residue, no cleanup needed
-"#;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Check if a hooks.json entry contains a hook command matching the given path prefix
 fn entry_contains_plugin_path(entry: &serde_json::Value, path_prefix: &str) -> bool {
@@ -132,14 +23,178 @@ fn entry_contains_plugin_path(entry: &serde_json::Value, path_prefix: &str) -> b
         .unwrap_or(false)
 }
 
+fn format_command(command: &str, args: &[String]) -> String {
+    std::iter::once(command.to_string())
+        .chain(args.iter().map(|arg| quote_command_arg(arg)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn quote_command_arg(arg: &str) -> String {
+    if arg
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || "-_./:@=".contains(ch))
+    {
+        arg.to_string()
+    } else {
+        format!("'{}'", arg.replace('\'', "'\\''"))
+    }
+}
+
+fn strip_ansi_codes(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\u{1b}' && chars.peek().copied() == Some('[') {
+            chars.next();
+            for code_ch in chars.by_ref() {
+                if code_ch.is_ascii_alphabetic() {
+                    break;
+                }
+            }
+            continue;
+        }
+        output.push(ch);
+    }
+
+    output
+}
+
+fn clean_cli_line(line: &str) -> String {
+    strip_ansi_codes(line)
+        .trim()
+        .trim_start_matches(|ch| {
+            matches!(
+                ch,
+                '│' | '└'
+                    | '├'
+                    | '─'
+                    | '●'
+                    | '■'
+                    | '◇'
+                    | '◆'
+                    | '◒'
+                    | '◐'
+                    | '◓'
+                    | '◑'
+                    | '✓'
+                    | '✗'
+            )
+        })
+        .trim()
+        .to_string()
+}
+
+fn is_ascii_art_line(line: &str) -> bool {
+    let total = line.chars().filter(|ch| !ch.is_whitespace()).count();
+    if total == 0 {
+        return false;
+    }
+
+    let art = line
+        .chars()
+        .filter(|ch| matches!(ch, '█' | '╗' | '╚' | '═' | '╝' | '║' | '╔' | '╦' | '╩'))
+        .count();
+    art * 2 >= total
+}
+
+fn is_noise_output_line(line: &str) -> bool {
+    line.is_empty()
+        || is_ascii_art_line(line)
+        || line.contains("Agent detected")
+        || line == "Repository cloned"
+        || line.starts_with("Source: ")
+        || line.starts_with("Cloning repository")
+        || line == "Canceled"
+}
+
+fn cleaned_output_lines(stderr: &[u8], stdout: &[u8]) -> Vec<String> {
+    [stderr, stdout]
+        .into_iter()
+        .flat_map(|bytes| {
+            String::from_utf8_lossy(bytes)
+                .replace('\r', "\n")
+                .lines()
+                .map(clean_cli_line)
+                .collect::<Vec<_>>()
+        })
+        .filter(|line| !is_noise_output_line(line))
+        .collect()
+}
+
+fn summarize_command_output(stderr: &[u8], stdout: &[u8]) -> String {
+    let lines = cleaned_output_lines(stderr, stdout);
+    if lines.is_empty() {
+        return "unknown error".to_string();
+    }
+
+    let start = lines.len().saturating_sub(10);
+    lines[start..].join("\n")
+}
+
+fn write_command_log(
+    command_line: &str,
+    status: std::process::ExitStatus,
+    stderr: &[u8],
+    stdout: &[u8],
+) -> Option<PathBuf> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()?
+        .as_millis();
+    let path = std::env::temp_dir().join(format!(
+        "ops-tools-skills-cli-{}-{}.log",
+        std::process::id(),
+        timestamp
+    ));
+    let content = format!(
+        "Command: {command_line}\nStatus: {status}\n\n--- stderr ---\n{}\n\n--- stdout ---\n{}\n",
+        strip_ansi_codes(&String::from_utf8_lossy(stderr)).replace('\r', "\n"),
+        strip_ansi_codes(&String::from_utf8_lossy(stdout)).replace('\r', "\n")
+    );
+
+    fs::write(&path, content).ok()?;
+    Some(path)
+}
+
+fn command_failure_message(
+    command_line: &str,
+    status: std::process::ExitStatus,
+    stderr: &[u8],
+    stdout: &[u8],
+) -> String {
+    let mut message = format!(
+        "Command: {command_line}\nOutput:\n{}",
+        summarize_command_output(stderr, stdout)
+    );
+
+    if let Some(path) = write_command_log(command_line, status, stderr, stdout) {
+        message.push_str(&format!("\nFull log: {}", path.display()));
+    }
+
+    message
+}
+
+fn configure_noninteractive_git(command: &mut Command) {
+    command.env("GIT_TERMINAL_PROMPT", "0");
+    if std::env::var_os("GIT_SSH_COMMAND").is_none() {
+        command.env(
+            "GIT_SSH_COMMAND",
+            "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new",
+        );
+    }
+}
+
 /// Extension executor for installing and removing extensions
 pub struct ExtensionExecutor {
     cli: CliType,
+    scope: InstallScope,
 }
 
 impl ExtensionExecutor {
-    pub fn new(cli: CliType) -> Self {
-        Self { cli }
+    pub fn new(cli: CliType, scope: InstallScope) -> Self {
+        Self { cli, scope }
     }
 
     /// Get the installation directory for a specific extension type
@@ -153,25 +208,63 @@ impl ExtensionExecutor {
         }
     }
 
+    fn project_skill_dir(&self) -> PathBuf {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match self.cli {
+            CliType::Claude => cwd.join(".claude/skills"),
+            CliType::Codex => cwd.join(".agents/skills"),
+        }
+    }
+
+    fn skill_install_dir(&self) -> PathBuf {
+        match self.scope {
+            InstallScope::Local => self.project_skill_dir(),
+            InstallScope::Global => self.install_dir(ExtensionType::Skill),
+        }
+    }
+
+    fn extension_install_dir(&self, ext_type: ExtensionType) -> PathBuf {
+        match ext_type {
+            ExtensionType::Skill => self.skill_install_dir(),
+            ExtensionType::Plugin => self.install_dir(ExtensionType::Plugin),
+        }
+    }
+
+    fn skill_dirs_for_scope(&self) -> Vec<PathBuf> {
+        match (self.cli, self.scope) {
+            (CliType::Claude, InstallScope::Local) => vec![self.project_skill_dir()],
+            (CliType::Codex, InstallScope::Local) => vec![self.project_skill_dir()],
+            (CliType::Claude, InstallScope::Global) => vec![self.install_dir(ExtensionType::Skill)],
+            (CliType::Codex, InstallScope::Global) => {
+                let home = dirs::home_dir().expect("Cannot find home directory");
+                vec![
+                    self.install_dir(ExtensionType::Skill),
+                    home.join(".agents/skills"),
+                ]
+            }
+        }
+    }
+
     /// List installed extensions (returns a map of name -> extension type)
     pub fn list_installed(&self) -> Result<HashMap<String, ExtensionType>> {
         let mut installed = HashMap::new();
 
-        // Claude/Codex: scan skills directory
-        let skills_dir = self.install_dir(ExtensionType::Skill);
-        if skills_dir.exists()
-            && let Ok(entries) = fs::read_dir(&skills_dir)
-        {
-            for entry in entries.flatten() {
-                if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    installed.insert(name, ExtensionType::Skill);
+        // Claude/Codex: scan skills directories for the selected scope.
+        for skills_dir in self.skill_dirs_for_scope() {
+            if skills_dir.exists()
+                && let Ok(entries) = fs::read_dir(&skills_dir)
+            {
+                for entry in entries.flatten() {
+                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        installed.insert(name, ExtensionType::Skill);
+                    }
                 }
             }
         }
 
         // For Codex, also scan plugins directory (hook-based plugins)
-        if self.cli == CliType::Codex {
+        if self.cli == CliType::Codex && self.scope == InstallScope::Global {
             let plugins_dir = self.codex_plugins_dir();
             if plugins_dir.exists()
                 && let Ok(entries) = fs::read_dir(&plugins_dir)
@@ -190,7 +283,7 @@ impl ExtensionExecutor {
         }
 
         // For Claude, also scan plugins directory and cache directory
-        if self.cli == CliType::Claude {
+        if self.cli == CliType::Claude && self.scope == InstallScope::Global {
             let plugins_dir = self.install_dir(ExtensionType::Plugin);
             if plugins_dir.exists()
                 && let Ok(entries) = fs::read_dir(&plugins_dir)
@@ -267,9 +360,8 @@ impl ExtensionExecutor {
 
     /// Install an extension from GitHub
     pub fn install(&self, ext: &Extension) -> Result<()> {
-        // Handle embedded extensions first (content generated by executor)
-        if ext.is_embedded {
-            return self.install_embedded(ext);
+        if let Some(spec) = ext.skills_cli {
+            return self.install_with_skills_cli(spec);
         }
 
         // Codex with hooks → install plugin with hook conversion
@@ -306,7 +398,7 @@ impl ExtensionExecutor {
             (ext.extension_type, ext.name)
         };
 
-        let dest = self.install_dir(install_type).join(dest_name);
+        let dest = self.extension_install_dir(install_type).join(dest_name);
 
         // Create parent directory if needed
         if let Some(parent) = dest.parent() {
@@ -338,6 +430,80 @@ impl ExtensionExecutor {
         }
 
         Ok(())
+    }
+
+    fn skills_cli_agent(&self) -> &'static str {
+        match self.cli {
+            CliType::Claude => "claude-code",
+            CliType::Codex => "codex",
+        }
+    }
+
+    fn build_skills_cli_add_args(&self, spec: SkillsCliSpec) -> Vec<String> {
+        let mut args = vec![
+            "--yes".to_string(),
+            "skills".to_string(),
+            "add".to_string(),
+            spec.source.to_string(),
+        ];
+
+        if let Some(skill) = spec.skill {
+            args.push("--skill".to_string());
+            args.push(skill.to_string());
+        }
+        if let Some(path) = spec.path {
+            args.push("--path".to_string());
+            args.push(path.to_string());
+        }
+        args.push("--agent".to_string());
+        args.push(self.skills_cli_agent().to_string());
+        if self.scope == InstallScope::Global {
+            args.push("--global".to_string());
+        }
+        args.push("--yes".to_string());
+        args
+    }
+
+    fn build_skills_cli_remove_args(&self, installed_name: &str) -> Vec<String> {
+        let mut args = vec![
+            "--yes".to_string(),
+            "skills".to_string(),
+            "remove".to_string(),
+            installed_name.to_string(),
+            "--agent".to_string(),
+            self.skills_cli_agent().to_string(),
+        ];
+        if self.scope == InstallScope::Global {
+            args.push("--global".to_string());
+        }
+        args.push("--yes".to_string());
+        args
+    }
+
+    fn install_with_skills_cli(&self, spec: SkillsCliSpec) -> Result<()> {
+        let args = self.build_skills_cli_add_args(spec);
+        let command_line = format_command("npx", &args);
+        let mut command = Command::new("npx");
+        command.args(&args);
+        configure_noninteractive_git(&mut command);
+        let output = command.output().map_err(|err| OperationError::Command {
+            command: "npx".to_string(),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
+        })?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(OperationError::Command {
+                command: "npx skills add".to_string(),
+                message: command_failure_message(
+                    &command_line,
+                    output.status,
+                    &output.stderr,
+                    &output.stdout,
+                ),
+            })
+        }
     }
 
     /// Install a plugin that requires full marketplace structure (Claude only)
@@ -926,9 +1092,8 @@ impl ExtensionExecutor {
 
     /// Remove an installed extension
     pub fn remove(&self, ext: &Extension) -> Result<()> {
-        // Handle embedded extensions
-        if ext.is_embedded {
-            return self.remove_embedded(ext);
+        if ext.skills_cli.is_some() {
+            return self.remove_with_skills_cli(ext.installed_name());
         }
 
         // Codex hook-based plugins
@@ -970,7 +1135,7 @@ impl ExtensionExecutor {
             (ext.extension_type, ext.name)
         };
 
-        let dest = self.install_dir(install_type).join(dest_name);
+        let dest = self.extension_install_dir(install_type).join(dest_name);
 
         if dest.exists() {
             fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
@@ -982,101 +1147,30 @@ impl ExtensionExecutor {
         Ok(())
     }
 
-    /// Install an embedded extension (content generated by executor)
-    fn install_embedded(&self, ext: &Extension) -> Result<()> {
-        self.install_embedded_skill(ext)
-    }
-
-    /// Install an embedded extension as SKILL.md for Claude/Codex
-    fn install_embedded_skill(&self, ext: &Extension) -> Result<()> {
-        let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-        fs::create_dir_all(&dest).map_err(|err| OperationError::Io {
-            path: dest.display().to_string(),
-            source: err,
+    fn remove_with_skills_cli(&self, installed_name: &str) -> Result<()> {
+        let args = self.build_skills_cli_remove_args(installed_name);
+        let command_line = format_command("npx", &args);
+        let mut command = Command::new("npx");
+        command.args(&args);
+        configure_noninteractive_git(&mut command);
+        let output = command.output().map_err(|err| OperationError::Command {
+            command: "npx".to_string(),
+            message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = err),
         })?;
 
-        // Generate SKILL.md content based on extension name and CLI
-        let skill_content = self.generate_embedded_content(ext.name);
-        let skill_md = dest.join("SKILL.md");
-        fs::write(&skill_md, skill_content).map_err(|err| OperationError::Io {
-            path: skill_md.display().to_string(),
-            source: err,
-        })?;
-
-        Ok(())
-    }
-
-    /// Generate embedded content for a specific extension and CLI
-    fn generate_embedded_content(&self, name: &str) -> String {
-        match name {
-            "loop-runner" => self.generate_loop_runner_content(),
-            _ => format!(
-                "---\nname: {}\ndescription: Embedded extension\n---\n",
-                name
-            ),
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(OperationError::Command {
+                command: "npx skills remove".to_string(),
+                message: command_failure_message(
+                    &command_line,
+                    output.status,
+                    &output.stderr,
+                    &output.stdout,
+                ),
+            })
         }
-    }
-
-    /// Generate loop-runner SKILL.md content based on target CLI
-    fn generate_loop_runner_content(&self) -> String {
-        match self.cli {
-            CliType::Claude => LOOP_RUNNER_CLAUDE.to_string(),
-            CliType::Codex => LOOP_RUNNER_CODEX.to_string(),
-        }
-    }
-
-    /// Remove an embedded extension
-    fn remove_embedded(&self, ext: &Extension) -> Result<()> {
-        match self.cli {
-            CliType::Codex => {
-                // Kill all running loop processes before removal
-                let home = dirs::home_dir().expect("Cannot find home directory");
-                let loops_dir = home.join(".codex/loops");
-                if loops_dir.exists() {
-                    if let Ok(entries) = fs::read_dir(&loops_dir) {
-                        for entry in entries.flatten() {
-                            let path = entry.path();
-                            if path.extension().map(|e| e == "pid").unwrap_or(false)
-                                && let Ok(pid_str) = fs::read_to_string(&path)
-                                && let Ok(pid) = pid_str.trim().parse::<i32>()
-                            {
-                                let _ = Command::new("kill").arg(pid.to_string()).status();
-                            }
-                        }
-                    }
-                    // Remove entire loops directory (PIDs, scripts, logs, pending)
-                    let _ = fs::remove_dir_all(&loops_dir);
-                }
-
-                // Remove skill
-                let skill_dir = self.install_dir(ExtensionType::Skill).join(ext.name);
-                if skill_dir.exists() {
-                    fs::remove_dir_all(&skill_dir).map_err(|err| OperationError::Io {
-                        path: skill_dir.display().to_string(),
-                        source: err,
-                    })?;
-                }
-                // Remove hook plugin directory and hooks.json entries
-                let plugin_dir = self.codex_plugins_dir().join(ext.name);
-                if plugin_dir.exists() {
-                    fs::remove_dir_all(&plugin_dir).map_err(|err| OperationError::Io {
-                        path: plugin_dir.display().to_string(),
-                        source: err,
-                    })?;
-                }
-                self.remove_codex_plugin_hooks(ext.name)?;
-            }
-            CliType::Claude => {
-                let dest = self.install_dir(ExtensionType::Skill).join(ext.name);
-                if dest.exists() {
-                    fs::remove_dir_all(&dest).map_err(|err| OperationError::Io {
-                        path: dest.display().to_string(),
-                        source: err,
-                    })?;
-                }
-            }
-        }
-        Ok(())
     }
 
     /// Remove a marketplace-based plugin
@@ -1239,6 +1333,67 @@ impl ExtensionExecutor {
 
     /// Download and extract from GitHub
     fn download_and_extract(&self, repo: &str, path: &str, dest: &Path) -> Result<()> {
+        if repo.starts_with("git@") || repo.starts_with("ssh://") || repo.starts_with("https://") {
+            let temp_dir = tempfile::tempdir().map_err(|err| OperationError::Io {
+                path: "tempdir".to_string(),
+                source: err,
+            })?;
+            let clone_dir = temp_dir.path().join("repo");
+            let args = vec![
+                "clone".to_string(),
+                "--depth".to_string(),
+                "1".to_string(),
+                repo.to_string(),
+                clone_dir.to_str().unwrap_or("repo").to_string(),
+            ];
+            let command_line = format_command("git", &args);
+            let mut command = Command::new("git");
+            command.args(&args);
+            configure_noninteractive_git(&mut command);
+            let output = command.output().map_err(|e| OperationError::Command {
+                command: "git clone".to_string(),
+                message: crate::tr!(keys::ERROR_UNABLE_TO_EXECUTE, error = e),
+            })?;
+
+            if !output.status.success() {
+                return Err(OperationError::Command {
+                    command: "git clone".to_string(),
+                    message: command_failure_message(
+                        &command_line,
+                        output.status,
+                        &output.stderr,
+                        &output.stdout,
+                    ),
+                });
+            }
+
+            let extracted = if path.is_empty() || path == "." {
+                clone_dir
+            } else {
+                clone_dir.join(path)
+            };
+
+            if !extracted.exists() {
+                return Err(OperationError::Command {
+                    command: "git clone".to_string(),
+                    message: crate::tr!(
+                        keys::SKILL_INSTALLER_EXTRACT_FAILED,
+                        error = "extracted path not found"
+                    ),
+                });
+            }
+
+            if dest.exists() {
+                fs::remove_dir_all(dest).map_err(|err| OperationError::Io {
+                    path: dest.display().to_string(),
+                    source: err,
+                })?;
+            }
+
+            self.move_directory(&extracted, dest)?;
+            return Ok(());
+        }
+
         let url = format!("https://github.com/{}/archive/refs/heads/main.tar.gz", repo);
 
         // Create temporary directory
@@ -1480,28 +1635,28 @@ mod tests {
 
     #[test]
     fn test_install_dir_claude_skill() {
-        let executor = ExtensionExecutor::new(CliType::Claude);
+        let executor = ExtensionExecutor::new(CliType::Claude, InstallScope::Global);
         let dir = executor.install_dir(ExtensionType::Skill);
         assert!(dir.to_string_lossy().contains(".claude/skills"));
     }
 
     #[test]
     fn test_install_dir_claude_plugin() {
-        let executor = ExtensionExecutor::new(CliType::Claude);
+        let executor = ExtensionExecutor::new(CliType::Claude, InstallScope::Global);
         let dir = executor.install_dir(ExtensionType::Plugin);
         assert!(dir.to_string_lossy().contains(".claude/plugins"));
     }
 
     #[test]
     fn test_install_dir_codex_skill() {
-        let executor = ExtensionExecutor::new(CliType::Codex);
+        let executor = ExtensionExecutor::new(CliType::Codex, InstallScope::Global);
         let dir = executor.install_dir(ExtensionType::Skill);
         assert!(dir.to_string_lossy().contains(".codex/skills"));
     }
 
     #[test]
     fn test_parse_skill_md() {
-        let executor = ExtensionExecutor::new(CliType::Claude);
+        let executor = ExtensionExecutor::new(CliType::Claude, InstallScope::Global);
         let content = r#"---
 name: Test Skill
 description: A test skill
@@ -1523,7 +1678,7 @@ Some content here.
 
     #[test]
     fn test_format_codex_skill() {
-        let executor = ExtensionExecutor::new(CliType::Codex);
+        let executor = ExtensionExecutor::new(CliType::Codex, InstallScope::Global);
         let content = r#"---
 name: Test Skill
 description: Line one
@@ -1538,6 +1693,82 @@ custom_field: value
         assert!(result.contains("description: Line one"));
         assert!(!result.contains("Line two"));
         assert!(!result.contains("custom_field"));
+    }
+
+    #[test]
+    fn test_build_skills_cli_add_args_local() {
+        let executor = ExtensionExecutor::new(CliType::Codex, InstallScope::Local);
+        let spec = SkillsCliSpec {
+            source: "addyosmani/agent-skills",
+            skill: Some("frontend-ui-engineering"),
+            path: None,
+            installed_name: "frontend-ui-engineering",
+        };
+
+        let args = executor.build_skills_cli_add_args(spec);
+        assert_eq!(
+            args,
+            vec![
+                "--yes",
+                "skills",
+                "add",
+                "addyosmani/agent-skills",
+                "--skill",
+                "frontend-ui-engineering",
+                "--agent",
+                "codex",
+                "--yes"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_build_skills_cli_add_args_global_path() {
+        let executor = ExtensionExecutor::new(CliType::Codex, InstallScope::Global);
+        let spec = SkillsCliSpec {
+            source: "sanyuan0704/sanyuan-skills",
+            skill: None,
+            path: Some("skills/code-review-expert"),
+            installed_name: "code-review-expert",
+        };
+
+        let args = executor.build_skills_cli_add_args(spec);
+        assert_eq!(
+            args,
+            vec![
+                "--yes",
+                "skills",
+                "add",
+                "sanyuan0704/sanyuan-skills",
+                "--path",
+                "skills/code-review-expert",
+                "--agent",
+                "codex",
+                "--global",
+                "--yes"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_summarize_command_output_skips_skills_cli_banner() {
+        let stderr = "\
+\u{1b}[?25l│
+███████╗██╗  ██╗██╗██╗     ██╗     ███████╗
+│
+■  Failed to clone repository
+│
+│  Authentication failed for git@github.com:owner/repo.git.
+│
+│    - For private repos, ensure you have access
+";
+
+        let summary = summarize_command_output(stderr.as_bytes(), b"");
+
+        assert!(!summary.contains("████"));
+        assert!(summary.contains("Failed to clone repository"));
+        assert!(summary.contains("Authentication failed"));
+        assert!(summary.contains("For private repos"));
     }
 
     #[test]

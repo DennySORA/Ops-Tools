@@ -94,7 +94,7 @@ Before adding a new extension, evaluate its structure:
 | Has `hooks/` only | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
 | Has `hooks/` + `commands/` | Plugin | Plugin (hooks.json) | Extension (TOML) | `has_hooks: true` |
 | Requires marketplace root | Plugin (marketplace) | **Not supported** | Extension (convert) | `marketplace_name` |
-| Embedded (custom content) | Skill | Skill | Extension (TOML) | `is_embedded: true` |
+| Install via `npx skills add` | Skill | Skill | Extension (Skills CLI) | `skills_cli` |
 
 
 **Marketplace plugins:** Some third-party plugins (like `claude-mem`) have scripts that reference the marketplace root directory. These require full marketplace installation with git clone.
@@ -110,13 +110,14 @@ Extension {
     extension_type: ExtensionType::Plugin,          // Always Plugin for GitHub plugins
     source_repo: "anthropics/claude-code",          // GitHub repo
     source_path: "plugins/my-extension",            // Path within repo
+    cli_support: &[CliType::Claude, CliType::Codex], // Supported target CLIs
     skill_subpath: Some("skills/my-skill"),         // If has skills/ subdirectory
     command_file: None,                             // Or specify command file
     has_hooks: false,                               // Set true if plugin uses hooks
     marketplace_name: None,                         // For marketplace-based plugins
     marketplace_plugin_path: None,                  // Plugin path within marketplace repo
     version: None,                                  // Plugin version for marketplace installs
-    is_embedded: false,                             // Set true for executor-generated content
+    skills_cli: None,                               // Set for npx skills add entries
 },
 ```
 
@@ -133,13 +134,14 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "anthropics/claude-code",
     source_path: "plugins/frontend-design",
+    cli_support: &[CliType::Claude, CliType::Codex],
     skill_subpath: Some("skills/frontend-design"),  // Path to skill within plugin
     command_file: None,
     has_hooks: false,
     marketplace_name: None,
     marketplace_plugin_path: None,
     version: None,
-    is_embedded: false,
+    skills_cli: None,
 },
 ```
 
@@ -158,13 +160,14 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "owner/repo",
     source_path: "plugins/my-command-plugin",
+    cli_support: &[CliType::Claude, CliType::Codex],
     skill_subpath: None,
     command_file: Some("commands/my-command.md"),  // Command file to convert
     has_hooks: false,
     marketplace_name: None,
     marketplace_plugin_path: None,
     version: None,
-    is_embedded: false,
+    skills_cli: None,
 },
 ```
 
@@ -178,20 +181,25 @@ Use when the plugin uses hooks. All three CLIs support hooks:
 
 ```rust
 Extension {
-    name: "ralph-wiggum",
-    display_name_key: keys::SKILL_RALPH_WIGGUM,
+    name: "hook-plugin",
+    display_name_key: keys::SKILL_HOOK_PLUGIN,
     extension_type: ExtensionType::Plugin,
-    source_repo: "anthropics/claude-code",
-    source_path: "plugins/ralph-wiggum",
+    source_repo: "owner/repo",
+    source_path: "plugins/hook-plugin",
+    cli_support: &[CliType::Claude, CliType::Codex],
     skill_subpath: None,
     command_file: None,
-    is_embedded: false,
+    has_hooks: true,
+    marketplace_name: None,
+    marketplace_plugin_path: None,
+    version: None,
+    skills_cli: None,
 },
 ```
 
 **Behavior:**
-- Claude: Installs full plugin to `~/.claude/plugins/ralph-wiggum/`
-- Codex: Copies hooks to `~/.codex/plugins/ralph-wiggum/hooks/`, generates `hooks.json` entries, enables the `hooks` feature
+- Claude: Installs full plugin to `~/.claude/plugins/hook-plugin/`
+- Codex: Copies hooks to `~/.codex/plugins/hook-plugin/hooks/`, generates `hooks.json` entries, enables the `hooks` feature
 
 #### Option D: Claude-only Plugin
 
@@ -211,7 +219,7 @@ Extension {
     marketplace_name: None,
     marketplace_plugin_path: None,
     version: None,
-    is_embedded: false,
+    skills_cli: None,
 },
 ```
 
@@ -229,12 +237,14 @@ Extension {
     extension_type: ExtensionType::Plugin,
     source_repo: "thedotmack/claude-mem",
     source_path: "plugin",  // Not used for marketplace installs
+    cli_support: &[CliType::Claude], // Full marketplace support
     skill_subpath: None,
     command_file: None,
     has_hooks: true,
     marketplace_name: Some("thedotmack"),      // Marketplace identifier
     marketplace_plugin_path: Some("plugin"),   // Path to plugin within repo
     version: Some("10.1.0"),                   // Plugin version
+    skills_cli: None,
 },
 ```
 
@@ -252,6 +262,45 @@ Extension {
   5. Creates `manifest.json` manifest
   7. Registers in `extension-enablement.json`
 - Codex: Not supported (marketplace plugins require Claude-specific features or hooks)
+
+#### Option F: Skills CLI (`npx --yes skills add`)
+
+Use when the source is an Agent Skills repository and should be installed with the Skills CLI. These entries can be installed into Codex local/project scope (`.agents/skills/`) or global/user scope (`~/.codex/skills/`).
+
+Use an SSH Git URL such as `git@github.com:owner/repo.git` for private repositories or repositories that require GitHub authentication. The installer passes the source directly to `npx skills add`.
+
+```rust
+Extension {
+    name: "skills-frontend-ui-engineering",
+    display_name_key: keys::SKILL_FRONTEND_UI_ENGINEERING,
+    extension_type: ExtensionType::Skill,
+    source_repo: "",
+    source_path: "",
+    cli_support: &[CliType::Codex],
+    skill_subpath: None,
+    command_file: None,
+    has_hooks: false,
+    marketplace_name: None,
+    marketplace_plugin_path: None,
+    version: None,
+    skills_cli: Some(SkillsCliSpec {
+        source: "addyosmani/agent-skills",
+        skill: Some("frontend-ui-engineering"),
+        path: None,
+        installed_name: "frontend-ui-engineering",
+    }),
+}
+```
+
+**Behavior:**
+- Local/project: `npx --yes skills add <source> --skill <skill> --agent codex --yes`
+- Global/user: `npx --yes skills add <source> --skill <skill> --agent codex --global --yes`
+- `path` is used instead of `skill` for commands such as `npx --yes skills add owner/repo --path skills/name`.
+- SSH sources are supported: `npx --yes skills add git@github.com:owner/repo.git --skill <skill> --agent codex --yes`.
+
+#### SSH GitHub Extraction
+
+For built-in extraction entries, `source_repo` may also be an SSH or HTTPS Git URL instead of `owner/repo`. URL sources are cloned with `git clone --depth 1`, which allows entries to install subpaths from private repositories when the user's SSH key has access.
 
 ## Marketplace Plugin Architecture
 
@@ -447,13 +496,14 @@ Update the test assertions in `src/features/skill_installer/tools.rs` if needed:
 ```rust
 #[test]
 fn test_get_available_extensions_codex() {
-    let extensions = get_available_extensions(CliType::Codex);
+    let extensions = get_available_extensions(CliType::Codex, InstallScope::Global);
     assert!(!extensions.is_empty());
-    // Codex extensions must have: skill_subpath, command_file, has_hooks, or is_embedded
-    assert!(extensions.iter().all(|ext| ext.skill_subpath.is_some()
+    // Codex extensions must be installable as skills, converted plugins, hook plugins, or Skills CLI entries.
+    assert!(extensions.iter().all(|ext| ext.extension_type == ExtensionType::Skill
+        || ext.skill_subpath.is_some()
         || ext.command_file.is_some()
         || ext.has_hooks
-        || ext.is_embedded));
+        || ext.skills_cli.is_some()));
 }
 ```
 
@@ -653,7 +703,7 @@ The installer converts Claude plugin hooks to Codex's `hooks.json` format:
 ├── config.toml            # [features] hooks = true
 ├── hooks.json             # Centralized hook registry
 ├── plugins/               # Hook-based plugin scripts
-│   └── ralph-wiggum/
+│   └── hook-plugin/
 │       └── hooks/
 │           ├── PreToolUse/
 │           │   └── hook-script.js
@@ -671,40 +721,6 @@ The installer converts Claude plugin hooks to Codex's `hooks.json` format:
 | Hook types | command, http, prompt, agent | command only | command |
 | Config format | settings.json | hooks.json | Extension format |
 | Scope levels | User, project, plugin | User, project | Extension-level |
-
-## Embedded Extensions
-
-Embedded extensions have their content generated by the executor rather than being downloaded from a GitHub repository. They are useful for custom skills created by this project.
-
-### Configuration
-
-```rust
-Extension {
-    name: "loop-runner",
-    display_name_key: keys::SKILL_LOOP_RUNNER,
-    extension_type: ExtensionType::Skill,
-    source_repo: "",           // Not used
-    source_path: "",           // Not used
-    is_embedded: true,         // Content generated by executor
-    // ... other fields
-}
-```
-
-### Loop Runner Extension
-
-The `loop-runner` extension provides periodic task scheduling:
-
-**For Claude:** Uses built-in CronCreate/CronList/CronDelete tools to schedule recurring tasks.
-
-**For Codex:** Uses Codex's built-in cron tools. No hook scripts, background processes, or loop files are installed.
-
-
-### Behavior
-
-| CLI | Installation | Loop Management |
-|-----|-------------|-----------------|
-| Claude | `~/.claude/skills/loop-runner/SKILL.md` | Built-in cron tools |
-| Codex | `~/.codex/skills/loop-runner/SKILL.md` | Built-in cron tools |
 
 ## Limitations
 
@@ -774,6 +790,7 @@ Before submitting a new extension:
 - [ ] Conversion method configured:
   - `skill_subpath` for plugins with skills/ subdirectory
   - `command_file` for command-based conversion
+  - `skills_cli` for Skills CLI installs
 
 ### Marketplace Plugin Requirements
 
@@ -856,16 +873,13 @@ Before submitting a new extension:
 **Claude:**
 ```bash
 > /frontend-design
-> /loop-runner
 ```
 
 **Codex:**
 ```bash
 > Use $frontend-design to build a responsive dashboard.
-> Use loop-runner to schedule this verification every 30 minutes.
 ```
 
 ```bash
 > /frontend-design:invoke
-> /loop-runner:invoke
 ```

@@ -193,33 +193,45 @@ pub fn get_available_tools(cli_type: CliType) -> Vec<McpTool> {
             requires_interactive: false,
             has_options: true,
         },
-    ];
-
-    // 只有在環境變數存在時才加入特定工具
-    if let Some(key) = ENV_CONFIG.context7_api_key {
-        let context7_args = match cli_type {
-            CliType::Claude => vec![
-                "--transport".to_string(),
-                "http".to_string(),
-                "context7".to_string(),
-                "https://mcp.context7.com/mcp".to_string(),
-                "--header".to_string(),
-                format!("CONTEXT7_API_KEY: {}", key),
-            ],
-            CliType::Codex => vec![
-                "context7".to_string(),
-                "--url".to_string(),
-                "https://mcp.context7.com/mcp".to_string(),
-            ],
-        };
-        tools.push(McpTool {
-            name: "context7",
-            display_name_key: keys::MCP_TOOL_CONTEXT7,
-            install_args: context7_args,
+        McpTool {
+            name: "playwright",
+            display_name_key: keys::MCP_TOOL_PLAYWRIGHT,
+            install_args: {
+                let mut args = vec!["playwright".to_string()];
+                if let Some(sep) = separator {
+                    args.push(sep.to_string());
+                }
+                args.extend(vec![
+                    "npx".to_string(),
+                    "@playwright/mcp@latest".to_string(),
+                ]);
+                args
+            },
             requires_interactive: false,
             has_options: false,
-        });
+        },
+    ];
+
+    let mut context7_args = vec!["context7".to_string()];
+    if let Some(sep) = separator {
+        context7_args.push(sep.to_string());
     }
+    context7_args.extend(vec![
+        "npx".to_string(),
+        "-y".to_string(),
+        "@upstash/context7-mcp".to_string(),
+    ]);
+    if let Some(key) = ENV_CONFIG.context7_api_key {
+        context7_args.push("--api-key".to_string());
+        context7_args.push(key.to_string());
+    }
+    tools.push(McpTool {
+        name: "context7",
+        display_name_key: keys::MCP_TOOL_CONTEXT7,
+        install_args: context7_args,
+        requires_interactive: false,
+        has_options: false,
+    });
 
     if ENV_CONFIG.enable_cloudflare_mcp() {
         for tool in CLOUDFLARE_TOOLS {
@@ -362,6 +374,32 @@ mod tests {
                         .any(|arg| arg.starts_with("https://"))
             );
         }
+    }
+
+    #[test]
+    fn test_playwright_tool_available() {
+        let tool = get_available_tools(CliType::Codex)
+            .into_iter()
+            .find(|tool| tool.name == "playwright")
+            .expect("Missing playwright tool");
+
+        assert!(
+            tool.install_args
+                .contains(&"@playwright/mcp@latest".to_string())
+        );
+    }
+
+    #[test]
+    fn test_context7_tool_available_without_api_key_gate() {
+        let tool = get_available_tools(CliType::Codex)
+            .into_iter()
+            .find(|tool| tool.name == "context7")
+            .expect("Missing context7 tool");
+
+        assert!(
+            tool.install_args
+                .contains(&"@upstash/context7-mcp".to_string())
+        );
     }
 
     #[test]

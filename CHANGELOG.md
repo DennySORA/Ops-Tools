@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a Rust multi-platform builder (cargo/cross) that installs missing targets and builds selected triples.
 - Added macOS support to System Updater with auto-detection, Homebrew maintenance, conservative `softwareupdate`, and macOS-specific backup/verification steps.
 - Added CUDA Toolkit runfile upgrades to System Updater for NVIDIA/WSL Linux hosts, including official runfile metadata detection and managed `.zshrc` CUDA environment cleanup.
+- Added Playwright MCP and always-available Context7 MCP installs to MCP Manager.
+- Added curated Codex skill installs with local/project and global/user scope selection.
+- Added SSH GitHub source support for auth-gated Codex skill installs.
 
 ### Changed
 - Cloudflare MCP installs now use OAuth interactive login (no API token required).
@@ -35,13 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed the Prompt Generator / LLM prompt creation feature from the menu, codebase, localization strings, and documentation.
+- Removed Ralph Wiggum and Loop Runner from the Skill Installer catalog.
 
 ### Fixed
 - Improved MCP list parsing to detect Gemini CLI entries with checkmarks and ANSI colors.
 - Clarified Codex skill restart and invocation guidance after Skill Installer installs.
 - Tailwind CSS MCP installs now use a stdio-safe wrapper so package startup logs do not corrupt MCP handshakes.
 - Skill Installer now enables Codex hooks with `[features].hooks` instead of deprecated `[features].codex_hooks`.
-- Codex loop-runner installs no longer create stale hook scripts now that the skill uses built-in cron tools.
 - Added Gemini MCP settings migration to remove invalid `type` fields and map HTTP URLs.
 - Removed invalid `--env` option when adding Context7 MCP via Codex CLI.
 - Write Context7 HTTP headers into Codex config when a build-time API key is available.

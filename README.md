@@ -89,6 +89,7 @@ Manages MCP servers for Claude and Codex CLI:
 | `sequential-thinking` | Sequential Thinking |
 | `context7` | Documentation Query |
 | `chrome-devtools` | Chrome DevTools |
+| `playwright` | Playwright browser automation |
 | `github` | GitHub Integration |
 | `cloudflare-*` | Cloudflare MCP Servers |
 
@@ -98,7 +99,7 @@ Manages MCP servers for Claude and Codex CLI:
 3. Build with `cargo build --release`
 
 Available options:
-- **Context7**: set `CONTEXT7_API_KEY`
+- **Context7**: optionally set `CONTEXT7_API_KEY` for higher limits
 - **GitHub**: set `GITHUB_PERSONAL_ACCESS_TOKEN` (required), optional `GITHUB_MCP_MODE`, `GITHUB_HOST`, `GITHUB_TOOLSETS`
 - **Cloudflare**: set `enable_cloudflare_mcp=true` (OAuth during install)
 
@@ -108,9 +109,9 @@ Install extensions for AI CLI tools:
 | CLI | Extension Format | Install Path |
 |-----|-----------------|--------------|
 | Claude Code | Plugins + Skills | `~/.claude/plugins/`, `~/.claude/skills/` |
-| OpenAI Codex | Skills (SKILL.md) | `~/.codex/skills/` |
+| OpenAI Codex | Skills (SKILL.md) + Skills CLI | `.agents/skills/`, `~/.codex/skills/` |
 
-Available extensions: ralph-wiggum, security-guidance, frontend-design, code-review, pr-review-toolkit, commit-commands, writing-rules, claude-mem, loop-runner, and more.
+Available extensions: frontend-design and claude-mem for Claude Code; frontend-design plus curated frontend/testing skills for OpenAI Codex.
 
 See [docs/SKILL_INSTALLER.md](docs/SKILL_INSTALLER.md) for development guide.
 ### Rust Builder

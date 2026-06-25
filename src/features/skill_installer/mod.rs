@@ -4,7 +4,7 @@ mod tools;
 use crate::i18n::{self, keys};
 use crate::ui::{Console, Prompts};
 use executor::ExtensionExecutor;
-use tools::{CliType, Extension, get_available_extensions};
+use tools::{CliType, Extension, InstallScope, get_available_extensions};
 
 /// Run the skill installer feature
 pub fn run() {
@@ -32,7 +32,24 @@ pub fn run() {
         cli = cli.display_name()
     ));
 
-    let executor = ExtensionExecutor::new(cli);
+    let scope = if cli == CliType::Codex {
+        let scope_options = [
+            i18n::t(keys::SKILL_INSTALLER_SCOPE_LOCAL),
+            i18n::t(keys::SKILL_INSTALLER_SCOPE_GLOBAL),
+        ];
+        match prompts.select(i18n::t(keys::SKILL_INSTALLER_SELECT_SCOPE), &scope_options) {
+            Some(0) => InstallScope::Local,
+            Some(1) => InstallScope::Global,
+            _ => {
+                console.warning(i18n::t(keys::SKILL_INSTALLER_CANCELLED));
+                return;
+            }
+        }
+    } else {
+        InstallScope::Global
+    };
+
+    let executor = ExtensionExecutor::new(cli, scope);
 
     // Scan installed extensions
     console.info(i18n::t(keys::SKILL_INSTALLER_SCANNING));
@@ -54,7 +71,7 @@ pub fn run() {
     console.separator();
 
     // Get available extensions for this CLI
-    let available_extensions = get_available_extensions(cli);
+    let available_extensions = get_available_extensions(cli, scope);
 
     if available_extensions.is_empty() {
         console.warning(i18n::t(keys::SKILL_INSTALLER_NO_EXTENSIONS));
@@ -65,7 +82,7 @@ pub fn run() {
     let items: Vec<String> = available_extensions
         .iter()
         .map(|ext| {
-            let status = if installed.contains_key(ext.name) {
+            let status = if installed.contains_key(ext.installed_name()) {
                 i18n::t(keys::SKILL_INSTALLER_STATUS_INSTALLED)
             } else {
                 i18n::t(keys::SKILL_INSTALLER_STATUS_MISSING)
@@ -82,7 +99,7 @@ pub fn run() {
     // Set defaults based on installed state
     let defaults: Vec<bool> = available_extensions
         .iter()
-        .map(|ext| installed.contains_key(ext.name))
+        .map(|ext| installed.contains_key(ext.installed_name()))
         .collect();
 
     console.blank_line();
@@ -102,7 +119,7 @@ pub fn run() {
 
     for (i, ext) in available_extensions.iter().enumerate() {
         let is_selected = selections.contains(&i);
-        let is_installed = installed.contains_key(ext.name);
+        let is_installed = installed.contains_key(ext.installed_name());
 
         if is_selected && !is_installed {
             to_install.push(ext);
@@ -222,11 +239,11 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::tools::{CliType, get_available_extensions};
+    use super::tools::{CliType, InstallScope, get_available_extensions};
 
     #[test]
     fn test_extensions_available() {
-        let extensions = get_available_extensions(CliType::Claude);
+        let extensions = get_available_extensions(CliType::Claude, InstallScope::Global);
         assert!(!extensions.is_empty());
     }
 }
